@@ -398,6 +398,7 @@ Import behaviour:
 - Names resolve through `classes` and `class_aliases`. Unknown names are listed in a preview with "create" or "map to..." choices.
 - Every import returns a report: files read, annotations created, skipped and why. Skipped items never vanish silently.
 - Imports write an `operations` row, so a bad import can be reverted.
+- Images are matched by filename, or by name without extension for YOLO. An image that already has shapes is skipped, so importing the same file twice cannot duplicate them. Reverting an import arrives with the operations log in M2.
 
 Testing rule: every format has golden files and a round-trip test (import, export, compare).
 

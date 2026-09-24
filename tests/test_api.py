@@ -1,6 +1,8 @@
 import io
+import json
 import time
 import uuid
+import zipfile
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
@@ -172,3 +174,58 @@ def test_mark_done(api: TestClient, library: Path) -> None:
     assert done["status"] == "done"
     assert api.get(f"{API}/projects/{p['id']}").json()["done_count"] == 1
     assert api.patch(f"{API}/images/{image['id']}", json={"status": "approved"}).status_code == 422
+
+
+def test_formats_are_listed(api: TestClient) -> None:
+    ids = {f["id"] for f in api.get(f"{API}/formats").json()}
+    assert ids == {"yolo-detect", "coco"}
+
+
+def test_yolo_import_then_coco_export(api: TestClient, library: Path, tmp_path: Path) -> None:
+    p = make_project(api)
+    import_library(api, p, library)
+    (library / "labels").mkdir()
+    (library / "data.yaml").write_text("names:\n  0: car\n  1: bus\n")
+    (library / "labels" / "img0.txt").write_text("0 0.5 0.5 0.2 0.4\n1 0.2 0.2 0.1 0.1\n")
+
+    res = api.post(f"{API}/projects/{p['id']}/imports", json={"path": str(library)})
+    assert res.status_code == 202, res.text
+    job = wait_job(api, res.json()["id"])
+    assert job["status"] == "done", job
+    assert job["result"]["format"] == "yolo-detect"
+    assert job["result"]["shapes_added"] == 2
+    assert job["result"]["classes_created"] == ["car", "bus"]
+
+    again = wait_job(
+        api, api.post(f"{API}/projects/{p['id']}/imports", json={"path": str(library)}).json()["id"]
+    )
+    assert again["result"]["shapes_added"] == 0
+    assert "Already has shapes" in again["result"]["notes"][0]["reason"]
+
+    counts = {
+        c["name"]: c["annotation_count"]
+        for c in api.get(f"{API}/projects/{p['id']}/classes").json()
+    }
+    assert counts == {"car": 1, "bus": 1}
+
+    res = api.post(f"{API}/projects/{p['id']}/exports", json={"format": "coco"})
+    assert res.status_code == 202, res.text
+    job = wait_job(api, res.json()["id"])
+    assert job["status"] == "done", job
+    assert job["result"]["shapes"] == 2
+    download = api.get(f"{API}/jobs/{job['id']}/download")
+    assert download.status_code == 200
+    with zipfile.ZipFile(io.BytesIO(download.content)) as z:
+        doc = json.loads(z.read("annotations.json"))
+    assert [c["name"] for c in doc["categories"]] == ["car", "bus"]
+    assert len(doc["images"]) == 3 and len(doc["annotations"]) == 2
+
+
+def test_import_path_outside_roots_and_empty_export(api: TestClient, tmp_path: Path) -> None:
+    p = make_project(api)
+    res = api.post(f"{API}/projects/{p['id']}/imports", json={"path": str(tmp_path)})
+    assert res.status_code == 403
+    res = api.post(f"{API}/projects/{p['id']}/exports", json={"format": "yolo-detect"})
+    assert res.status_code == 422
+    assert "no images" in res.json()["message"]
+    assert api.get(f"{API}/jobs/{uuid.uuid4()}/download").status_code == 404
