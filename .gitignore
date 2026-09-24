@@ -25,3 +25,5 @@ katib.toml
 
 CLAUDE.md
 .claude/
+
+web/openapi.json

@@ -9,7 +9,7 @@
     "check": "svelte-check --tsconfig ./tsconfig.json && tsc --noEmit -p tsconfig.node.json",
     "lint": "eslint .",
     "test": "vitest run",
-    "gen:api": "openapi-typescript http://127.0.0.1:8420/openapi.json -o src/lib/api/schema.d.ts"
+    "gen:api": "uv run --project .. python ../scripts/dump_openapi.py > openapi.json && openapi-typescript openapi.json -o src/lib/api/schema.d.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
