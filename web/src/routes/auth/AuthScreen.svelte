@@ -75,7 +75,7 @@
     </label>
     {#if error}<p class="error" role="alert">{error}</p>{/if}
 
-    <Button variant="primary" disabled={busy || !email.trim() || !password}
+    <Button variant="primary" disabled={busy || !email.trim() || !password} onclick={submit}
       >{kind === 'signin' ? 'Sign in' : kind === 'setup' ? 'Create administrator' : 'Create account'}</Button
     >
     <button type="submit" class="hidden" tabindex="-1" aria-hidden="true">Submit</button>
