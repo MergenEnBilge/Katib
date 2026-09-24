@@ -11,7 +11,11 @@ from katib.services.images import StorageContext
 
 
 def get_session(request: Request) -> Iterator[Session]:
-    """One transaction per request: commit on success, roll back on any error."""
+    """One transaction per request: commit on success, roll back on any error.
+
+    Used with scope="function" so the commit happens before the response is sent. With the
+    default request scope, a fast client can ask for the new row before it is committed.
+    """
     session: Session = request.app.state.session_factory()
     try:
         yield session
@@ -33,6 +37,6 @@ def get_runner(request: Request) -> JobRunner:
     return runner
 
 
-SessionDep = Annotated[Session, Depends(get_session)]
+SessionDep = Annotated[Session, Depends(get_session, scope="function")]
 StorageDep = Annotated[StorageContext, Depends(get_storage)]
 RunnerDep = Annotated[JobRunner, Depends(get_runner)]
