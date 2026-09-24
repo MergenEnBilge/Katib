@@ -210,3 +210,42 @@ def test_box_round_trip_property(
         assert len(got) == len(shapes)
         for a, b in zip(shapes, got, strict=True):
             assert all(abs(a.geometry[k] - b.geometry[k]) < 1e-3 for k in "xywh")
+
+
+def test_yolo_split_export_layout_and_data_yaml(tmp_path: Path) -> None:
+    import yaml
+
+    box = Shape("car", "box", {"x": 0.1, "y": 0.1, "w": 0.2, "h": 0.2})
+    view = View(ParsedDataset(["car"], []))
+    view.images = lambda: [  # type: ignore[method-assign]
+        ExportImage("a.jpg", 10, 10, [box], split="train"),
+        ExportImage("b.jpg", 10, 10, [box], split="val"),
+        ExportImage("c.jpg", 10, 10, [], split="test"),
+    ]
+    get_format("yolo-detect").write(view, tmp_path, ExportOptions())
+    assert (tmp_path / "labels" / "train" / "a.txt").is_file()
+    assert (tmp_path / "labels" / "val" / "b.txt").is_file()
+    assert (tmp_path / "labels" / "test" / "c.txt").is_file()
+    data = yaml.safe_load((tmp_path / "data.yaml").read_text())
+    assert data["train"] == "images/train"
+    assert data["val"] == "images/val"
+    assert data["test"] == "images/test"
+    assert data["names"] == {0: "car"}
+
+
+def test_coco_split_export_writes_one_file_per_split(tmp_path: Path) -> None:
+    import json
+
+    box = Shape("car", "box", {"x": 0.1, "y": 0.1, "w": 0.2, "h": 0.2})
+    view = View(ParsedDataset(["car"], []))
+    view.images = lambda: [  # type: ignore[method-assign]
+        ExportImage("a.jpg", 10, 10, [box], split="train"),
+        ExportImage("b.jpg", 10, 10, [box, box], split="val"),
+    ]
+    get_format("coco").write(view, tmp_path, ExportOptions())
+    train = json.loads((tmp_path / "annotations_train.json").read_text())
+    val = json.loads((tmp_path / "annotations_val.json").read_text())
+    assert len(train["annotations"]) == 1 and len(val["annotations"]) == 2
+    assert [c["name"] for c in val["categories"]] == ["car"]
+    train_ids = {a["id"] for a in train["annotations"]}
+    assert train_ids.isdisjoint({a["id"] for a in val["annotations"]})

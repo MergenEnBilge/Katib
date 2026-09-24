@@ -49,6 +49,7 @@ class ExportImage:
     height: int
     shapes: list[Shape]
     source: Path | None = None  # original file, used when copying images into the export
+    split: str | None = None  # "train", "val" or "test" when the export is split
 
 
 class DatasetView(Protocol):
@@ -61,8 +62,16 @@ class DatasetView(Protocol):
 
 
 @dataclass(frozen=True)
+class SplitSpec:
+    ratios: dict[str, float]
+    seed: int = 0
+    stratify: bool = False
+
+
+@dataclass(frozen=True)
 class ExportOptions:
     copy_images: bool = False
+    split: SplitSpec | None = None
 
 
 @dataclass

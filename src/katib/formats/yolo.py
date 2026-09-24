@@ -20,6 +20,11 @@ from katib.formats.common import FormatError, copy_image, unique_names
 
 YAML_NAMES = ("data.yaml", "dataset.yaml", "data.yml")
 IGNORED_TXT = {"classes.txt", "readme.txt", "notes.txt"}
+_SPLIT_ORDER = ("train", "val", "test")
+
+
+def _split_order(name: str | None) -> int:
+    return _SPLIT_ORDER.index(name) if name in _SPLIT_ORDER else len(_SPLIT_ORDER)
 
 
 def _class_names(root: Path) -> list[str]:
@@ -98,9 +103,11 @@ class YoloDetect:
         report = ExportReport()
         names = view.class_names
         index = {n: i for i, n in enumerate(names)}
-        (dest / "labels").mkdir(parents=True, exist_ok=True)
         images = list(view.images())
+        splits = sorted({i.split for i in images if i.split}, key=_split_order)
+        (dest / "labels").mkdir(parents=True, exist_ok=True)
         for img, name in zip(images, unique_names(images), strict=True):
+            part = img.split or ""
             lines: list[str] = []
             for shape in img.shapes:
                 box = self._as_box(shape, f"{img.filename}", report)
@@ -108,19 +115,23 @@ class YoloDetect:
                     continue
                 cx, cy, w, h = box_to_yolo(box)
                 lines.append(f"{index[shape.class_name]} {cx:.6f} {cy:.6f} {w:.6f} {h:.6f}")
-            (dest / "labels" / f"{Path(name).stem}.txt").write_text(
+            label_dir = dest / "labels" / part
+            label_dir.mkdir(parents=True, exist_ok=True)
+            (label_dir / f"{Path(name).stem}.txt").write_text(
                 "\n".join(lines) + ("\n" if lines else ""), encoding="utf-8"
             )
             if opts.copy_images and img.source is not None:
-                copy_image(img.source, dest / "images", name)
+                copy_image(img.source, dest / "images" / part, name)
             report.images += 1
             report.shapes += len(lines)
-        data = {
-            "path": ".",
-            "train": "images",
-            "val": "images",
-            "names": dict(enumerate(names)),
-        }
+        data: dict[str, Any] = {"path": "."}
+        if splits:
+            for split in splits:
+                data[split] = f"images/{split}"
+            data.setdefault("val", data.get("train", "images"))
+        else:
+            data.update(train="images", val="images")
+        data["names"] = dict(enumerate(names))
         (dest / "data.yaml").write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
         return report
 

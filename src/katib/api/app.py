@@ -18,6 +18,7 @@ from katib.api import (
     images,
     jobs,
     projects,
+    quality,
 )
 from katib.config import Settings
 from katib.db.migrate import upgrade_to_head
@@ -64,7 +65,17 @@ def create_app(settings: Settings) -> FastAPI:
     app = FastAPI(title="Katib", lifespan=lifespan)
     app.state.settings = settings
     errors.install(app)
-    for module in (health, projects, classes, class_ops, images, annotations, exchange, jobs):
+    for module in (
+        health,
+        projects,
+        classes,
+        class_ops,
+        images,
+        annotations,
+        quality,
+        exchange,
+        jobs,
+    ):
         app.include_router(module.router, prefix="/api/v1")
     _mount_ui(app)
     return app

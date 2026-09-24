@@ -1,6 +1,7 @@
 """Reading image facts and making thumbnails. Originals are opened read-only."""
 
 import hashlib
+import io
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -64,3 +65,22 @@ def make_thumbnail(src: Path, dest: Path, size: int = THUMB_SIZE) -> None:
         img = ImageOps.exif_transpose(raw)
         img.thumbnail((size, size), Image.Resampling.LANCZOS)
         img.convert("RGB").save(dest, "JPEG", quality=82)
+
+
+def crop_jpeg(
+    src: Path, x: float, y: float, w: float, h: float, size: int, pad: float = 0.1
+) -> bytes:
+    """JPEG of a normalized box plus some context, longest side at most `size` pixels."""
+    with Image.open(src) as raw:
+        img = ImageOps.exif_transpose(raw)
+        iw, ih = img.size
+        px, py = w * pad, h * pad
+        left = max(0, round((x - px) * iw))
+        top = max(0, round((y - py) * ih))
+        right = min(iw, round((x + w + px) * iw))
+        bottom = min(ih, round((y + h + py) * ih))
+        crop = img.crop((left, top, max(right, left + 1), max(bottom, top + 1)))
+        crop.thumbnail((size, size), Image.Resampling.LANCZOS)
+        out = io.BytesIO()
+        crop.convert("RGB").save(out, "JPEG", quality=85)
+    return out.getvalue()

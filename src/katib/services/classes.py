@@ -7,10 +7,12 @@ old name as an alias so older files still resolve on import.
 import re
 import uuid
 from dataclasses import dataclass
+from typing import Any
 
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 
+from katib.core.attributes import AttributeError_, normalize_schema
 from katib.core.palette import next_color
 from katib.db.models import Annotation, Class, ClassAlias
 from katib.services.errors import ClassNameTaken, InvalidInput, NotFound
@@ -130,6 +132,17 @@ def reorder_classes(session: Session, project_id: uuid.UUID, ordered_ids: list[u
     for position, class_id in enumerate(ordered_ids):
         session.execute(update(Class).where(Class.id == class_id).values(position=position))
     session.flush()
+
+
+def set_attr_schema(session: Session, class_id: uuid.UUID, schema: list[dict[str, Any]]) -> Class:
+    """Replace a class's attribute definitions. Stored values for removed attributes stay put."""
+    cls = get_class(session, class_id)
+    try:
+        cls.attr_schema = normalize_schema(schema)
+    except AttributeError_ as err:
+        raise InvalidInput(str(err)) from err
+    session.flush()
+    return cls
 
 
 def resolve_class(session: Session, project_id: uuid.UUID, name: str) -> Class | None:

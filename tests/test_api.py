@@ -307,3 +307,35 @@ def test_delete_class_and_bulk_edit_over_the_api(api: TestClient, library: Path)
     gone = api.post(f"{API}/classes/{bus['id']}:delete", json={}).json()
     assert gone["preview"]["annotations"] == 2
     assert [c["name"] for c in api.get(base).json()] == ["car"]
+
+
+def test_split_export_and_class_order_warning(api: TestClient, library: Path) -> None:
+    p = make_project(api)
+    base = f"{API}/projects/{p['id']}/classes"
+    car = api.post(base, json={"name": "car"}).json()
+    bus = api.post(base, json={"name": "bus"}).json()
+    import_library(api, p, library)
+    info = api.get(f"{API}/projects/{p['id']}/export-info").json()
+    assert info == {"order_changed": False, "has_exported": False}
+
+    body = {"format": "yolo-detect", "split": {"train": 0.67, "val": 0.33, "test": 0, "seed": 1}}
+    started = api.post(f"{API}/projects/{p['id']}/exports", json=body).json()
+    job = wait_job(api, started["id"])
+    assert job["status"] == "done", job
+    download = api.get(f"{API}/jobs/{job['id']}/download")
+    with zipfile.ZipFile(io.BytesIO(download.content)) as z:
+        names = z.namelist()
+    assert "data.yaml" in names
+    assert any(n.startswith("labels/train/") for n in names)
+    assert any(n.startswith("labels/val/") for n in names)
+    assert not any(n.startswith("labels/test/") for n in names)
+
+    assert api.get(f"{API}/projects/{p['id']}/export-info").json()["order_changed"] is False
+    api.post(f"{base}:reorder", json={"class_ids": [bus["id"], car["id"]]})
+    assert api.get(f"{API}/projects/{p['id']}/export-info").json()["order_changed"] is True
+
+    bad = api.post(
+        f"{API}/projects/{p['id']}/exports",
+        json={"format": "coco", "split": {"train": 0, "val": 0, "test": 0}},
+    )
+    assert wait_job(api, bad.json()["id"])["status"] == "failed"
