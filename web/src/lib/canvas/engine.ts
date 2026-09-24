@@ -30,6 +30,8 @@ export class Engine {
   opacity = 1;
   patternMode = false;
   crosshair = false;
+  /** When true the image can be viewed, zoomed and panned but not edited. */
+  readOnly = false;
 
   private renderer: Renderer;
   private tools: Record<ToolName, Tool>;
@@ -188,6 +190,7 @@ export class Engine {
       this.updateCursor();
       return true;
     }
+    if (this.readOnly) return false;
     return this.tool.key({ key: e.key, shift: e.shiftKey, ctrl: e.ctrlKey || e.metaKey });
   }
 
@@ -261,6 +264,14 @@ export class Engine {
 
   private onPointerDown(e: PointerEvent): void {
     this.overlay.focus({ preventScroll: true });
+    if (this.readOnly && e.button === 0 && !this.spaceHeld && this.pointers.size === 0) {
+      // Reading only: a drag pans the view instead of drawing.
+      this.overlay.setPointerCapture(e.pointerId);
+      this.pointers.set(e.pointerId, this.eventFor(e).screen);
+      this.panning = { last: this.eventFor(e).screen };
+      this.updateCursor();
+      return;
+    }
     this.overlay.setPointerCapture(e.pointerId);
     const ev = this.eventFor(e);
     this.pointers.set(e.pointerId, ev.screen);
