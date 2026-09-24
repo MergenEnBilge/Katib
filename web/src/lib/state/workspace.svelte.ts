@@ -1,10 +1,20 @@
 import { SvelteSet } from 'svelte/reactivity';
 import { api, ApiError } from '../api/client';
-import type { Annotation, ImageItem, Project, ProjectClass } from '../api/types';
+import type {
+  Annotation,
+  Comment,
+  ImageItem,
+  Lock,
+  Member,
+  Project,
+  ProjectClass,
+} from '../api/types';
 import type { ClassStyle, Shape } from '../canvas/types';
 import { isBox } from '../canvas/types';
 import type { Engine } from '../canvas/engine';
 import { Autosave, shapeFromAnnotation, type SaveState } from '../sync/autosave';
+import { isoIn, Realtime, type PresenceUser, type ServerEvent } from '../sync/realtime';
+import { session } from './session.svelte';
 import { announceOperation, revert } from './operations';
 import { toasts } from './toast.svelte';
 
@@ -45,6 +55,11 @@ export class Workspace {
   canRedo = $state(false);
   /** Bumped on every model change so derived UI (details panel) can refresh. */
   modelTick = $state(0);
+  presence = $state<PresenceUser[]>([]);
+  members = $state<Member[]>([]);
+  comments = $state<Comment[]>([]);
+  /** Someone else holds the edit lock on the open image. */
+  lockedByOther = $state<Lock | null>(null);
 
   engine = $state.raw<Engine | null>(null);
   private autosave: Autosave | null = null;
@@ -53,7 +68,40 @@ export class Workspace {
   private stopModel: (() => void)[] = [];
   private classRefresh: ReturnType<typeof setTimeout> | undefined;
 
+  private realtime: Realtime | null = null;
+  private lockTimer: ReturnType<typeof setInterval> | undefined;
+  private lockedImage: string | null = null;
+
   constructor(readonly projectId: string) {}
+
+  get role(): string {
+    return this.project?.role ?? 'viewer';
+  }
+
+  get canEdit(): boolean {
+    return this.role !== 'viewer';
+  }
+
+  get canManage(): boolean {
+    return this.role === 'owner' || this.role === 'manager';
+  }
+
+  get canReview(): boolean {
+    return this.canManage || this.role === 'reviewer';
+  }
+
+  /** Editing is off for viewers and while someone else has the image open. */
+  get readOnly(): boolean {
+    return !this.canEdit || this.lockedByOther !== null;
+  }
+
+  /** Other people in the project, for the presence avatars. */
+  get others(): PresenceUser[] {
+    const me = session.user?.id;
+    return this.presence.filter(
+      (p, i, all) => p.user_id !== me && all.findIndex((q) => q.user_id === p.user_id) === i,
+    );
+  }
 
   get current(): ImageItem | null {
     return this.images.find((i) => i.id === this.currentId) ?? null;
@@ -104,7 +152,113 @@ export class Workspace {
     engine.setClasses(this.styles);
   }
 
+  private startRealtime(): void {
+    if (session.mode !== 'local' || this.realtime) return;
+    this.realtime = new Realtime({
+      projectId: this.projectId,
+      onEvent: (event) => this.onEvent(event),
+      onReconnect: () => void this.refresh().then(() => this.reloadCurrent()),
+    });
+    this.realtime.connect();
+  }
+
+  private onEvent(event: ServerEvent): void {
+    const me = session.user?.id;
+    switch (event.type) {
+      case 'presence':
+        this.presence = event.users;
+        break;
+      case 'class.changed':
+        void this.refreshClasses();
+        break;
+      case 'image.status': {
+        const item = this.images.find((i) => i.id === event.image_id);
+        if (item) item.status = event.status;
+        break;
+      }
+      case 'image.locked': {
+        const item = this.images.find((i) => i.id === event.image_id);
+        const lock: Lock = {
+          user_id: event.user_id,
+          name: event.name,
+          until: isoIn(45_000),
+          mine: event.user_id === me,
+        };
+        if (item) item.lock = lock;
+        if (event.image_id === this.currentId) this.lockedByOther = lock.mine ? null : lock;
+        break;
+      }
+      case 'image.unlocked': {
+        const item = this.images.find((i) => i.id === event.image_id);
+        if (item) item.lock = null;
+        if (event.image_id === this.currentId && this.lockedByOther) {
+          this.lockedByOther = null;
+          void this.acquireLock();
+        }
+        break;
+      }
+      case 'annotation.changed':
+        if (event.image_id === this.currentId && event.user_id !== me && this.pending === 0) {
+          void this.reloadCurrent();
+        }
+        break;
+      default:
+        break;
+    }
+  }
+
+  /** Take the edit lock for the open image and keep it alive. A held lock means read-only. */
+  private async acquireLock(): Promise<void> {
+    const id = this.currentId;
+    if (!id || session.mode !== 'local' || !this.canEdit) return;
+    try {
+      await api.work.lock(id);
+      if (id === this.currentId) this.lockedByOther = null;
+      this.lockedImage = id;
+    } catch (err) {
+      if (err instanceof ApiError && err.code === 'image_locked' && id === this.currentId) {
+        const d = err.details as { user_id?: string; name?: string; until?: string };
+        this.lockedByOther = {
+          user_id: d.user_id ?? '',
+          name: d.name ?? null,
+          until: d.until ?? isoIn(0),
+          mine: false,
+        };
+      }
+    }
+    this.applyReadOnly();
+    clearInterval(this.lockTimer);
+    this.lockTimer = setInterval(() => void this.acquireLock(), 15_000);
+  }
+
+  private async releaseLock(): Promise<void> {
+    clearInterval(this.lockTimer);
+    const id = this.lockedImage;
+    this.lockedImage = null;
+    if (id && session.mode === 'local') await api.work.unlock(id).catch(() => undefined);
+  }
+
+  applyReadOnly(): void {
+    if (this.engine) this.engine.readOnly = this.readOnly;
+  }
+
+  async takeOver(): Promise<void> {
+    const id = this.currentId;
+    if (!id) return;
+    try {
+      await api.work.takeOver(id);
+      this.lockedByOther = null;
+      this.lockedImage = id;
+      this.applyReadOnly();
+    } catch (err) {
+      toasts.show(err instanceof ApiError ? err.message : 'Could not take over.');
+    }
+  }
+
   detach(): void {
+    this.realtime?.close();
+    this.realtime = null;
+    void this.releaseLock();
     this.stopModel.forEach((s) => s());
     this.stopModel = [];
     void this.autosave?.flush();
@@ -127,6 +281,8 @@ export class Workspace {
       ]);
       this.project = project;
       this.classes = classes;
+      this.startRealtime();
+      void this.loadMembers();
       this.activeClassId = classes[0]?.id ?? null;
       const wanted = imageFromUrl(location.search);
       await this.loadImages(true);
@@ -188,8 +344,10 @@ export class Workspace {
     const engine = this.engine;
     if (!engine) return;
     await this.autosave?.flush();
+    await this.releaseLock();
     this.autosave?.dispose();
     this.autosave = null;
+    this.lockedByOther = null;
     const token = ++this.openToken;
     this.currentId = imageId;
     this.imageLoading = true;
@@ -199,6 +357,7 @@ export class Workspace {
       if (token !== this.openToken) return;
       const fresh = item ?? (await api.images.get(imageId));
       engine.model.load(annotations.map(shapeFromAnnotation));
+      if (item) item.annotation_count = annotations.length;
       this.autosave = new Autosave(imageId, engine.model, api.annotations, {
         onStatus: (state, pending) => {
           this.saveState = state;
@@ -217,10 +376,98 @@ export class Workspace {
       this.pending = 0;
       await engine.setImage(api.images.fileUrl(imageId), fresh.width, fresh.height);
       this.prefetch(imageId);
+      this.realtime?.setViewing(imageId);
+      void this.loadComments();
+      await this.acquireLock();
+      this.applyReadOnly();
     } catch (err) {
       toasts.show(err instanceof ApiError ? err.message : 'Could not open this image.');
     } finally {
       if (token === this.openToken) this.imageLoading = false;
+    }
+  }
+
+  async loadMembers(): Promise<void> {
+    try {
+      this.members = await api.members.list(this.projectId);
+    } catch {
+      this.members = [];
+    }
+  }
+
+  async loadComments(): Promise<void> {
+    const id = this.currentId;
+    if (!id) {
+      this.comments = [];
+      return;
+    }
+    try {
+      const list = await api.work.comments(id);
+      if (id === this.currentId) this.comments = list;
+    } catch {
+      this.comments = [];
+    }
+  }
+
+  async addComment(body: string): Promise<void> {
+    const id = this.currentId;
+    if (!id) return;
+    try {
+      await api.work.comment(id, body);
+      await this.loadComments();
+    } catch (err) {
+      toasts.show(err instanceof ApiError ? err.message : 'Could not add the comment.');
+    }
+  }
+
+  async resolveComment(id: string, resolved: boolean): Promise<void> {
+    try {
+      await api.work.resolve(id, resolved);
+      await this.loadComments();
+    } catch (err) {
+      toasts.show(err instanceof ApiError ? err.message : 'Could not update the comment.');
+    }
+  }
+
+  /** Approve or send back the open image. */
+  async review(status: 'approved' | 'rejected'): Promise<void> {
+    const item = this.current;
+    if (!item) return;
+    await this.flushNow();
+    try {
+      const updated = await api.work.setStatus(item.id, status);
+      item.status = updated.status;
+      item.reviewer_id = updated.reviewer_id;
+      toasts.show(status === 'approved' ? 'Approved.' : 'Sent back for changes.');
+    } catch (err) {
+      toasts.show(err instanceof ApiError ? err.message : 'Could not update the image.');
+    }
+  }
+
+  /** Ask the queue for the next image for me. */
+  async takeNext(): Promise<void> {
+    try {
+      const { image } = await api.work.next(this.projectId);
+      if (!image) {
+        toasts.show('No images are waiting for you right now.');
+        return;
+      }
+      if (!this.images.some((i) => i.id === image.id)) this.images = [...this.images, image];
+      await this.open(image.id);
+    } catch (err) {
+      toasts.show(err instanceof ApiError ? err.message : 'Could not get the next image.');
+    }
+  }
+
+  async assignCurrent(assigneeId: string | null): Promise<void> {
+    const item = this.current;
+    if (!item) return;
+    try {
+      await api.work.assign(this.projectId, [item.id], assigneeId);
+      item.assignee_id = assigneeId;
+      toasts.show(assigneeId ? 'Assigned.' : 'Assignment cleared.');
+    } catch (err) {
+      toasts.show(err instanceof ApiError ? err.message : 'Could not assign that.');
     }
   }
 
