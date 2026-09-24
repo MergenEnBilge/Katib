@@ -23,8 +23,6 @@ katib.toml
 .env
 .DS_Store
 
-CLAUDE.md
-.claude/
 
 web/openapi.json
 
