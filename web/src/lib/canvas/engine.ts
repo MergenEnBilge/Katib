@@ -130,8 +130,7 @@ export class Engine {
     this.viewport.setImage(width, height);
     this.viewport.fit();
     this.renderer.setBitmap(null);
-    this.imageDirty = true;
-    this.requestRender();
+    this.viewChanged();
     const img = new Image();
     img.decoding = 'async';
     img.src = url;
