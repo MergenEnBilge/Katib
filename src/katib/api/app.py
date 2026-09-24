@@ -8,7 +8,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 
-from katib.api import annotations, classes, errors, health, images, jobs, projects
+from katib.api import annotations, classes, errors, exchange, health, images, jobs, projects
 from katib.config import Settings
 from katib.db.migrate import upgrade_to_head
 from katib.db.session import make_engine, make_session_factory
@@ -35,6 +35,7 @@ def create_app(settings: Settings) -> FastAPI:
             thumbs=LocalStorage(settings.data_dir / "thumbs"),
             allowed_roots=[Path(r).expanduser() for r in settings.storage.allowed_import_roots],
             max_upload_bytes=settings.limits.max_upload_mb * 1024 * 1024,
+            exports=LocalStorage(settings.data_dir / "exports"),
         )
         app.state.runner = JobRunner(app.state.session_factory)
         app.state.runner.fail_interrupted()
@@ -46,7 +47,7 @@ def create_app(settings: Settings) -> FastAPI:
     app = FastAPI(title="Katib", lifespan=lifespan)
     app.state.settings = settings
     errors.install(app)
-    for module in (health, projects, classes, images, annotations, jobs):
+    for module in (health, projects, classes, images, annotations, exchange, jobs):
         app.include_router(module.router, prefix="/api/v1")
     _mount_ui(app)
     return app
