@@ -1,7 +1,6 @@
 import threading
 import uuid
 from datetime import timedelta
-from pathlib import Path
 
 import pytest
 from sqlalchemy.orm import Session
@@ -84,10 +83,9 @@ def test_assigned_images_are_reserved_for_their_person(team: Team) -> None:
         tasks.assign(team.session, team.project.id, ids[:1], outsider.id)
 
 
-def test_two_people_never_get_the_same_image(tmp_path: Path) -> None:
-    url = f"sqlite:///{(tmp_path / 'race.db').as_posix()}"
-    upgrade_to_head(url)
-    engine = make_engine(url)
+def test_two_people_never_get_the_same_image(database_url: str) -> None:
+    upgrade_to_head(database_url)
+    engine = make_engine(database_url)
     factory = make_session_factory(engine)
     with factory() as s:
         team = Team(s, images=24)

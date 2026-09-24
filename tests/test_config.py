@@ -55,7 +55,7 @@ def test_missing_explicit_file_is_an_error(tmp_path: Path) -> None:
         load_settings(tmp_path / "nope.toml")
 
 
-def test_data_dir_placeholder_is_expanded(tmp_path: Path) -> None:
+def test_data_dir_placeholder_is_expanded(tmp_path: Path, sqlite_only: None) -> None:
     s = Settings(storage={"data_dir": str(tmp_path)})
     assert s.database_url == f"sqlite:///{tmp_path.as_posix()}/katib.db"
 
