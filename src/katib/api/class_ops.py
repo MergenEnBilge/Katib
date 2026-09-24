@@ -5,8 +5,10 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 from katib.api.deps import SessionDep, UserDep, need
+from katib.api.hub import emit
 from katib.db.models import Operation
 from katib.services import access, class_ops, projects
 from katib.services.errors import InvalidInput
@@ -83,7 +85,9 @@ def _operation(op: Operation) -> OperationOut:
     )
 
 
-def _done(result: class_ops.OperationResult) -> ClassOpOut:
+def _done(result: class_ops.OperationResult, session: Session | None = None) -> ClassOpOut:
+    if session is not None:
+        emit(session.info, result.operation.project_id, {"type": "class.changed"})
     return ClassOpOut(
         dry_run=False, preview=_preview(result.preview), operation=_operation(result.operation)
     )
@@ -97,7 +101,7 @@ def merge_class(
     if body.dry_run:
         preview = class_ops.preview_merge(session, class_id, body.target_id)
         return ClassOpOut(dry_run=True, preview=_preview(preview))
-    return _done(class_ops.merge_classes(session, storage, class_id, body.target_id))
+    return _done(class_ops.merge_classes(session, storage, class_id, body.target_id), session)
 
 
 @router.post("/classes/{class_id}:delete", response_model=ClassOpOut)
@@ -109,7 +113,7 @@ def delete_class(
         return ClassOpOut(
             dry_run=True, preview=_preview(class_ops.preview_delete(session, class_id))
         )
-    return _done(class_ops.delete_class(session, storage, class_id))
+    return _done(class_ops.delete_class(session, storage, class_id), session)
 
 
 @router.post("/projects/{project_id}/annotations:bulk", response_model=ClassOpOut)
@@ -125,8 +129,10 @@ def bulk_edit(
             dry_run=True, preview=_preview(class_ops.preview_bulk(session, project_id, body.ids))
         )
     if body.action == "reclass" and body.target_id is not None:
-        return _done(class_ops.bulk_reclass(session, storage, project_id, body.ids, body.target_id))
-    return _done(class_ops.bulk_delete(session, storage, project_id, body.ids))
+        return _done(
+            class_ops.bulk_reclass(session, storage, project_id, body.ids, body.target_id), session
+        )
+    return _done(class_ops.bulk_delete(session, storage, project_id, body.ids), session)
 
 
 @router.get("/projects/{project_id}/operations", response_model=list[OperationOut])
