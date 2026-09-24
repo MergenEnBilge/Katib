@@ -14,8 +14,7 @@ web/dist/
 web/test-results/
 web/playwright-report/
 
-src/katib/static/*
-!src/katib/static/.gitkeep
+src/katib/static/
 
 katib.toml
 *.db
