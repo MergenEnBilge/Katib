@@ -38,9 +38,16 @@ class ClassIn(BaseModel):
     color: str | None = None
 
 
+class AttrDef(BaseModel):
+    name: str
+    type: Literal["boolean", "enum", "text", "number"]
+    options: list[str] | None = None
+
+
 class ClassPatch(BaseModel):
     name: str | None = None
     color: str | None = None
+    attr_schema: list[AttrDef] | None = None
 
 
 class ClassOut(BaseModel):
@@ -50,6 +57,7 @@ class ClassOut(BaseModel):
     color: str
     position: int
     annotation_count: int
+    attr_schema: list[AttrDef]
 
 
 class ReorderIn(BaseModel):
@@ -143,7 +151,16 @@ class DatasetImportIn(BaseModel):
     format: str | None = None
 
 
+class SplitIn(BaseModel):
+    train: float = 0.8
+    val: float = 0.1
+    test: float = 0.1
+    seed: int = 0
+    stratify: bool = False
+
+
 class ExportIn(BaseModel):
     format: str
+    split: SplitIn | None = None
     statuses: list[Literal["todo", "in_progress", "done"]] | None = None
     copy_images: bool = False
