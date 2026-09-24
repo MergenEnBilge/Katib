@@ -5,11 +5,13 @@ from typing import Annotated
 
 from fastapi import APIRouter, File, UploadFile
 from fastapi.responses import FileResponse
+from sqlalchemy.orm import Session
 
 from katib.api.deps import RunnerDep, SessionDep, StorageDep, UserDep, need
 from katib.api.jobs import job_out
-from katib.api.schemas import FolderImportIn, ImageOut, ImagePageOut, ImagePatch, JobOut
-from katib.services import access, images, projects
+from katib.api.schemas import FolderImportIn, ImageOut, ImagePageOut, ImagePatch, JobOut, LockOut
+from katib.db.models import User
+from katib.services import access, discussion, images, projects, tasks
 from katib.services.errors import NotFound
 from katib.services.images import ImageRow
 
@@ -18,9 +20,17 @@ router = APIRouter(tags=["images"])
 CACHE = {"Cache-Control": "private, max-age=3600"}
 
 
-def _out(row: ImageRow) -> ImageOut:
+def _out(session: Session, row: ImageRow, me: User) -> ImageOut:
     out = ImageOut.model_validate(row.image)
     out.annotation_count = row.annotation_count
+    held = tasks.lock_state(session, row.image)
+    if held is not None and row.image.locked_by is not None and row.image.locked_until is not None:
+        out.lock = LockOut(
+            user_id=row.image.locked_by,
+            name=str(held["name"]) if held["name"] else None,
+            until=row.image.locked_until,
+            mine=row.image.locked_by == me.id,
+        )
     return out
 
 
@@ -48,7 +58,7 @@ def list_images(
         after=after,
         limit=limit,
     )
-    return ImagePageOut(items=[_out(r) for r in page.rows], next=page.next)
+    return ImagePageOut(items=[_out(session, r, user) for r in page.rows], next=page.next)
 
 
 @router.post("/projects/{project_id}/images", response_model=ImageOut, status_code=201)
@@ -62,7 +72,7 @@ def upload_image(
     need(session, user, project_id, "manage")
     projects.get_project(session, project_id)
     image = images.import_upload(session, project_id, file.filename or "image", file.file, storage)
-    return _out(ImageRow(image, 0))
+    return _out(session, ImageRow(image, 0), user)
 
 
 @router.post("/projects/{project_id}/images:import-folder", response_model=JobOut, status_code=202)
@@ -99,7 +109,7 @@ def import_folder(
 @router.get("/images/{image_id}", response_model=ImageOut)
 def get_image(image_id: uuid.UUID, session: SessionDep, user: UserDep) -> ImageOut:
     need(session, user, access.project_of_image(session, image_id), "view")
-    return _out(ImageRow(images.get_image(session, image_id), 0))
+    return _out(session, ImageRow(images.get_image(session, image_id), 0), user)
 
 
 @router.patch("/images/{image_id}", response_model=ImageOut)
@@ -107,7 +117,10 @@ def update_image(
     image_id: uuid.UUID, body: ImagePatch, session: SessionDep, user: UserDep
 ) -> ImageOut:
     need(session, user, access.project_of_image(session, image_id), "annotate")
-    return _out(ImageRow(images.set_status(session, image_id, body.status), 0))
+    image = tasks.transition(session, user, image_id, body.status)
+    project_id = image.project_id
+    discussion.log(session, project_id, user, f"marked_{body.status}", {"image_id": str(image_id)})
+    return _out(session, ImageRow(image, 0), user)
 
 
 @router.get("/images/{image_id}/file")
