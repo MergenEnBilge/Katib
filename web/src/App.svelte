@@ -7,12 +7,18 @@
   import IconButton from './lib/ui/IconButton.svelte';
   import Toast from './lib/ui/Toast.svelte';
   import Projects from './routes/Projects.svelte';
+  import Workspace from './routes/workspace/Workspace.svelte';
 
   $effect(applyTheme);
 
   const route = $derived(router.route);
 </script>
 
+{#if route.name === 'workspace'}
+  {#key route.projectId}
+    <Workspace projectId={route.projectId} />
+  {/key}
+{:else}
 <div class="home">
   <aside class="sidebar">
     <div class="brand">
@@ -61,6 +67,7 @@
 </div>
 
 <Toast />
+{/if}
 
 <style>
   .home {
