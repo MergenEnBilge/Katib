@@ -6,9 +6,9 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 
-from katib.api.deps import SessionDep
+from katib.api.deps import SessionDep, UserDep, need
 from katib.db.models import Operation
-from katib.services import class_ops, projects
+from katib.services import access, class_ops, projects
 from katib.services.errors import InvalidInput
 from katib.storage.local import LocalStorage
 
@@ -91,8 +91,9 @@ def _done(result: class_ops.OperationResult) -> ClassOpOut:
 
 @router.post("/classes/{class_id}:merge", response_model=ClassOpOut)
 def merge_class(
-    class_id: uuid.UUID, body: MergeIn, session: SessionDep, storage: OpsStorage
+    class_id: uuid.UUID, body: MergeIn, session: SessionDep, user: UserDep, storage: OpsStorage
 ) -> ClassOpOut:
+    need(session, user, access.project_of_class(session, class_id), "manage")
     if body.dry_run:
         preview = class_ops.preview_merge(session, class_id, body.target_id)
         return ClassOpOut(dry_run=True, preview=_preview(preview))
@@ -101,8 +102,9 @@ def merge_class(
 
 @router.post("/classes/{class_id}:delete", response_model=ClassOpOut)
 def delete_class(
-    class_id: uuid.UUID, body: DeleteIn, session: SessionDep, storage: OpsStorage
+    class_id: uuid.UUID, body: DeleteIn, session: SessionDep, user: UserDep, storage: OpsStorage
 ) -> ClassOpOut:
+    need(session, user, access.project_of_class(session, class_id), "manage")
     if body.dry_run:
         return ClassOpOut(
             dry_run=True, preview=_preview(class_ops.preview_delete(session, class_id))
@@ -112,8 +114,9 @@ def delete_class(
 
 @router.post("/projects/{project_id}/annotations:bulk", response_model=ClassOpOut)
 def bulk_edit(
-    project_id: uuid.UUID, body: BulkIn, session: SessionDep, storage: OpsStorage
+    project_id: uuid.UUID, body: BulkIn, session: SessionDep, user: UserDep, storage: OpsStorage
 ) -> ClassOpOut:
+    need(session, user, project_id, "manage")
     projects.get_project(session, project_id)
     if body.action == "reclass" and body.target_id is None:
         raise InvalidInput("Choose the class to relabel them as.")
@@ -127,15 +130,19 @@ def bulk_edit(
 
 
 @router.get("/projects/{project_id}/operations", response_model=list[OperationOut])
-def list_operations(project_id: uuid.UUID, session: SessionDep) -> list[OperationOut]:
+def list_operations(
+    project_id: uuid.UUID, session: SessionDep, user: UserDep
+) -> list[OperationOut]:
+    need(session, user, project_id, "view")
     projects.get_project(session, project_id)
     return [_operation(o) for o in class_ops.list_operations(session, project_id)]
 
 
 @router.post("/operations/{operation_id}:revert", response_model=RevertOut)
 def revert_operation(
-    operation_id: uuid.UUID, session: SessionDep, storage: OpsStorage
+    operation_id: uuid.UUID, session: SessionDep, user: UserDep, storage: OpsStorage
 ) -> RevertOut:
+    need(session, user, access.project_of_operation(session, operation_id), "manage")
     result = class_ops.revert(session, storage, operation_id)
     total = result.restored + result.skipped
     if result.skipped:

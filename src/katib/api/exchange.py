@@ -6,7 +6,7 @@ import uuid
 from fastapi import APIRouter
 from fastapi.responses import FileResponse
 
-from katib.api.deps import RunnerDep, SessionDep, StorageDep
+from katib.api.deps import RunnerDep, SessionDep, StorageDep, UserDep, need
 from katib.api.jobs import job_out
 from katib.api.schemas import DatasetImportIn, ExportIn, FormatOut, JobOut
 from katib.core.dataset import ExportOptions, SplitSpec
@@ -19,7 +19,7 @@ router = APIRouter(tags=["exchange"])
 
 
 @router.get("/formats", response_model=list[FormatOut])
-def list_formats() -> list[FormatOut]:
+def list_formats(_user: UserDep) -> list[FormatOut]:
     return [
         FormatOut(id=f.id, label=f.label, supports=sorted(f.supports)) for f in REGISTRY.values()
     ]
@@ -30,9 +30,11 @@ def import_dataset(
     project_id: uuid.UUID,
     body: DatasetImportIn,
     session: SessionDep,
+    user: UserDep,
     storage: StorageDep,
     runner: RunnerDep,
 ) -> JobOut:
+    need(session, user, project_id, "manage")
     projects.get_project(session, project_id)
     path = images.resolve_path(body.path, storage.allowed_roots)
     factory = runner.session_factory
@@ -62,9 +64,11 @@ def export_dataset(
     project_id: uuid.UUID,
     body: ExportIn,
     session: SessionDep,
+    user: UserDep,
     storage: StorageDep,
     runner: RunnerDep,
 ) -> JobOut:
+    need(session, user, project_id, "manage")
     projects.get_project(session, project_id)
     if body.format not in REGISTRY:
         raise InvalidInput(f"Unknown format {body.format!r}.")
@@ -105,10 +109,14 @@ def export_dataset(
 
 
 @router.get("/jobs/{job_id}/download")
-def download_export(job_id: uuid.UUID, runner: RunnerDep, storage: StorageDep) -> FileResponse:
+def download_export(
+    job_id: uuid.UUID, runner: RunnerDep, storage: StorageDep, session: SessionDep, user: UserDep
+) -> FileResponse:
     job = runner.get(job_id)
     if job is None or job.kind != "export" or job.status != "done" or not job.result:
         raise NotFound("That export is not ready.")
+    if job.project_id is not None:
+        need(session, user, job.project_id, "manage")
     file = storage.exports.path(str(job.result["file"]))
     if not file.is_file():
         raise NotFound("That export file has been removed.")
@@ -116,6 +124,7 @@ def download_export(job_id: uuid.UUID, runner: RunnerDep, storage: StorageDep) -
 
 
 @router.get("/projects/{project_id}/export-info")
-def export_info(project_id: uuid.UUID, session: SessionDep) -> dict[str, object]:
+def export_info(project_id: uuid.UUID, session: SessionDep, user: UserDep) -> dict[str, object]:
+    need(session, user, project_id, "manage")
     projects.get_project(session, project_id)
     return exchange.export_info(session, project_id)

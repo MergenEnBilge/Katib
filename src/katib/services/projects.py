@@ -9,7 +9,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from katib.db.models import Image, Project
+from katib.db.models import Image, Project, ProjectMember
 from katib.services.errors import InvalidInput, NotFound, ProjectNameTaken
 
 DEFAULT_TYPES = ["box", "polygon"]
@@ -70,6 +70,9 @@ def create_project(
     )
     session.add(project)
     session.flush()
+    if created_by is not None:
+        session.add(ProjectMember(project_id=project.id, user_id=created_by, role="owner"))
+        session.flush()
     return project
 
 
@@ -80,7 +83,10 @@ def get_project(session: Session, project_id: uuid.UUID) -> Project:
     return project
 
 
-def list_projects(session: Session, query: str | None = None) -> list[ProjectSummary]:
+def list_projects(
+    session: Session, query: str | None = None, visible: set[uuid.UUID] | None = None
+) -> list[ProjectSummary]:
+    """Projects with counts. `visible` limits the list to those ids, None means all."""
     stmt = (
         select(
             Project,
@@ -93,6 +99,8 @@ def list_projects(session: Session, query: str | None = None) -> list[ProjectSum
         .group_by(Project.id)
         .order_by(Project.created_at.desc())
     )
+    if visible is not None:
+        stmt = stmt.where(Project.id.in_(visible))
     if query:
         stmt = stmt.where(func.lower(Project.name).contains(query.lower()))
     return [
