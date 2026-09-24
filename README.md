@@ -15,6 +15,25 @@ uv run katib
 
 The server listens on `127.0.0.1:8420` and serves the built UI.
 
+## Importing from a folder
+
+Folder import indexes images where they are and never copies or changes them. Katib only reads folders you list in `katib.toml`:
+
+```toml
+[storage]
+allowed_import_roots = ["/data/photos"]
+```
+
+Uploading from the browser needs no setup. Label files (YOLO folders with `data.yaml`, COCO `.json`) are read from the same allowed folders.
+
+## End-to-end tests
+
+```bash
+pnpm --dir web build
+pnpm --dir web exec playwright install chromium
+pnpm --dir web exec playwright test
+```
+
 ## Develop
 
 ```bash
