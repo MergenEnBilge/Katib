@@ -23,6 +23,9 @@ dependencies = [
 
 [project.optional-dependencies]
 ml = []
+postgres = [
+    "psycopg[binary]>=3.2",
+]
 
 [project.scripts]
 katib = "katib.cli:app"
