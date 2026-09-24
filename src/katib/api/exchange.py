@@ -9,7 +9,7 @@ from fastapi.responses import FileResponse
 from katib.api.deps import RunnerDep, SessionDep, StorageDep
 from katib.api.jobs import job_out
 from katib.api.schemas import DatasetImportIn, ExportIn, FormatOut, JobOut
-from katib.core.dataset import ExportOptions
+from katib.core.dataset import ExportOptions, SplitSpec
 from katib.formats import REGISTRY
 from katib.jobs.runner import Progress
 from katib.services import exchange, images, projects
@@ -72,7 +72,11 @@ def export_dataset(
     if exchange.count_export(session, project_id, statuses) == 0:
         raise InvalidInput("There are no images to export with that filter.")
     factory = runner.session_factory
-    opts = ExportOptions(copy_images=body.copy_images)
+    split = None
+    if body.split:
+        ratios = {"train": body.split.train, "val": body.split.val, "test": body.split.test}
+        split = SplitSpec(ratios, body.split.seed, body.split.stratify)
+    opts = ExportOptions(copy_images=body.copy_images, split=split)
 
     def work(progress: Progress) -> dict[str, object]:
         name = f"{body.format}-{uuid.uuid4().hex[:12]}"
@@ -82,6 +86,7 @@ def export_dataset(
                 report = exchange.export_dataset(
                     s, project_id, body.format, folder, storage, opts, statuses
                 )
+                s.commit()
             shutil.make_archive(str(storage.exports.path(name)), "zip", folder)
         finally:
             shutil.rmtree(folder, ignore_errors=True)
@@ -108,3 +113,9 @@ def download_export(job_id: uuid.UUID, runner: RunnerDep, storage: StorageDep) -
     if not file.is_file():
         raise NotFound("That export file has been removed.")
     return FileResponse(file, media_type="application/zip", filename=file.name)
+
+
+@router.get("/projects/{project_id}/export-info")
+def export_info(project_id: uuid.UUID, session: SessionDep) -> dict[str, object]:
+    projects.get_project(session, project_id)
+    return exchange.export_info(session, project_id)

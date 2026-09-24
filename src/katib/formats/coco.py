@@ -108,39 +108,46 @@ class Coco:
         report = ExportReport()
         names = view.class_names
         category_id = {n: i + 1 for i, n in enumerate(names)}
-        images_out: list[dict[str, Any]] = []
-        anns_out: list[dict[str, Any]] = []
+        images_out: dict[str, list[dict[str, Any]]] = {}
+        anns_out: dict[str, list[dict[str, Any]]] = {}
         images = list(view.images())
         dest.mkdir(parents=True, exist_ok=True)
+        total = 0
         for image_id, (img, name) in enumerate(
             zip(images, unique_names(images), strict=True), start=1
         ):
-            images_out.append(
+            part = img.split or ""
+            images_out.setdefault(part, []).append(
                 {"id": image_id, "file_name": name, "width": img.width, "height": img.height}
             )
+            anns = anns_out.setdefault(part, [])
             for shape in img.shapes:
                 try:
                     item = self._annotation(shape, img.width, img.height)
                 except GeometryError as err:
                     report.notes.append(Note(name, str(err)))
                     continue
+                total += 1
                 item.update(
-                    id=len(anns_out) + 1,
+                    id=total,
                     image_id=image_id,
                     category_id=category_id[shape.class_name],
                     iscrowd=0,
                 )
-                anns_out.append(item)
+                anns.append(item)
             if opts.copy_images and img.source is not None:
-                copy_image(img.source, dest / "images", name)
+                copy_image(img.source, dest / "images" / part, name)
             report.images += 1
-        report.shapes = len(anns_out)
-        doc = {
-            "images": images_out,
-            "annotations": anns_out,
-            "categories": [{"id": category_id[n], "name": n} for n in names],
-        }
-        (dest / OUTPUT).write_text(json.dumps(doc, indent=1), encoding="utf-8")
+        report.shapes = total
+        categories = [{"id": category_id[n], "name": n} for n in names]
+        for part, image_list in images_out.items():
+            doc = {
+                "images": image_list,
+                "annotations": anns_out.get(part, []),
+                "categories": categories,
+            }
+            filename = f"annotations_{part}.json" if part else OUTPUT
+            (dest / filename).write_text(json.dumps(doc, indent=1), encoding="utf-8")
         return report
 
     def _annotation(self, shape: Shape, width: int, height: int) -> dict[str, Any]:
