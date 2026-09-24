@@ -240,6 +240,8 @@ These are the features that set Katib apart, so their semantics are fixed here.
 
 **Reverting.** `POST /operations/{id}/revert` restores what it can. Annotations edited after the operation are skipped and counted in the response ("Restored 1,204 of 1,210. 6 were edited since."). Operations older than the retention window (default 30 days) have their inverse files deleted and cannot be reverted.
 
+**Dataset health.** `GET /projects/{id}/health` reports images without shapes, tiny shapes (a side under 1% or an area under 0.02% of the image), near-identical shapes of one class on one image (IoU of 0.95 or more), class imbalance, and look-alike images whose 64-bit difference hashes are within four bits. Each finding carries a capped sample so the UI can jump to it.
+
 **Export order warning.** Each export records the class order it used. If the order has changed since the last export, the export dialog says so, because YOLO indices would no longer match older trained models.
 
 ## 9. Collaboration
@@ -392,6 +394,7 @@ Export options:
 - Which images (all, done only, approved only, a filter).
 - Train/val/test split: ratios, seed, random or stratified by class.
 - Classes to include, and the index order (with the warning from section 8).
+- Splits are written per format: YOLO gets `labels/<split>/` and `images/<split>/` with the paths in `data.yaml`, COCO gets one `annotations_<split>.json` per split. Assignment is reproducible from the seed. Stratified mode groups images by their rarest class before cutting.
 - For YOLO: a generated `data.yaml`. For COCO: image ids and category ids kept stable across exports.
 
 Import behaviour:

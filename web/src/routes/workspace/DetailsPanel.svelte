@@ -39,6 +39,19 @@
     ]);
   }
 
+  const schema = $derived(ws.classes.find((c) => c.id === shape?.classId)?.attr_schema ?? []);
+
+  function setAttr(name: string, value: unknown): void {
+    const model = ws.engine?.model;
+    if (!model || !shape) return;
+    const attrs = { ...shape.attrs };
+    if (value === '' || value === undefined) delete attrs[name];
+    else attrs[name] = value;
+    model.commit([
+      { kind: 'update', id: shape.id, before: { attrs: shape.attrs }, after: { attrs } },
+    ]);
+  }
+
   function pixels(s: Shape): string {
     const b = boundsOf(s);
     return item ? `${Math.round(b.w * item.width)} x ${Math.round(b.h * item.height)} px` : '';
@@ -96,6 +109,30 @@
           ? Math.round(polygonArea(shape.geometry.points) * item.width * item.height).toLocaleString()
           : 0} px
       </p>
+    {/if}
+
+    {#if schema.length > 0}
+      <p class="label">Attributes</p>
+      <div class="attrs">
+        {#each schema as attr (attr.name)}
+          {@const value = shape.attrs[attr.name]}
+          <label class="attr">
+            <span>{attr.name}</span>
+            {#if attr.type === 'boolean'}
+              <input type="checkbox" checked={value === true} onchange={(e) => setAttr(attr.name, e.currentTarget.checked)} />
+            {:else if attr.type === 'enum'}
+              <select onchange={(e) => setAttr(attr.name, e.currentTarget.value)}>
+                <option value="" selected={value === undefined}>Not set</option>
+                {#each attr.options ?? [] as option (option)}<option value={option} selected={value === option}>{option}</option>{/each}
+              </select>
+            {:else if attr.type === 'number'}
+              <input type="number" value={typeof value === 'number' ? value : ''} onchange={(e) => setAttr(attr.name, e.currentTarget.value === '' ? '' : e.currentTarget.valueAsNumber)} />
+            {:else}
+              <input value={typeof value === 'string' ? value : ''} onchange={(e) => setAttr(attr.name, e.currentTarget.value)} />
+            {/if}
+          </label>
+        {/each}
+      </div>
     {/if}
 
     <div class="foot">
@@ -209,6 +246,32 @@
     margin: 0;
     font-size: var(--text-small);
     color: var(--text-2);
+  }
+
+  .attrs {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .attr {
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    align-items: center;
+  }
+
+  .attr input:not([type='checkbox']),
+  .attr select {
+    height: var(--h-button-sm);
+    padding-inline: var(--space-2);
+    background: var(--bg);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-control);
+  }
+
+  .attr input[type='checkbox'] {
+    width: 16px;
+    height: 16px;
   }
 
   .foot {
