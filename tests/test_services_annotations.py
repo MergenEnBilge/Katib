@@ -22,7 +22,11 @@ class Setup:
         lib.mkdir()
         PILImage.new("RGB", (50, 40), "red").save(lib / "a.png")
         ctx = StorageContext(
-            LocalStorage(tmp_path / "u"), LocalStorage(tmp_path / "t"), [lib], 1_000_000
+            LocalStorage(tmp_path / "u"),
+            LocalStorage(tmp_path / "t"),
+            [lib],
+            1_000_000,
+            LocalStorage(tmp_path / "e"),
         )
         self.project = projects.create_project(session, "P")
         images.import_folder(session, self.project.id, str(lib), ctx)

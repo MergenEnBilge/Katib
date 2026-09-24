@@ -41,6 +41,7 @@ class StorageContext:
     thumbs: LocalStorage
     allowed_roots: list[Path]
     max_upload_bytes: int
+    exports: LocalStorage
 
 
 @dataclass(frozen=True)
@@ -62,21 +63,25 @@ def _inside(path: Path, roots: list[Path]) -> bool:
     return any(root == path or root in path.parents for root in roots)
 
 
-def resolve_folder(folder: str, roots: list[Path]) -> Path:
-    """Resolve a user-supplied folder and require it to sit inside an allowed root."""
+def resolve_path(raw: str, roots: list[Path]) -> Path:
+    """Resolve a user-supplied path and require it to sit inside an allowed root."""
     if not roots:
         raise ImportNotAllowed(
             "Folder import is off. Add a folder to storage.allowed_import_roots to enable it."
         )
     try:
-        path = Path(folder).expanduser().resolve(strict=True)
+        path = Path(raw).expanduser().resolve(strict=True)
     except (OSError, RuntimeError) as err:
-        raise InvalidInput("That folder does not exist.") from err
+        raise InvalidInput("That path does not exist.") from err
+    if not _inside(path, [r.resolve() for r in roots]):
+        raise ImportNotAllowed("That path is outside the allowed import folders.")
+    return path
+
+
+def resolve_folder(folder: str, roots: list[Path]) -> Path:
+    path = resolve_path(folder, roots)
     if not path.is_dir():
         raise InvalidInput("That path is not a folder.")
-    resolved_roots = [r.resolve() for r in roots]
-    if not _inside(path, resolved_roots):
-        raise ImportNotAllowed("That folder is outside the allowed import folders.")
     return path
 
 
