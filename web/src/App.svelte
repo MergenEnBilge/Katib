@@ -1,10 +1,16 @@
 <script lang="ts">
   import { Layers, Moon, Sun } from '@lucide/svelte';
+  import { router } from './lib/state/router.svelte';
   import { applyTheme, theme } from './lib/state/theme.svelte';
+  import Button from './lib/ui/Button.svelte';
+  import EmptyState from './lib/ui/EmptyState.svelte';
   import IconButton from './lib/ui/IconButton.svelte';
+  import Toast from './lib/ui/Toast.svelte';
   import Projects from './routes/Projects.svelte';
 
   $effect(applyTheme);
+
+  const route = $derived(router.route);
 </script>
 
 <div class="home">
@@ -15,7 +21,15 @@
     </div>
 
     <nav aria-label="Main">
-      <a class="nav-item" href="/" aria-current="page"><Layers size={16} />Projects</a>
+      <a
+        class="nav-item"
+        href="/"
+        aria-current={route.name === 'projects' ? 'page' : undefined}
+        onclick={(e) => {
+          e.preventDefault();
+          router.navigate('/');
+        }}><Layers size={16} />Projects</a
+      >
     </nav>
 
     <div class="sidebar-footer">
@@ -30,9 +44,23 @@
   </aside>
 
   <main class="content">
-    <Projects />
+    {#if route.name === 'projects'}
+      <Projects />
+    {:else}
+      <EmptyState
+        title="Page not found"
+        description="This address does not match anything in Katib."
+      >
+        {#snippet icon()}<Layers size={20} />{/snippet}
+        {#snippet action()}
+          <Button variant="primary" onclick={() => router.navigate('/')}>Back to projects</Button>
+        {/snippet}
+      </EmptyState>
+    {/if}
   </main>
 </div>
+
+<Toast />
 
 <style>
   .home {
@@ -50,11 +78,10 @@
 
   .brand {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: var(--space-2);
     height: var(--header-h);
     padding-inline: var(--space-4);
-    align-items: center;
     border-block-end: 1px solid var(--border);
   }
 
