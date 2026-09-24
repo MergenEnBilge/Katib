@@ -5,11 +5,18 @@ import type { ClassStyle, Shape } from '../canvas/types';
 import { isBox } from '../canvas/types';
 import type { Engine } from '../canvas/engine';
 import { Autosave, shapeFromAnnotation, type SaveState } from '../sync/autosave';
+import { announceOperation, revert } from './operations';
 import { toasts } from './toast.svelte';
 
 export type StatusFilter = 'all' | 'todo' | 'in_progress' | 'done';
 
 const PAGE = 100;
+
+/** The image id in `?image=...`, used by "Open in image" from the gallery. */
+export function imageFromUrl(search: string): string | null {
+  const match = /[?&]image=([0-9a-fA-F-]{36})(?:&|$)/.exec(search);
+  return match?.[1] ?? null;
+}
 const DASHES = [[], [8, 4], [2, 3], [8, 3, 2, 3]];
 
 /** Everything the workspace screen needs that is not about the DOM. */
@@ -121,7 +128,9 @@ export class Workspace {
       this.project = project;
       this.classes = classes;
       this.activeClassId = classes[0]?.id ?? null;
+      const wanted = imageFromUrl(location.search);
       await this.loadImages(true);
+      if (wanted) await this.open(wanted);
     } catch (err) {
       this.loadError = err instanceof ApiError ? err.message : 'Could not open this project.';
     }
@@ -213,6 +222,37 @@ export class Workspace {
     } finally {
       if (token === this.openToken) this.imageLoading = false;
     }
+  }
+
+  /** Reload the open image after the server changed its shapes, for example by a merge or revert. */
+  async reloadCurrent(): Promise<void> {
+    const id = this.currentId;
+    if (!id) return;
+    this.currentId = null;
+    this.autosave?.dispose();
+    this.autosave = null;
+    await this.open(id);
+    await this.refreshClasses();
+    try {
+      this.project = await api.projects.get(this.projectId);
+    } catch {
+      // The counts refresh on the next load.
+    }
+  }
+
+  /** Undo a server-side operation, tell the person what came back and refresh the screen. */
+  async revertOperation(id: string): Promise<void> {
+    await revert(id, () => this.afterServerChange());
+  }
+
+  private async afterServerChange(): Promise<void> {
+    await this.reloadCurrent();
+    await this.loadImages(true);
+  }
+
+  /** Toast for a finished operation. */
+  announce(summary: string, operationId: string | null | undefined): void {
+    announceOperation(summary, operationId, () => this.afterServerChange());
   }
 
   /** Warm the browser cache for the next two images so switching feels instant. */
