@@ -110,6 +110,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/classes/{class_id}:merge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Merge Class */
+        post: operations["merge_class_api_v1_classes__class_id__merge_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/classes/{class_id}:delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Delete Class */
+        post: operations["delete_class_api_v1_classes__class_id__delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/annotations:bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bulk Edit */
+        post: operations["bulk_edit_api_v1_projects__project_id__annotations_bulk_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/operations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Operations */
+        get: operations["list_operations_api_v1_projects__project_id__operations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/operations/{operation_id}:revert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revert Operation */
+        post: operations["revert_operation_api_v1_operations__operation_id__revert_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}/images": {
         parameters: {
             query?: never;
@@ -231,6 +316,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{project_id}/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Project Health */
+        get: operations["project_health_api_v1_projects__project_id__health_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/shapes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Shapes */
+        get: operations["list_shapes_api_v1_projects__project_id__shapes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/annotations/{annotation_id}/crop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Crop */
+        get: operations["crop_api_v1_annotations__annotation_id__crop_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/formats": {
         parameters: {
             query?: never;
@@ -299,6 +435,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{project_id}/export-info": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Info */
+        get: operations["export_info_api_v1_projects__project_id__export_info_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/jobs/{job_id}": {
         parameters: {
             query?: never;
@@ -351,6 +504,18 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** AttrDef */
+        AttrDef: {
+            /** Name */
+            name: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "boolean" | "enum" | "text" | "number";
+            /** Options */
+            options?: string[] | null;
+        };
         /** BatchIn */
         BatchIn: {
             /** Ops */
@@ -366,12 +531,43 @@ export interface components {
             /** File */
             file: string;
         };
+        /** BulkIn */
+        BulkIn: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "reclass" | "delete";
+            /** Ids */
+            ids: string[];
+            /** Target Id */
+            target_id?: string | null;
+            /**
+             * Dry Run
+             * @default false
+             */
+            dry_run: boolean;
+        };
+        /** ClassCountOut */
+        ClassCountOut: {
+            /** Name */
+            name: string;
+            /** Count */
+            count: number;
+        };
         /** ClassIn */
         ClassIn: {
             /** Name */
             name: string;
             /** Color */
             color?: string | null;
+        };
+        /** ClassOpOut */
+        ClassOpOut: {
+            /** Dry Run */
+            dry_run: boolean;
+            preview: components["schemas"]["PreviewOut"];
+            operation?: components["schemas"]["OperationOut"] | null;
         };
         /** ClassOut */
         ClassOut: {
@@ -393,6 +589,8 @@ export interface components {
             position: number;
             /** Annotation Count */
             annotation_count: number;
+            /** Attr Schema */
+            attr_schema: components["schemas"]["AttrDef"][];
         };
         /** ClassPatch */
         ClassPatch: {
@@ -400,6 +598,8 @@ export interface components {
             name?: string | null;
             /** Color */
             color?: string | null;
+            /** Attr Schema */
+            attr_schema?: components["schemas"]["AttrDef"][] | null;
         };
         /** DatasetImportIn */
         DatasetImportIn: {
@@ -408,10 +608,19 @@ export interface components {
             /** Format */
             format?: string | null;
         };
+        /** DeleteIn */
+        DeleteIn: {
+            /**
+             * Dry Run
+             * @default false
+             */
+            dry_run: boolean;
+        };
         /** ExportIn */
         ExportIn: {
             /** Format */
             format: string;
+            split?: components["schemas"]["SplitIn"] | null;
             /** Statuses */
             statuses?: ("todo" | "in_progress" | "done")[] | null;
             /**
@@ -447,6 +656,31 @@ export interface components {
             version: string;
             /** Database */
             database: string;
+        };
+        /** HealthOut */
+        HealthOut: {
+            /** Images */
+            images: number;
+            /** Annotations */
+            annotations: number;
+            /** Empty Images */
+            empty_images: number;
+            /** Empty Sample */
+            empty_sample: components["schemas"]["ImageRefOut"][];
+            /** Tiny Shapes */
+            tiny_shapes: number;
+            /** Tiny Sample */
+            tiny_sample: string[];
+            /** Duplicate Shapes */
+            duplicate_shapes: number;
+            /** Duplicate Sample */
+            duplicate_sample: string[];
+            /** Class Counts */
+            class_counts: components["schemas"]["ClassCountOut"][];
+            /** Imbalance */
+            imbalance: number | null;
+            /** Look Alikes */
+            look_alikes: components["schemas"]["ImageRefOut"][][];
         };
         /** ImageOut */
         ImageOut: {
@@ -493,6 +727,16 @@ export interface components {
              */
             status: "todo" | "in_progress" | "done";
         };
+        /** ImageRefOut */
+        ImageRefOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Filename */
+            filename: string;
+        };
         /** JobOut */
         JobOut: {
             /**
@@ -512,6 +756,19 @@ export interface components {
             } | null;
             /** Error */
             error: string | null;
+        };
+        /** MergeIn */
+        MergeIn: {
+            /**
+             * Target Id
+             * Format: uuid
+             */
+            target_id: string;
+            /**
+             * Dry Run
+             * @default false
+             */
+            dry_run: boolean;
         };
         /** OpIn */
         OpIn: {
@@ -560,6 +817,33 @@ export interface components {
             /** Error */
             error?: string | null;
         };
+        /** OperationOut */
+        OperationOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Summary */
+            summary: string;
+            /** Created At */
+            created_at: string;
+            /** Reverted */
+            reverted: boolean;
+            /** Can Revert */
+            can_revert: boolean;
+        };
+        /** PreviewOut */
+        PreviewOut: {
+            /** Annotations */
+            annotations: number;
+            /** Images */
+            images: number;
+            /** Dropped Attr Values */
+            dropped_attr_values: number;
+        };
         /** ProjectIn */
         ProjectIn: {
             /** Name */
@@ -601,6 +885,79 @@ export interface components {
         ReorderIn: {
             /** Class Ids */
             class_ids: string[];
+        };
+        /** RevertOut */
+        RevertOut: {
+            /** Restored */
+            restored: number;
+            /** Skipped */
+            skipped: number;
+            /** Message */
+            message: string;
+        };
+        /** ShapeOut */
+        ShapeOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Image Id
+             * Format: uuid
+             */
+            image_id: string;
+            /** Filename */
+            filename: string;
+            /** Image Status */
+            image_status: string;
+            /** Class Id */
+            class_id: string | null;
+            /** Type */
+            type: string;
+            /** Geometry */
+            geometry: {
+                [key: string]: unknown;
+            };
+            /** Confidence */
+            confidence: number | null;
+            /** Version */
+            version: number;
+        };
+        /** ShapePageOut */
+        ShapePageOut: {
+            /** Items */
+            items: components["schemas"]["ShapeOut"][];
+            /** Next */
+            next: string | null;
+        };
+        /** SplitIn */
+        SplitIn: {
+            /**
+             * Train
+             * @default 0.8
+             */
+            train: number;
+            /**
+             * Val
+             * @default 0.1
+             */
+            val: number;
+            /**
+             * Test
+             * @default 0.1
+             */
+            test: number;
+            /**
+             * Seed
+             * @default 0
+             */
+            seed: number;
+            /**
+             * Stratify
+             * @default false
+             */
+            stratify: boolean;
         };
         /** ValidationError */
         ValidationError: {
@@ -937,6 +1294,173 @@ export interface operations {
             };
         };
     };
+    merge_class_api_v1_classes__class_id__merge_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                class_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MergeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassOpOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_class_api_v1_classes__class_id__delete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                class_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeleteIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassOpOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bulk_edit_api_v1_projects__project_id__annotations_bulk_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassOpOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_operations_api_v1_projects__project_id__operations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperationOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revert_operation_api_v1_operations__operation_id__revert_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                operation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevertOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_images_api_v1_projects__project_id__images_get: {
         parameters: {
             query?: {
@@ -1239,6 +1763,107 @@ export interface operations {
             };
         };
     };
+    project_health_api_v1_projects__project_id__health_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_shapes_api_v1_projects__project_id__shapes_get: {
+        parameters: {
+            query?: {
+                class_id?: string | null;
+                image_status?: string | null;
+                tiny_only?: boolean;
+                after?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShapePageOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    crop_api_v1_annotations__annotation_id__crop_get: {
+        parameters: {
+            query?: {
+                size?: number;
+            };
+            header?: never;
+            path: {
+                annotation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_formats_api_v1_formats_get: {
         parameters: {
             query?: never;
@@ -1347,6 +1972,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_info_api_v1_projects__project_id__export_info_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */
