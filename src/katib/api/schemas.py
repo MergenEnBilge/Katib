@@ -130,3 +130,20 @@ class OpResultOut(BaseModel):
 
 class BatchOut(BaseModel):
     results: list[OpResultOut]
+
+
+class FormatOut(BaseModel):
+    id: str
+    label: str
+    supports: list[str]
+
+
+class DatasetImportIn(BaseModel):
+    path: str
+    format: str | None = None
+
+
+class ExportIn(BaseModel):
+    format: str
+    statuses: list[Literal["todo", "in_progress", "done"]] | None = None
+    copy_images: bool = False
