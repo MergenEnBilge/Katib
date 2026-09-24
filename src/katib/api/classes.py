@@ -6,6 +6,7 @@ from fastapi import APIRouter, Response
 from sqlalchemy.orm import Session
 
 from katib.api.deps import SessionDep, UserDep, need
+from katib.api.hub import emit
 from katib.api.schemas import AttrDef, ClassIn, ClassOut, ClassPatch, ReorderIn
 from katib.services import access, classes, projects
 from katib.services.classes import ClassWithCount
@@ -43,6 +44,7 @@ def create_class(
     need(session, user, project_id, "manage")
     projects.get_project(session, project_id)
     cls = classes.create_class(session, project_id, body.name, body.color)
+    emit(session.info, project_id, {"type": "class.changed"})
     return _one(session, project_id, cls.id)
 
 
@@ -60,6 +62,7 @@ def update_class(
         classes.set_attr_schema(
             session, class_id, [a.model_dump(exclude_none=True) for a in body.attr_schema]
         )
+    emit(session.info, cls.project_id, {"type": "class.changed"})
     return _one(session, cls.project_id, class_id)
 
 
@@ -70,4 +73,5 @@ def reorder_classes(
     need(session, user, project_id, "manage")
     projects.get_project(session, project_id)
     classes.reorder_classes(session, project_id, body.class_ids)
+    emit(session.info, project_id, {"type": "class.changed"})
     return Response(status_code=204)

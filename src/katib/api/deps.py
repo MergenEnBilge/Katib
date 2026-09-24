@@ -6,7 +6,9 @@ from typing import Annotated
 
 from fastapi import Depends, Request
 from sqlalchemy.orm import Session
+from starlette.requests import HTTPConnection
 
+from katib.api.hub import Hub
 from katib.auth.ratelimit import LoginLimiter
 from katib.config import Settings
 from katib.db.models import User
@@ -29,6 +31,9 @@ def get_session(request: Request) -> Iterator[Session]:
     try:
         yield session
         session.commit()
+        hub: Hub = request.app.state.hub
+        for project_id, message in session.info.pop("events", []):
+            hub.publish(project_id, message)
     except Exception:
         session.rollback()
         raise
@@ -39,13 +44,13 @@ def get_session(request: Request) -> Iterator[Session]:
 SessionDep = Annotated[Session, Depends(get_session, scope="function")]
 
 
-def _bearer(request: Request) -> str | None:
+def _bearer(request: HTTPConnection) -> str | None:
     header = request.headers.get("authorization", "")
     scheme, _, value = header.partition(" ")
     return value.strip() if scheme.lower() == "bearer" and value.strip() else None
 
 
-def find_user(request: Request, session: Session) -> User | None:
+def find_user(request: HTTPConnection, session: Session) -> User | None:
     """The person making the request, or None when nobody is signed in."""
     settings: Settings = request.app.state.settings
     if settings.auth.mode == "none":
