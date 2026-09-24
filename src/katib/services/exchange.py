@@ -13,9 +13,10 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from katib.core.dataset import ExportImage, ExportOptions, ExportReport, Note, Shape
+from katib.core.split import SplitError, SplitItem, assign_splits
 from katib.core.types import GeometryError, validate_geometry
 from katib.db.ids import new_id
-from katib.db.models import Annotation, Class, Image
+from katib.db.models import Annotation, Class, Image, Project
 from katib.formats import FormatError, detect_format, get_format
 from katib.services import classes
 from katib.services.errors import InvalidInput, NotFound
@@ -120,7 +121,9 @@ class ProjectView:
         project_id: uuid.UUID,
         ctx: StorageContext,
         statuses: list[str] | None = None,
+        splits: dict[uuid.UUID, str] | None = None,
     ) -> None:
+        self._splits = splits or {}
         self._session = session
         self._project_id = project_id
         self._ctx = ctx
@@ -163,7 +166,14 @@ class ProjectView:
                     source: Path | None = image_path(img, self._ctx)
                 except (NotFound, OSError):  # a missing original only means it is not copied
                     source = None
-                yield ExportImage(img.filename, img.width, img.height, by_image[img.id], source)
+                yield ExportImage(
+                    img.filename,
+                    img.width,
+                    img.height,
+                    by_image[img.id],
+                    source,
+                    self._splits.get(img.id),
+                )
 
 
 def count_export(session: Session, project_id: uuid.UUID, statuses: list[str] | None) -> int:
@@ -171,6 +181,50 @@ def count_export(session: Session, project_id: uuid.UUID, statuses: list[str] | 
     if statuses:
         stmt = stmt.where(Image.status.in_(statuses))
     return session.scalar(stmt) or 0
+
+
+def _class_order(session: Session, project_id: uuid.UUID) -> list[str]:
+    ids = session.scalars(
+        select(Class.id).where(Class.project_id == project_id).order_by(Class.position)
+    )
+    return [str(i) for i in ids]
+
+
+def _assign_splits(
+    session: Session, project_id: uuid.UUID, opts: ExportOptions, statuses: list[str] | None
+) -> dict[uuid.UUID, str]:
+    spec = opts.split
+    if spec is None:
+        return {}
+    stmt = select(Image.id).where(Image.project_id == project_id)
+    if statuses:
+        stmt = stmt.where(Image.status.in_(statuses))
+    ids = list(session.scalars(stmt))
+    classes_by_image: dict[uuid.UUID, set[str]] = {i: set() for i in ids}
+    if spec.stratify:
+        rows = session.execute(
+            select(Annotation.image_id, Annotation.class_id)
+            .where(Annotation.image_id.in_(ids), Annotation.class_id.is_not(None))
+            .distinct()
+        )
+        for image_id, class_id in rows:
+            classes_by_image[image_id].add(str(class_id))
+    items = [SplitItem(str(i), frozenset(c)) for i, c in classes_by_image.items()]
+    try:
+        chosen = assign_splits(items, spec.ratios, spec.seed, spec.stratify)
+    except SplitError as err:
+        raise InvalidInput(str(err)) from err
+    return {uuid.UUID(k): v for k, v in chosen.items()}
+
+
+def export_info(session: Session, project_id: uuid.UUID) -> dict[str, object]:
+    """Whether the class order differs from the last export, which changes YOLO indices."""
+    project = session.get(Project, project_id)
+    if project is None:
+        raise NotFound("That project does not exist.")
+    last = project.settings.get("last_export_order")
+    changed = last is not None and last != _class_order(session, project_id)
+    return {"order_changed": changed, "has_exported": last is not None}
 
 
 def export_dataset(
@@ -186,9 +240,17 @@ def export_dataset(
         fmt = get_format(format_id)
     except FormatError as err:
         raise InvalidInput(str(err)) from err
-    view = ProjectView(session, project_id, ctx, statuses)
+    splits = _assign_splits(session, project_id, opts, statuses)
+    view = ProjectView(session, project_id, ctx, statuses, splits)
     if not view.class_names:
         raise InvalidInput("Add at least one class before exporting.")
     report = fmt.write(view, dest, opts)
     del report.notes[MAX_NOTES:]
+    project = session.get(Project, project_id)
+    if project is not None:
+        project.settings = {
+            **project.settings,
+            "last_export_order": _class_order(session, project_id),
+        }
+        session.flush()
     return report
