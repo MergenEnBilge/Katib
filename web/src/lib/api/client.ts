@@ -1,18 +1,27 @@
 import type {
+  Activity,
   Annotation,
+  ApiToken,
   AttrDef,
+  AuthStatus,
   BatchOp,
   ClassOp,
+  Comment,
   FormatInfo,
   Health,
   ImageItem,
   ImagePage,
+  Inbox,
   Job,
+  Lock,
+  Member,
   OperationInfo,
   OpResult,
+  Person,
   Project,
   ProjectClass,
   RevertResult,
+  Role,
   ShapeItem,
 } from './types';
 
@@ -37,6 +46,7 @@ interface ErrorBody {
 
 async function fail(response: Response): Promise<never> {
   const data = (await response.json().catch(() => null)) as ErrorBody | null;
+  if (response.status === 401 && data?.code === 'unauthorized') onUnauthorized?.();
   throw new ApiError(
     response.status,
     data?.code ?? 'error',
@@ -82,7 +92,69 @@ export interface ImageFilter {
   limit?: number;
 }
 
+type UnauthorizedHandler = () => void;
+let onUnauthorized: UnauthorizedHandler | null = null;
+
+/** Called when the server says the session is gone, so the app can show the sign-in screen. */
+export function setUnauthorizedHandler(handler: UnauthorizedHandler | null): void {
+  onUnauthorized = handler;
+}
+
 export const api = {
+  auth: {
+    status: () => request<AuthStatus>('GET', '/auth/status'),
+    setup: (email: string, name: string, password: string) =>
+      request<Person>('POST', '/auth/setup', { email, name, password }),
+    login: (email: string, password: string) =>
+      request<Person>('POST', '/auth/login', { email, password }),
+    logout: () => request<void>('POST', '/auth/logout'),
+    invite: (token: string) =>
+      request<{ project: string | null; role: string }>('GET', `/auth/invites/${token}`),
+    accept: (token: string, email: string, name: string, password: string) =>
+      request<Person>('POST', '/auth/accept', { token, email, name, password }),
+    createInvite: (projectId: string | null, role: Exclude<Role, 'owner'>) =>
+      request<{ token: string; path: string }>('POST', '/invites', {
+        project_id: projectId,
+        role,
+      }),
+    tokens: () => request<ApiToken[]>('GET', '/auth/tokens'),
+    createToken: (name: string) => request<ApiToken>('POST', '/auth/tokens', { name }),
+    revokeToken: (id: string) => request<void>('DELETE', `/auth/tokens/${id}`),
+  },
+
+  members: {
+    list: (projectId: string) => request<Member[]>('GET', `/projects/${projectId}/members`),
+    set: (projectId: string, userId: string, role: Role) =>
+      request<Member[]>('PUT', `/projects/${projectId}/members/${userId}`, { role }),
+    remove: (projectId: string, userId: string) =>
+      request<Member[]>('DELETE', `/projects/${projectId}/members/${userId}`),
+  },
+
+  work: {
+    next: (projectId: string) =>
+      request<{ image: ImageItem | null }>('POST', `/projects/${projectId}/next`),
+    assign: (projectId: string, imageIds: string[], assigneeId: string | null) =>
+      request<{ assigned: number }>('POST', `/projects/${projectId}/images:assign`, {
+        image_ids: imageIds,
+        assignee_id: assigneeId,
+      }),
+    lock: (imageId: string) => request<Lock>('POST', `/images/${imageId}/lock`),
+    unlock: (imageId: string) => request<void>('DELETE', `/images/${imageId}/lock`),
+    takeOver: (imageId: string) => request<Lock>('POST', `/images/${imageId}/lock:take-over`),
+    setStatus: (imageId: string, status: string) =>
+      request<ImageItem>('PATCH', `/images/${imageId}`, { status }),
+    comments: (imageId: string) => request<Comment[]>('GET', `/images/${imageId}/comments`),
+    comment: (imageId: string, body: string, x?: number, y?: number) =>
+      request<Comment>('POST', `/images/${imageId}/comments`, { body, x, y }),
+    resolve: (commentId: string, resolved: boolean) =>
+      request<Comment>('POST', `/comments/${commentId}:resolve`, { resolved }),
+    activity: (projectId: string) =>
+      request<Activity[]>('GET', `/projects/${projectId}/activity`),
+    setReview: (projectId: string, enabled: boolean) =>
+      request<Project>('PATCH', `/projects/${projectId}`, { review_enabled: enabled }),
+    inbox: () => request<Inbox>('GET', '/inbox'),
+  },
+
   formats: () => request<FormatInfo[]>('GET', '/formats'),
 
   projects: {

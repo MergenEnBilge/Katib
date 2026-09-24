@@ -4,6 +4,7 @@ import { crc32, deflateSync } from 'node:zlib';
 
 export const ROOT = resolve(import.meta.dirname, '..', '.e2e');
 export const DATA_DIR = join(ROOT, 'data');
+export const TEAM_DATA_DIR = join(ROOT, 'team-data');
 export const LIBRARY = join(ROOT, 'library');
 
 function chunk(type: string, data: Buffer): Buffer {
@@ -44,6 +45,7 @@ export function prepare(): void {
   rmSync(ROOT, { recursive: true, force: true });
   mkdirSync(LIBRARY, { recursive: true });
   mkdirSync(DATA_DIR, { recursive: true });
+  mkdirSync(TEAM_DATA_DIR, { recursive: true });
   const colors: [number, number, number][] = [
     [40, 60, 90],
     [70, 40, 60],

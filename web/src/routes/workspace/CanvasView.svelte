@@ -52,6 +52,7 @@
     engine.hideAll = ws.hideAll;
     engine.opacity = ws.opacity;
     engine.patternMode = ws.patternMode;
+    engine.readOnly = ws.readOnly;
     engine.crosshair = crosshair;
     engine.setClasses(ws.styles);
   });

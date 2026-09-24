@@ -15,6 +15,14 @@ describe('matchRoute', () => {
   it('matches the class gallery', () => {
     expect(matchRoute(`/p/${ID}/gallery`)).toEqual({ name: 'gallery', projectId: ID });
   });
+  it('matches the inbox and invite links', () => {
+    expect(matchRoute('/inbox')).toEqual({ name: 'inbox' });
+    expect(matchRoute('/invite/abcdefghijklmnop1234')).toEqual({
+      name: 'invite',
+      token: 'abcdefghijklmnop1234',
+    });
+    expect(matchRoute('/invite/short')).toEqual({ name: 'not-found' });
+  });
   it('rejects malformed ids and unknown paths', () => {
     expect(matchRoute('/p/abc')).toEqual({ name: 'not-found' });
     expect(matchRoute('/nope')).toEqual({ name: 'not-found' });
