@@ -15,6 +15,25 @@ uv run katib
 
 The server listens on `127.0.0.1:8420` and serves the built UI.
 
+## Sharing with a team
+
+Turn on accounts and bind to the network:
+
+```toml
+[auth]
+mode = "local"
+
+[database]
+url = "postgresql://katib:secret@localhost/katib"   # optional, SQLite is the default
+```
+
+```bash
+uv sync --extra postgres      # only if you use Postgres
+uv run katib serve --host 0.0.0.0
+```
+
+The first visit shows a setup screen for the administrator. Invite people from a project with a single-use link. `auth.mode = "none"` refuses to bind to anything but a loopback address.
+
 ## Importing from a folder
 
 Folder import indexes images where they are and never copies or changes them. Katib only reads folders you list in `katib.toml`:
