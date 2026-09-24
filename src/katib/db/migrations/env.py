@@ -10,6 +10,7 @@ from sqlalchemy import engine_from_config, pool
 from katib.config import get_settings
 from katib.db import models  # noqa: F401  (registers tables on the metadata)
 from katib.db.base import Base, UTCDateTime
+from katib.db.session import normalize_url
 
 config = context.config
 if config.config_file_name is not None:
@@ -26,7 +27,8 @@ def render_item(type_: str, obj: Any, autogen_context: AutogenContext) -> str | 
 
 
 def _url() -> str:
-    return config.get_main_option("sqlalchemy.url") or get_settings().database_url
+    url = config.get_main_option("sqlalchemy.url") or get_settings().database_url
+    return normalize_url(url)
 
 
 def run_migrations_offline() -> None:
