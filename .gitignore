@@ -22,3 +22,6 @@ katib.toml
 *.db-shm
 .env
 .DS_Store
+
+CLAUDE.md
+.claude/
