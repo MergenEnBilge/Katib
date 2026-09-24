@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 
 from katib.api.deps import SessionDep, UserDep, need
+from katib.api.hub import emit
 from katib.api.images import _out as image_out
 from katib.api.schemas import ImageOut, LockOut
 from katib.db.models import Comment, Image, Project, ProjectMember
@@ -83,6 +84,15 @@ def _lock_out(image: Image, name: str | None, me: uuid.UUID) -> LockOut:
     )
 
 
+def _lock_event(image: Image, name: str | None) -> dict[str, object]:
+    return {
+        "type": "image.locked",
+        "image_id": str(image.id),
+        "user_id": str(image.locked_by),
+        "name": name,
+    }
+
+
 def _comment(row: discussion.CommentRow) -> CommentOut:
     c = row.comment
     return CommentOut(
@@ -123,6 +133,7 @@ def assign(project_id: uuid.UUID, body: AssignIn, session: SessionDep, user: Use
 def lock(image_id: uuid.UUID, session: SessionDep, user: UserDep) -> LockOut:
     need(session, user, access.project_of_image(session, image_id), "annotate")
     image = tasks.lock_image(session, user, image_id)
+    emit(session.info, image.project_id, _lock_event(image, user.name))
     return _lock_out(image, user.name, user.id)
 
 
@@ -130,6 +141,11 @@ def lock(image_id: uuid.UUID, session: SessionDep, user: UserDep) -> LockOut:
 def unlock(image_id: uuid.UUID, session: SessionDep, user: UserDep) -> Response:
     need(session, user, access.project_of_image(session, image_id), "annotate")
     tasks.unlock_image(session, user, image_id)
+    emit(
+        session.info,
+        access.project_of_image(session, image_id),
+        {"type": "image.unlocked", "image_id": str(image_id)},
+    )
     return Response(status_code=204)
 
 
@@ -137,6 +153,7 @@ def unlock(image_id: uuid.UUID, session: SessionDep, user: UserDep) -> Response:
 def take_over(image_id: uuid.UUID, session: SessionDep, user: UserDep) -> LockOut:
     need(session, user, access.project_of_image(session, image_id), "manage")
     image = tasks.take_over(session, image_id, user)
+    emit(session.info, image.project_id, _lock_event(image, user.name))
     return _lock_out(image, user.name, user.id)
 
 

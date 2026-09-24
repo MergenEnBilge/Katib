@@ -1,5 +1,6 @@
 """FastAPI application factory."""
 
+import asyncio
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -20,9 +21,11 @@ from katib.api import (
     jobs,
     projects,
     quality,
+    realtime,
     security,
     tasks,
 )
+from katib.api.hub import Hub
 from katib.auth.ratelimit import LoginLimiter
 from katib.config import Settings
 from katib.db.migrate import upgrade_to_head
@@ -59,6 +62,7 @@ def create_app(settings: Settings) -> FastAPI:
                 s, app.state.operations, settings.limits.operation_retention_days
             )
             s.commit()
+        app.state.hub.bind(asyncio.get_running_loop())
         app.state.runner = JobRunner(app.state.session_factory)
         app.state.runner.fail_interrupted()
         log.info("Katib started, data in %s", settings.data_dir)
@@ -71,6 +75,7 @@ def create_app(settings: Settings) -> FastAPI:
     errors.install(app)
     security.install(app)
     app.state.limiter = LoginLimiter()
+    app.state.hub = Hub()
     for module in (
         health,
         auth,
@@ -83,6 +88,7 @@ def create_app(settings: Settings) -> FastAPI:
         tasks,
         exchange,
         jobs,
+        realtime,
     ):
         app.include_router(module.router, prefix="/api/v1")
     _mount_ui(app)

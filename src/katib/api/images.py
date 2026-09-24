@@ -8,6 +8,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from katib.api.deps import RunnerDep, SessionDep, StorageDep, UserDep, need
+from katib.api.hub import emit
 from katib.api.jobs import job_out
 from katib.api.schemas import FolderImportIn, ImageOut, ImagePageOut, ImagePatch, JobOut, LockOut
 from katib.db.models import User
@@ -119,6 +120,11 @@ def update_image(
     need(session, user, access.project_of_image(session, image_id), "annotate")
     image = tasks.transition(session, user, image_id, body.status)
     project_id = image.project_id
+    emit(
+        session.info,
+        project_id,
+        {"type": "image.status", "image_id": str(image_id), "status": image.status},
+    )
     discussion.log(session, project_id, user, f"marked_{body.status}", {"image_id": str(image_id)})
     return _out(session, ImageRow(image, 0), user)
 
