@@ -1,5 +1,4 @@
 import time
-from pathlib import Path
 
 import pytest
 from sqlalchemy import inspect, text
@@ -12,10 +11,9 @@ from katib.db.session import make_engine, make_session_factory, session_scope
 
 
 @pytest.fixture
-def db_url(tmp_path: Path) -> str:
-    url = f"sqlite:///{(tmp_path / 'test.db').as_posix()}"
-    upgrade_to_head(url)
-    return url
+def db_url(database_url: str) -> str:
+    upgrade_to_head(database_url)
+    return database_url
 
 
 def test_migration_creates_all_tables(db_url: str) -> None:
@@ -40,7 +38,7 @@ def test_class_names_are_unique_per_project_ignoring_case(db_url: str) -> None:
         s.add(Class(project_id=project_id, name="car", color="#8B6CF0", position=1))
 
 
-def test_foreign_keys_are_enforced(db_url: str) -> None:
+def test_foreign_keys_are_enforced(db_url: str, sqlite_only: None) -> None:
     engine = make_engine(db_url)
     with engine.connect() as conn:
         assert conn.execute(text("PRAGMA foreign_keys")).scalar() == 1

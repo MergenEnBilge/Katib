@@ -1,5 +1,4 @@
 import time
-from pathlib import Path
 from typing import Any
 
 import pytest
@@ -11,10 +10,9 @@ from katib.jobs.runner import JobRunner, Progress
 
 
 @pytest.fixture
-def runner(tmp_path: Path):  # type: ignore[no-untyped-def]
-    url = f"sqlite:///{(tmp_path / 'jobs.db').as_posix()}"
-    upgrade_to_head(url)
-    engine = make_engine(url)
+def runner(database_url: str):  # type: ignore[no-untyped-def]
+    upgrade_to_head(database_url)
+    engine = make_engine(database_url)
     r = JobRunner(make_session_factory(engine))
     yield r
     r.shutdown()
