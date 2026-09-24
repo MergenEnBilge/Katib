@@ -7,6 +7,7 @@
   import IconButton from './lib/ui/IconButton.svelte';
   import Toast from './lib/ui/Toast.svelte';
   import Projects from './routes/Projects.svelte';
+  import Gallery from './routes/gallery/Gallery.svelte';
   import Workspace from './routes/workspace/Workspace.svelte';
 
   $effect(applyTheme);
@@ -14,7 +15,11 @@
   const route = $derived(router.route);
 </script>
 
-{#if route.name === 'workspace'}
+{#if route.name === 'gallery'}
+  {#key route.projectId}
+    <Gallery projectId={route.projectId} />
+  {/key}
+{:else if route.name === 'workspace'}
   {#key route.projectId}
     <Workspace projectId={route.projectId} />
   {/key}

@@ -7,7 +7,7 @@
     onclick,
     children,
   }: {
-    variant?: 'primary' | 'secondary' | 'ghost';
+    variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'danger-quiet';
     disabled?: boolean;
     onclick?: () => void;
     children: Snippet;
@@ -55,6 +55,24 @@
   .secondary:hover {
     border-color: var(--border-strong);
     background: var(--surface-1);
+  }
+
+  .danger {
+    background: var(--danger);
+    color: var(--on-danger);
+  }
+  .danger:hover {
+    opacity: 0.9;
+  }
+
+  .danger-quiet {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--danger);
+  }
+  .danger-quiet:hover {
+    border-color: var(--border-strong);
+    background: var(--danger-muted);
   }
 
   .ghost {

@@ -12,6 +12,9 @@ describe('matchRoute', () => {
     expect(matchRoute(`/p/${ID}`)).toEqual({ name: 'workspace', projectId: ID });
     expect(matchRoute(`/p/${ID}/`)).toEqual({ name: 'workspace', projectId: ID });
   });
+  it('matches the class gallery', () => {
+    expect(matchRoute(`/p/${ID}/gallery`)).toEqual({ name: 'gallery', projectId: ID });
+  });
   it('rejects malformed ids and unknown paths', () => {
     expect(matchRoute('/p/abc')).toEqual({ name: 'not-found' });
     expect(matchRoute('/nope')).toEqual({ name: 'not-found' });

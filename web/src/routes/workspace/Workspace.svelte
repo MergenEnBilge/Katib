@@ -4,6 +4,8 @@
     Check,
     Download,
     Keyboard,
+    LayoutGrid,
+    Stethoscope,
     Maximize,
     Moon,
     MousePointer2,
@@ -39,6 +41,8 @@
   import ClassesPanel from './ClassesPanel.svelte';
   import DetailsPanel from './DetailsPanel.svelte';
   import ExportDialog from './ExportDialog.svelte';
+  import HealthDialog from './HealthDialog.svelte';
+  import HistoryDialog from './HistoryDialog.svelte';
   import ImageRail from './ImageRail.svelte';
   import ImportDialog from './ImportDialog.svelte';
   import ShortcutsDialog from './ShortcutsDialog.svelte';
@@ -49,7 +53,16 @@
   // svelte-ignore state_referenced_locally
   const ws = new Workspace(projectId);
 
-  type Dialog = 'import-images' | 'import-labels' | 'export' | 'classes' | 'shortcuts' | 'picker' | null;
+  type Dialog =
+    | 'import-images'
+    | 'import-labels'
+    | 'export'
+    | 'classes'
+    | 'history'
+    | 'health'
+    | 'shortcuts'
+    | 'picker'
+    | null;
 
   let tool = $state<ToolName>('select');
   let tab = $state<'classes' | 'details'>('classes');
@@ -239,6 +252,12 @@
       </button>
       <span class="hide-narrow"><Button onclick={() => (dialog = 'import-images')}><Upload size={16} />Import</Button></span>
       <span class="hide-narrow"><Button onclick={() => (dialog = 'export')}><Download size={16} />Export</Button></span>
+      <span class="hide-narrow">
+        <IconButton label="Class gallery" onclick={() => router.navigate(`/p/${projectId}/gallery`)}><LayoutGrid size={16} /></IconButton>
+      </span>
+      <span class="hide-narrow">
+        <IconButton label="Dataset health" onclick={() => (dialog = 'health')}><Stethoscope size={16} /></IconButton>
+      </span>
       <span class="hide-narrow"><IconButton label="Class manager" shortcut="M" onclick={() => (dialog = 'classes')}><Tags size={16} /></IconButton></span>
       <span class="hide-narrow"><IconButton label="Keyboard shortcuts" shortcut="?" onclick={() => (dialog = 'shortcuts')}><Keyboard size={16} /></IconButton></span>
       <span class="hide-narrow">
@@ -345,7 +364,11 @@
 {:else if dialog === 'export'}
   <ExportDialog {ws} onclose={() => (dialog = null)} />
 {:else if dialog === 'classes'}
-  <ClassManagerDialog {ws} onclose={() => (dialog = null)} />
+  <ClassManagerDialog {ws} onclose={() => (dialog = null)} onhistory={() => (dialog = 'history')} />
+{:else if dialog === 'history'}
+  <HistoryDialog {ws} onclose={() => (dialog = null)} />
+{:else if dialog === 'health'}
+  <HealthDialog {ws} onclose={() => (dialog = null)} />
 {:else if dialog === 'shortcuts'}
   <ShortcutsDialog onclose={() => (dialog = null)} />
 {:else if dialog === 'picker'}
