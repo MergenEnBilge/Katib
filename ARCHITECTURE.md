@@ -2,7 +2,7 @@
 
 Katib is a data annotation tool. Images first (bounding boxes, polygons, oriented boxes, keypoints, masks, tags), with a design that leaves room for other data types later. It runs on a phone, on a PC you self-host, or as a desktop app, and all three can work on the same project at the same time.
 
-This document is the technical source of truth. `DESIGN.md` covers the interface, `CLAUDE.md` covers how to work in the repo. If code and this document disagree, fix one of them in the same commit.
+This document is the technical source of truth. `DESIGN.md` covers the interface, `README.md` covers running and checking the code. If code and this document disagree, fix one of them in the same commit.
 
 ## Contents
 
@@ -96,7 +96,6 @@ katib/
   README.md
   ARCHITECTURE.md
   DESIGN.md
-  CLAUDE.md
   src/katib/
     core/          Pure Python. Geometry, annotation types, validation. No I/O.
     db/            SQLAlchemy models, session handling, Alembic migrations.
@@ -548,7 +547,7 @@ CI (GitHub Actions): lint, type check, import-linter, tests (SQLite and Postgres
 Each milestone ends with something that works and is committed. Do them in order.
 
 **M0. Foundations**
-Repo, `pyproject.toml`, CI, import-linter, layer skeleton, config loading, DB models and first migration, health endpoint, frontend shell with design tokens and theme toggle, `CLAUDE.md`.
+Repo, `pyproject.toml`, CI, import-linter, layer skeleton, config loading, DB models and first migration, health endpoint, frontend shell with design tokens and theme toggle.
 *Done when:* `katib` starts, serves the empty UI, and CI is green.
 
 **M1. Single-user core**
