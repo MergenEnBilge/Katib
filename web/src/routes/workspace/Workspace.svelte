@@ -6,6 +6,7 @@
     Keyboard,
     LayoutGrid,
     Stethoscope,
+    Users,
     Maximize,
     Moon,
     MousePointer2,
@@ -28,8 +29,10 @@
   import { resolveShortcut, type Action } from '../../lib/shortcuts/keys';
   import { router } from '../../lib/state/router.svelte';
   import { applyTheme, theme } from '../../lib/state/theme.svelte';
+  import { session } from '../../lib/state/session.svelte';
   import { toasts } from '../../lib/state/toast.svelte';
   import { Workspace } from '../../lib/state/workspace.svelte';
+  import Avatar from '../../lib/ui/Avatar.svelte';
   import Button from '../../lib/ui/Button.svelte';
   import Callout from '../../lib/ui/Callout.svelte';
   import EmptyState from '../../lib/ui/EmptyState.svelte';
@@ -45,7 +48,9 @@
   import HistoryDialog from './HistoryDialog.svelte';
   import ImageRail from './ImageRail.svelte';
   import ImportDialog from './ImportDialog.svelte';
+  import ReviewPanel from './ReviewPanel.svelte';
   import ShortcutsDialog from './ShortcutsDialog.svelte';
+  import TeamDialog from './TeamDialog.svelte';
 
   let { projectId }: { projectId: string } = $props();
 
@@ -59,13 +64,14 @@
     | 'export'
     | 'classes'
     | 'history'
+    | 'team'
     | 'health'
     | 'shortcuts'
     | 'picker'
     | null;
 
   let tool = $state<ToolName>('select');
-  let tab = $state<'classes' | 'details'>('classes');
+  let tab = $state<'classes' | 'details' | 'review'>('classes');
   let dialog = $state<Dialog>(null);
   let railCollapsed = $state(false);
   let railOpen = $state(false);
@@ -77,6 +83,8 @@
     { id: 'box', label: 'Box', key: 'B' },
     { id: 'polygon', label: 'Polygon', key: 'P' },
   ];
+
+  const shared = $derived(session.mode === 'local');
 
   const saveLabel = $derived(
     ws.saveState === 'error'
@@ -115,6 +123,8 @@
   function run(action: Action): void {
     const engine = ws.engine;
     if (!engine) return;
+    const edits = ['undo', 'redo', 'paste', 'done'];
+    if (ws.readOnly && (edits.includes(action) || action.startsWith('class:'))) return;
     if (action.startsWith('class:')) {
       const cls = ws.classByShortcut(Number(action.slice(6)));
       if (cls) ws.chooseClass(cls.id);
@@ -247,11 +257,21 @@
     </div>
 
     <div class="group end">
+      {#if shared && ws.others.length > 0}
+        <span class="presence" aria-label="Also here">
+          {#each ws.others as p (p.user_id)}<Avatar name={p.name} userId={p.user_id} />{/each}
+        </span>
+      {/if}
       <button type="button" class="save {ws.saveState}" onclick={showSaveStatus} aria-label="Save status: {saveLabel}">
         <span class="pip"></span><span class="save-text">{saveLabel}</span>
       </button>
       <span class="hide-narrow"><Button onclick={() => (dialog = 'import-images')}><Upload size={16} />Import</Button></span>
       <span class="hide-narrow"><Button onclick={() => (dialog = 'export')}><Download size={16} />Export</Button></span>
+      {#if shared}
+        <span class="hide-narrow">
+          <IconButton label="Team" onclick={() => (dialog = 'team')}><Users size={16} /></IconButton>
+        </span>
+      {/if}
       <span class="hide-narrow">
         <IconButton label="Class gallery" onclick={() => router.navigate(`/p/${projectId}/gallery`)}><LayoutGrid size={16} /></IconButton>
       </span>
@@ -299,6 +319,16 @@
 
       <main class="canvas">
         <CanvasView {ws} {tool} onzoom={(p) => (zoom = p)} />
+        {#if ws.currentId && ws.readOnly}
+          <div class="banner" role="status">
+            {#if !ws.canEdit}
+              <span>You have view-only access to this project.</span>
+            {:else if ws.lockedByOther}
+              <span>{ws.lockedByOther.name ?? 'Someone'} is editing this image. You can look around, or ask them to finish.</span>
+              {#if ws.canManage}<Button onclick={() => ws.takeOver()}>Take over</Button>{/if}
+            {/if}
+          </div>
+        {/if}
         {#if !ws.currentId && !ws.imagesLoading && ws.project}
           <div class="overlay">
             <EmptyState
@@ -316,8 +346,8 @@
 
       <aside class="panel-wrap" class:open={panelOpen} aria-label="Classes and details">
         <div class="tabs" role="tablist">
-          {#each [['classes', 'Classes'], ['details', 'Details']] as const as [id, label] (id)}
-            <button type="button" role="tab" aria-selected={tab === id} class:active={tab === id} onclick={() => (tab = id)}>
+          {#each (shared ? [['classes', 'Classes'], ['details', 'Details'], ['review', 'Review']] : [['classes', 'Classes'], ['details', 'Details']]) as [id, label] (id)}
+            <button type="button" role="tab" aria-selected={tab === id} class:active={tab === id} onclick={() => (tab = id as typeof tab)}>
               {label}
               {#if id === 'details' && ws.selectionCount > 0}<span class="badge mono">{ws.selectionCount}</span>{/if}
             </button>
@@ -345,6 +375,8 @@
         <div class="tab-body">
           {#if tab === 'classes'}
             <ClassesPanel {ws} onmanage={() => (dialog = 'classes')} />
+          {:else if tab === 'review'}
+            <ReviewPanel {ws} />
           {:else}
             <DetailsPanel {ws} />
           {/if}
@@ -365,6 +397,8 @@
   <ExportDialog {ws} onclose={() => (dialog = null)} />
 {:else if dialog === 'classes'}
   <ClassManagerDialog {ws} onclose={() => (dialog = null)} onhistory={() => (dialog = 'history')} />
+{:else if dialog === 'team'}
+  <TeamDialog {ws} onclose={() => (dialog = null)} />
 {:else if dialog === 'history'}
   <HistoryDialog {ws} onclose={() => (dialog = null)} />
 {:else if dialog === 'health'}
@@ -431,6 +465,31 @@
   .tool.active {
     color: var(--accent);
     background: var(--accent-muted);
+  }
+
+  .presence {
+    display: flex;
+    margin-inline-end: var(--space-2);
+  }
+
+  .presence :global(.avatar) {
+    margin-inline-start: -6px;
+  }
+
+  .banner {
+    position: absolute;
+    inset-block-start: var(--space-3);
+    inset-inline: var(--space-3);
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    background: var(--surface-2);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow);
   }
 
   .disabled {
