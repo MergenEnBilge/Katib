@@ -229,3 +229,81 @@ def test_import_path_outside_roots_and_empty_export(api: TestClient, tmp_path: P
     assert res.status_code == 422
     assert "no images" in res.json()["message"]
     assert api.get(f"{API}/jobs/{uuid.uuid4()}/download").status_code == 404
+
+
+def test_merge_preview_merge_and_revert_over_the_api(api: TestClient, library: Path) -> None:
+    p = make_project(api)
+    base = f"{API}/projects/{p['id']}/classes"
+    car = api.post(base, json={"name": "car"}).json()
+    van = api.post(base, json={"name": "van"}).json()
+    import_library(api, p, library)
+    image = api.get(f"{API}/projects/{p['id']}/images").json()["items"][0]
+    ops = [
+        {
+            "op": "create",
+            "id": str(uuid.uuid4()),
+            "type": "box",
+            "class_id": van["id"],
+            "geometry": BOX,
+        }
+        for _ in range(3)
+    ]
+    api.post(f"{API}/images/{image['id']}/annotations:batch", json={"ops": ops})
+
+    preview = api.post(
+        f"{API}/classes/{van['id']}:merge", json={"target_id": car["id"], "dry_run": True}
+    )
+    assert preview.status_code == 200
+    assert preview.json()["preview"]["annotations"] == 3 and preview.json()["operation"] is None
+    assert len(api.get(base).json()) == 2
+
+    done = api.post(f"{API}/classes/{van['id']}:merge", json={"target_id": car["id"]}).json()
+    assert done["operation"]["can_revert"] is True
+    assert "3 annotations on 1 image" in done["operation"]["summary"]
+    assert [c["name"] for c in api.get(base).json()] == ["car"]
+    assert api.get(base).json()[0]["annotation_count"] == 3
+
+    history = api.get(f"{API}/projects/{p['id']}/operations").json()
+    assert [o["kind"] for o in history] == ["merge_classes"]
+    reverted = api.post(f"{API}/operations/{done['operation']['id']}:revert").json()
+    assert reverted["restored"] == 3 and reverted["message"] == "Restored 3."
+    assert [c["name"] for c in api.get(base).json()] == ["car", "van"]
+    again = api.post(f"{API}/operations/{done['operation']['id']}:revert")
+    assert again.status_code == 409 and again.json()["code"] == "not_revertible"
+
+
+def test_delete_class_and_bulk_edit_over_the_api(api: TestClient, library: Path) -> None:
+    p = make_project(api)
+    base = f"{API}/projects/{p['id']}/classes"
+    car = api.post(base, json={"name": "car"}).json()
+    bus = api.post(base, json={"name": "bus"}).json()
+    import_library(api, p, library)
+    image = api.get(f"{API}/projects/{p['id']}/images").json()["items"][0]
+    ids = [str(uuid.uuid4()) for _ in range(2)]
+    api.post(
+        f"{API}/images/{image['id']}/annotations:batch",
+        json={
+            "ops": [
+                {"op": "create", "id": i, "type": "box", "class_id": car["id"], "geometry": BOX}
+                for i in ids
+            ]
+        },
+    )
+    bulk = {"action": "reclass", "ids": ids, "target_id": bus["id"]}
+    assert (
+        api.post(
+            f"{API}/projects/{p['id']}/annotations:bulk", json={**bulk, "dry_run": True}
+        ).json()["preview"]["annotations"]
+        == 2
+    )
+    assert api.post(f"{API}/projects/{p['id']}/annotations:bulk", json=bulk).status_code == 200
+    counts = {c["name"]: c["annotation_count"] for c in api.get(base).json()}
+    assert counts == {"car": 0, "bus": 2}
+    missing = api.post(
+        f"{API}/projects/{p['id']}/annotations:bulk", json={"action": "reclass", "ids": ids}
+    )
+    assert missing.status_code == 422
+
+    gone = api.post(f"{API}/classes/{bus['id']}:delete", json={}).json()
+    assert gone["preview"]["annotations"] == 2
+    assert [c["name"] for c in api.get(base).json()] == ["car"]
