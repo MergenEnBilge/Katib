@@ -21,6 +21,7 @@ from katib.api import (
     projects,
     quality,
     security,
+    tasks,
 )
 from katib.auth.ratelimit import LoginLimiter
 from katib.config import Settings
@@ -79,6 +80,7 @@ def create_app(settings: Settings) -> FastAPI:
         images,
         annotations,
         quality,
+        tasks,
         exchange,
         jobs,
     ):
