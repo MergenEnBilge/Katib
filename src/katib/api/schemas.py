@@ -19,7 +19,8 @@ class ProjectIn(BaseModel):
 
 
 class ProjectPatch(BaseModel):
-    name: str
+    name: str | None = None
+    review_enabled: bool | None = None
 
 
 class ProjectOut(BaseModel):
@@ -27,6 +28,8 @@ class ProjectOut(BaseModel):
     name: str
     slug: str
     annotation_types: list[str]
+    review_enabled: bool = False
+    role: str = "owner"
     image_count: int
     done_count: int
     created_at: datetime
@@ -76,6 +79,19 @@ class ImageOut(BaseModel):
     position: int
     version: int
     annotation_count: int = 0
+    assignee_id: uuid.UUID | None = None
+    reviewer_id: uuid.UUID | None = None
+    lock: "LockOut | None" = None
+
+
+class LockOut(BaseModel):
+    user_id: uuid.UUID
+    name: str | None
+    until: datetime
+    mine: bool = False
+
+
+ImageOut.model_rebuild()
 
 
 class ImagePageOut(BaseModel):
@@ -84,7 +100,7 @@ class ImagePageOut(BaseModel):
 
 
 class ImagePatch(BaseModel):
-    status: Literal["todo", "in_progress", "done"]
+    status: Literal["todo", "in_progress", "done", "approved", "rejected"]
 
 
 class FolderImportIn(BaseModel):
