@@ -12,6 +12,7 @@ from typing import Any, Literal
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from katib.core.attributes import AttributeError_, check_attrs
 from katib.core.types import GeometryError, validate_geometry
 from katib.db.base import utcnow
 from katib.db.models import Annotation, Class, Image, Project
@@ -56,6 +57,16 @@ def _check_class(session: Session, image: Image, class_id: uuid.UUID | None) -> 
         raise InvalidInput("That class does not belong to this project.")
 
 
+def _check_values(session: Session, class_id: uuid.UUID | None, attrs: dict[str, Any]) -> None:
+    cls = session.get(Class, class_id) if class_id else None
+    if cls is None or not attrs:
+        return
+    try:
+        check_attrs(cls.attr_schema, attrs)
+    except AttributeError_ as err:
+        raise InvalidInput(str(err)) from err
+
+
 def _check_type(session: Session, image: Image, type_name: str) -> None:
     project = session.get(Project, image.project_id)
     enabled = (project.settings if project else {}).get("annotation_types", ["box", "polygon"])
@@ -75,6 +86,7 @@ def _create(session: Session, image: Image, op: Op, user_id: uuid.UUID | None) -
         _check_type(session, image, op.type)
         _check_class(session, image, op.class_id)
         geometry = validate_geometry(op.type, op.geometry).model_dump()
+        _check_values(session, op.class_id, op.attrs or {})
     except (InvalidInput, GeometryError) as err:
         return OpResult(op.id, "invalid", error=str(err))
     ann = Annotation(
@@ -111,6 +123,7 @@ def _update(session: Session, image: Image, op: Op) -> OpResult:
             new_geometry = validate_geometry(ann.type, op.patch["geometry"]).model_dump()
         if "attrs" in op.patch:
             new_attrs = dict(op.patch["attrs"])
+            _check_values(session, new_class or ann.class_id, new_attrs)
     except (InvalidInput, GeometryError, ValueError) as err:
         return OpResult(op.id, "invalid", ann, str(err))
     # Nothing is changed until every part of the patch has passed validation.
