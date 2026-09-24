@@ -6,10 +6,10 @@ from typing import Annotated
 from fastapi import APIRouter, File, UploadFile
 from fastapi.responses import FileResponse
 
-from katib.api.deps import RunnerDep, SessionDep, StorageDep
+from katib.api.deps import RunnerDep, SessionDep, StorageDep, UserDep, need
 from katib.api.jobs import job_out
 from katib.api.schemas import FolderImportIn, ImageOut, ImagePageOut, ImagePatch, JobOut
-from katib.services import images, projects
+from katib.services import access, images, projects
 from katib.services.errors import NotFound
 from katib.services.images import ImageRow
 
@@ -28,6 +28,7 @@ def _out(row: ImageRow) -> ImageOut:
 def list_images(
     project_id: uuid.UUID,
     session: SessionDep,
+    user: UserDep,
     status: str | None = None,
     q: str | None = None,
     has_annotations: bool | None = None,
@@ -35,6 +36,7 @@ def list_images(
     after: uuid.UUID | None = None,
     limit: int = 100,
 ) -> ImagePageOut:
+    need(session, user, project_id, "view")
     projects.get_project(session, project_id)
     page = images.list_images(
         session,
@@ -54,8 +56,10 @@ def upload_image(
     project_id: uuid.UUID,
     file: Annotated[UploadFile, File()],
     session: SessionDep,
+    user: UserDep,
     storage: StorageDep,
 ) -> ImageOut:
+    need(session, user, project_id, "manage")
     projects.get_project(session, project_id)
     image = images.import_upload(session, project_id, file.filename or "image", file.file, storage)
     return _out(ImageRow(image, 0))
@@ -66,9 +70,11 @@ def import_folder(
     project_id: uuid.UUID,
     body: FolderImportIn,
     session: SessionDep,
+    user: UserDep,
     storage: StorageDep,
     runner: RunnerDep,
 ) -> JobOut:
+    need(session, user, project_id, "manage")
     projects.get_project(session, project_id)
     # Fail fast on a bad folder so the person sees the reason now, not in a failed job.
     images.resolve_folder(body.folder, storage.allowed_roots)
@@ -91,22 +97,32 @@ def import_folder(
 
 
 @router.get("/images/{image_id}", response_model=ImageOut)
-def get_image(image_id: uuid.UUID, session: SessionDep) -> ImageOut:
+def get_image(image_id: uuid.UUID, session: SessionDep, user: UserDep) -> ImageOut:
+    need(session, user, access.project_of_image(session, image_id), "view")
     return _out(ImageRow(images.get_image(session, image_id), 0))
 
 
 @router.patch("/images/{image_id}", response_model=ImageOut)
-def update_image(image_id: uuid.UUID, body: ImagePatch, session: SessionDep) -> ImageOut:
+def update_image(
+    image_id: uuid.UUID, body: ImagePatch, session: SessionDep, user: UserDep
+) -> ImageOut:
+    need(session, user, access.project_of_image(session, image_id), "annotate")
     return _out(ImageRow(images.set_status(session, image_id, body.status), 0))
 
 
 @router.get("/images/{image_id}/file")
-def image_file(image_id: uuid.UUID, session: SessionDep, storage: StorageDep) -> FileResponse:
+def image_file(
+    image_id: uuid.UUID, session: SessionDep, user: UserDep, storage: StorageDep
+) -> FileResponse:
+    need(session, user, access.project_of_image(session, image_id), "view")
     image = images.get_image(session, image_id)
     return FileResponse(images.image_path(image, storage), headers=CACHE)
 
 
 @router.get("/images/{image_id}/thumb")
-def image_thumb(image_id: uuid.UUID, session: SessionDep, storage: StorageDep) -> FileResponse:
+def image_thumb(
+    image_id: uuid.UUID, session: SessionDep, user: UserDep, storage: StorageDep
+) -> FileResponse:
+    need(session, user, access.project_of_image(session, image_id), "view")
     image = images.get_image(session, image_id)
     return FileResponse(images.thumb_path(image, storage), media_type="image/jpeg", headers=CACHE)

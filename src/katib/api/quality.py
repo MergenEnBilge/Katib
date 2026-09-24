@@ -6,9 +6,9 @@ from typing import Any
 from fastapi import APIRouter, Response
 from pydantic import BaseModel
 
-from katib.api.deps import SessionDep, StorageDep
+from katib.api.deps import SessionDep, StorageDep, UserDep, need
 from katib.db.models import Annotation
-from katib.services import images, quality
+from katib.services import access, images, quality
 from katib.services.errors import NotFound
 from katib.storage.imaging import crop_jpeg
 
@@ -63,7 +63,8 @@ def _refs(items: list[quality.ImageRef]) -> list[ImageRefOut]:
 
 
 @router.get("/projects/{project_id}/health", response_model=HealthOut)
-def project_health(project_id: uuid.UUID, session: SessionDep) -> HealthOut:
+def project_health(project_id: uuid.UUID, session: SessionDep, user: UserDep) -> HealthOut:
+    need(session, user, project_id, "view")
     r = quality.project_health(session, project_id)
     return HealthOut(
         images=r.images,
@@ -84,12 +85,14 @@ def project_health(project_id: uuid.UUID, session: SessionDep) -> HealthOut:
 def list_shapes(
     project_id: uuid.UUID,
     session: SessionDep,
+    user: UserDep,
     class_id: uuid.UUID | None = None,
     image_status: str | None = None,
     tiny_only: bool = False,
     after: uuid.UUID | None = None,
     limit: int = 60,
 ) -> ShapePageOut:
+    need(session, user, project_id, "view")
     page = quality.list_shapes(
         session,
         project_id,
@@ -120,8 +123,13 @@ def list_shapes(
 
 @router.get("/annotations/{annotation_id}/crop")
 def crop(
-    annotation_id: uuid.UUID, session: SessionDep, storage: StorageDep, size: int = 160
+    annotation_id: uuid.UUID,
+    session: SessionDep,
+    user: UserDep,
+    storage: StorageDep,
+    size: int = 160,
 ) -> Response:
+    need(session, user, access.project_of_annotation(session, annotation_id), "view")
     ann = session.get(Annotation, annotation_id)
     if ann is None:
         raise NotFound("That shape does not exist.")
