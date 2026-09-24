@@ -7,9 +7,18 @@ from sqlalchemy import Engine, create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
 
 
+def normalize_url(url: str) -> str:
+    """Katib ships the psycopg 3 driver, so a plain postgresql:// URL should use it."""
+    if url.startswith("postgres://"):
+        url = "postgresql://" + url[len("postgres://") :]
+    if url.startswith("postgresql://"):
+        return "postgresql+psycopg://" + url[len("postgresql://") :]
+    return url
+
+
 def make_engine(url: str) -> Engine:
     """Create an engine. SQLite gets foreign keys and WAL so readers do not block the writer."""
-    engine = create_engine(url)
+    engine = create_engine(normalize_url(url), pool_pre_ping=True)
     if engine.dialect.name == "sqlite":
 
         @event.listens_for(engine, "connect")

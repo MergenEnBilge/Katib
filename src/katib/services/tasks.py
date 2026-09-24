@@ -66,10 +66,13 @@ def next_image(session: Session, user: User, project_id: uuid.UUID) -> Image | N
             or_(Image.assignee_id.is_(None), Image.assignee_id == user.id),
         )
         .order_by(Image.position)
-        .limit(CLAIM_CANDIDATES)
     )
     if session.get_bind().dialect.name == "postgresql":
-        stmt = stmt.with_for_update(skip_locked=True)
+        # Lock exactly the row we will claim. Locking a batch would hide rows from other people
+        # until this transaction ends, even though only one of them gets used.
+        stmt = stmt.limit(1).with_for_update(skip_locked=True)
+    else:
+        stmt = stmt.limit(CLAIM_CANDIDATES)
     # Other people may claim the candidates first, so look again a few times before giving up.
     for _attempt in range(CLAIM_ATTEMPTS):
         candidates = session.scalars(stmt).all()
