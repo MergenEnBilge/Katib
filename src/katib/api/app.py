@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse
 
 from katib.api import (
     annotations,
+    auth,
     class_ops,
     classes,
     errors,
@@ -19,7 +20,9 @@ from katib.api import (
     jobs,
     projects,
     quality,
+    security,
 )
+from katib.auth.ratelimit import LoginLimiter
 from katib.config import Settings
 from katib.db.migrate import upgrade_to_head
 from katib.db.session import make_engine, make_session_factory
@@ -65,8 +68,11 @@ def create_app(settings: Settings) -> FastAPI:
     app = FastAPI(title="Katib", lifespan=lifespan)
     app.state.settings = settings
     errors.install(app)
+    security.install(app)
+    app.state.limiter = LoginLimiter()
     for module in (
         health,
+        auth,
         projects,
         classes,
         class_ops,
