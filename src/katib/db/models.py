@@ -193,14 +193,45 @@ class ApiToken(Base):
     revoked_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
 
 
+class AuthSession(Base):
+    """A browser login. Only the hash of the cookie value is stored."""
+
+    __tablename__ = "auth_sessions"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_id)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    token_hash: Mapped[str] = mapped_column(String(128), unique=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+    expires_at: Mapped[datetime] = mapped_column(UTCDateTime)
+
+
+class Invite(Base):
+    """A single-use link that lets one person create an account."""
+
+    __tablename__ = "invites"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_id)
+    token_hash: Mapped[str] = mapped_column(String(128), unique=True)
+    project_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE")
+    )
+    role: Mapped[str] = mapped_column(String(20), default="annotator")
+    created_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+    expires_at: Mapped[datetime] = mapped_column(UTCDateTime)
+    used_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
+
+
 __all__ = [
     "Activity",
     "Annotation",
+    "AuthSession",
     "ApiToken",
     "Class",
     "ClassAlias",
     "Comment",
     "Image",
+    "Invite",
     "Job",
     "Operation",
     "Project",

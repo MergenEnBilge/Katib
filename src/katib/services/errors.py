@@ -43,3 +43,23 @@ class VersionConflict(KatibError):
 class ImportNotAllowed(KatibError):
     code = "import_not_allowed"
     status = 403
+
+
+class Unauthorized(KatibError):
+    code = "unauthorized"
+    status = 401
+
+
+class Forbidden(KatibError):
+    code = "forbidden"
+    status = 403
+
+
+class EmailTaken(KatibError):
+    code = "email_taken"
+    status = 409
+
+
+class TooManyAttempts(KatibError):
+    code = "too_many_attempts"
+    status = 429
