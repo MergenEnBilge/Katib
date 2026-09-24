@@ -27,3 +27,5 @@ CLAUDE.md
 .claude/
 
 web/openapi.json
+
+web/.e2e/
