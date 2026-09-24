@@ -29,6 +29,7 @@ WRITE_INTERVAL = 0.4
 class JobRunner:
     def __init__(self, factory: sessionmaker[Session], workers: int = 2) -> None:
         self._factory = factory
+        self.session_factory = factory
         self._pool = ThreadPoolExecutor(max_workers=workers, thread_name_prefix="katib-job")
 
     def fail_interrupted(self) -> int:
