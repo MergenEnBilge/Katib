@@ -1,13 +1,19 @@
 import type {
   Annotation,
+  AttrDef,
   BatchOp,
+  ClassOp,
   FormatInfo,
+  Health,
   ImageItem,
   ImagePage,
   Job,
+  OperationInfo,
   OpResult,
   Project,
   ProjectClass,
+  RevertResult,
+  ShapeItem,
 } from './types';
 
 const BASE = '/api/v1';
@@ -91,11 +97,44 @@ export const api = {
     list: (projectId: string) => request<ProjectClass[]>('GET', `/projects/${projectId}/classes`),
     create: (projectId: string, name: string, color?: string) =>
       request<ProjectClass>('POST', `/projects/${projectId}/classes`, { name, color }),
-    update: (id: string, patch: { name?: string; color?: string }) =>
+    update: (id: string, patch: { name?: string; color?: string; attr_schema?: AttrDef[] }) =>
       request<ProjectClass>('PATCH', `/classes/${id}`, patch),
     reorder: (projectId: string, ids: string[]) =>
       request<void>('POST', `/projects/${projectId}/classes:reorder`, { class_ids: ids }),
+    merge: (id: string, targetId: string, dryRun: boolean) =>
+      request<ClassOp>('POST', `/classes/${id}:merge`, { target_id: targetId, dry_run: dryRun }),
+    remove: (id: string, dryRun: boolean) =>
+      request<ClassOp>('POST', `/classes/${id}:delete`, { dry_run: dryRun }),
   },
+
+  operations: {
+    list: (projectId: string) =>
+      request<OperationInfo[]>('GET', `/projects/${projectId}/operations`),
+    revert: (id: string) => request<RevertResult>('POST', `/operations/${id}:revert`),
+  },
+
+  shapes: {
+    list: (
+      projectId: string,
+      filter: { class_id?: string; image_status?: string; tiny_only?: boolean; after?: string | null; limit?: number },
+    ) =>
+      request<{ items: ShapeItem[]; next?: string | null }>(
+        'GET',
+        `/projects/${projectId}/shapes${query({ ...filter })}`,
+      ),
+    cropUrl: (id: string, size = 160) => `${BASE}/annotations/${id}/crop?size=${size}`,
+    bulk: (
+      projectId: string,
+      body: { action: 'reclass' | 'delete'; ids: string[]; target_id?: string; dry_run: boolean },
+    ) => request<ClassOp>('POST', `/projects/${projectId}/annotations:bulk`, body),
+  },
+
+  health: (projectId: string) => request<Health>('GET', `/projects/${projectId}/health`),
+  exportInfo: (projectId: string) =>
+    request<{ order_changed: boolean; has_exported: boolean }>(
+      'GET',
+      `/projects/${projectId}/export-info`,
+    ),
 
   images: {
     list: (projectId: string, filter: ImageFilter = {}) =>
@@ -127,11 +166,18 @@ export const api = {
     downloadUrl: (id: string) => `${BASE}/jobs/${id}/download`,
     importDataset: (projectId: string, path: string, format?: string) =>
       request<Job>('POST', `/projects/${projectId}/imports`, { path, format }),
-    exportDataset: (projectId: string, format: string, statuses?: string[], copyImages = false) =>
+    exportDataset: (
+      projectId: string,
+      format: string,
+      statuses?: string[],
+      copyImages = false,
+      split?: { train: number; val: number; test: number; seed: number; stratify: boolean },
+    ) =>
       request<Job>('POST', `/projects/${projectId}/exports`, {
         format,
         statuses,
         copy_images: copyImages,
+        split,
       }),
   },
 };
