@@ -1,0 +1,115 @@
+/* Design tokens. Values come from DESIGN.md sections 2 to 5. Components use these, never raw values. */
+
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0b0e0c;
+  --surface-1: #141814;
+  --surface-2: #1b211c;
+  --border: #2a322b;
+  --border-strong: #3b453c;
+  --text: #edefea;
+  --text-2: #a3aea5;
+  --text-3: #808b81;
+  --accent: #2fa366;
+  --accent-hover: #3abf79;
+  --accent-muted: #173b27;
+  --on-accent: #06140c;
+  --danger: #e0574b;
+  --danger-muted: #2e1714;
+  --on-danger: #1a0806;
+  --warning: #d9a441;
+  --warning-text: #d9a441;
+  --image-bg: #191e1a;
+  --stripe: rgba(237, 239, 234, 0.045);
+  --scrim: rgba(0, 0, 0, 0.6);
+  --shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #ffffff;
+  --surface-1: #f6f8f5;
+  --surface-2: #ffffff;
+  --border: #e1e6e0;
+  --border-strong: #c7cfc5;
+  --text: #161a16;
+  --text-2: #535b52;
+  --text-3: #6b746a;
+  --accent: #1f7a4c;
+  --accent-hover: #186a40;
+  --accent-muted: #e6f2ea;
+  --on-accent: #ffffff;
+  --danger: #c7392e;
+  --danger-muted: #fbeae8;
+  --on-danger: #ffffff;
+  --warning: #b4832a;
+  --warning-text: #8a6212;
+  --image-bg: #eef1ed;
+  --stripe: rgba(22, 26, 22, 0.055);
+  --scrim: rgba(22, 26, 22, 0.28);
+  --shadow: 0 12px 32px rgba(22, 26, 22, 0.12);
+}
+
+:root {
+  --font-ui: 'Inter Variable', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
+
+  --text-title: 20px;
+  --text-heading: 15px;
+  --text-body: 13px;
+  --text-small: 12px;
+  --text-overline: 11px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  --radius-swatch: 3px;
+  --radius-chip: 4px;
+  --radius-control: 6px;
+  --radius-group: 8px;
+  --radius-card: 10px;
+
+  --h-chip: 22px;
+  --h-icon-sm: 24px;
+  --h-icon: 28px;
+  --h-button-sm: 30px;
+  --h-button: 32px;
+  --h-input: 34px;
+  --h-empty-icon: 44px;
+
+  --sidebar-w: 280px;
+  --header-h: 56px;
+  --page-pad: 32px;
+
+  --z-menu-backdrop: 40;
+  --z-menu: 50;
+  --z-modal: 60;
+  --z-toast: 80;
+  --z-tooltip: 90;
+  --z-progress: 100;
+
+  --dur-hover: 140ms;
+  --focus-ring: 2px solid var(--accent);
+}
+
+/* Touch devices get bigger targets (DESIGN.md section 10). */
+@media (pointer: coarse) {
+  :root {
+    --h-icon-sm: 40px;
+    --h-icon: 40px;
+    --h-button-sm: 40px;
+    --h-button: 40px;
+    --h-input: 40px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-hover: 0ms;
+  }
+}
