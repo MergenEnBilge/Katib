@@ -20,6 +20,7 @@ from katib.api import (
     health,
     images,
     jobs,
+    ml,
     projects,
     quality,
     realtime,
@@ -93,6 +94,7 @@ def create_app(settings: Settings) -> FastAPI:
         exchange,
         folders,
         jobs,
+        ml,
         realtime,
         share,
     ):
