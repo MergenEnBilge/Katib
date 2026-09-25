@@ -14,7 +14,8 @@
   let format = $state('yolo-detect');
   let which = $state<'all' | 'done' | 'notdone'>('all');
   let copyImages = $state(false);
-  let splitOn = $state(false);
+  let splitMode = $state<'saved' | 'new' | 'none'>('none');
+  let saved = $state<{ train: number; val: number; test: number; none: number } | null>(null);
   let train = $state(80);
   let val = $state(10);
   let test = $state(10);
@@ -28,6 +29,19 @@
 
   $effect(() => {
     api.exportInfo(ws.projectId).then((i) => (orderChanged = i.order_changed)).catch(() => undefined);
+  });
+
+  $effect(() => {
+    api.splits
+      .get(ws.projectId)
+      .then((s) => {
+        const [train, val, test, none] = ['train', 'val', 'test', 'none'].map((k) => s.counts[k] ?? 0) as [number, number, number, number];
+        if (train + val + test > 0) {
+          saved = { train, val, test, none };
+          splitMode = 'saved';
+        }
+      })
+      .catch(() => undefined);
   });
 
   $effect(() => {
@@ -45,8 +59,18 @@
     result = null;
     try {
       await ws.flushNow();
-      const split = splitOn ? { train: train / 100, val: val / 100, test: test / 100, seed, stratify } : undefined;
-      const started = await api.jobs.exportDataset(ws.projectId, format, statuses, copyImages, split);
+      const split =
+        splitMode === 'new'
+          ? { train: train / 100, val: val / 100, test: test / 100, seed, stratify }
+          : undefined;
+      const started = await api.jobs.exportDataset(
+        ws.projectId,
+        format,
+        statuses,
+        copyImages,
+        split,
+        splitMode === 'saved',
+      );
       const job = await waitForJob(started.id);
       if (job.status === 'failed') {
         error = job.error ?? 'The export failed.';
@@ -84,8 +108,19 @@
 
     <label class="check"><input type="checkbox" bind:checked={copyImages} disabled={busy} /> Include the image files</label>
 
-    <label class="check"><input type="checkbox" bind:checked={splitOn} disabled={busy} /> Split into train, validation and test</label>
-    {#if splitOn}
+    <fieldset disabled={busy}>
+      <legend>Train, validation and test</legend>
+      {#if saved}
+        <label>
+          <input type="radio" bind:group={splitMode} value="saved" />
+          Use the split saved on my images
+          <span class="hint">{saved.train} train, {saved.val} validation, {saved.test} test{saved.none ? `. ${saved.none} with no split go to train` : ''}</span>
+        </label>
+      {/if}
+      <label><input type="radio" bind:group={splitMode} value="new" /> Make a new split for this export only</label>
+      <label><input type="radio" bind:group={splitMode} value="none" /> Do not split</label>
+    </fieldset>
+    {#if splitMode === 'new'}
       <div class="split">
         <label>Train %<input type="number" min="0" max="100" bind:value={train} /></label>
         <label>Validation %<input type="number" min="0" max="100" bind:value={val} /></label>
@@ -192,6 +227,13 @@
   .split .wide {
     grid-column: 1 / -1;
     flex-direction: row;
+  }
+
+  .hint {
+    display: block;
+    margin-inline-start: 22px;
+    font-size: var(--text-small);
+    color: var(--text-2);
   }
 
   .check {

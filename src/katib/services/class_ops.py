@@ -471,6 +471,8 @@ def revert(session: Session, storage: LocalStorage, operation_id: uuid.UUID) -> 
         result = RevertResult(restored, skipped)
     elif op.kind == "prelabel":
         result = _revert_prelabel(session, op, data)
+    elif op.kind == "shuffle_splits":
+        result = RevertResult(_restore_splits(session, data), 0)
     else:
         raise NotRevertible("This kind of operation cannot be undone.")
 
@@ -520,6 +522,21 @@ def _revert_merge(session: Session, op: Operation, data: dict[str, Any]) -> Reve
             .values(attrs=attrs)
         )
     return RevertResult(restored, len(moved) - restored)
+
+
+def _restore_splits(session: Session, data: dict[str, Any]) -> int:
+    before: dict[str, str | None] = data["before"]
+    ids_by_split: dict[str | None, list[uuid.UUID]] = {}
+    for image_id, name in before.items():
+        ids_by_split.setdefault(name, []).append(uuid.UUID(image_id))
+    for name, ids in ids_by_split.items():
+        for start in range(0, len(ids), INSERT_CHUNK):
+            session.execute(
+                update(Image)
+                .where(Image.id.in_(ids[start : start + INSERT_CHUNK]))
+                .values(split=name, version=Image.version + 1)
+            )
+    return len(before)
 
 
 def _revert_prelabel(session: Session, op: Operation, data: dict[str, Any]) -> RevertResult:

@@ -27,6 +27,8 @@ import type {
   RevertResult,
   Role,
   ShapeItem,
+  ShuffleResult,
+  SplitState,
   ShareInfo,
 } from './types';
 
@@ -93,6 +95,7 @@ export interface ImageFilter {
   q?: string;
   class_id?: string;
   has_annotations?: boolean;
+  split?: string;
   after?: string | null;
   limit?: number;
 }
@@ -193,6 +196,25 @@ export const api = {
       request<ClassOp>('POST', `/classes/${id}:delete`, { dry_run: dryRun }),
   },
 
+  splits: {
+    get: (projectId: string) => request<SplitState>('GET', `/projects/${projectId}/splits`),
+    shuffle: (
+      projectId: string,
+      body: {
+        ratios: Record<string, number>;
+        seed: number;
+        stratify: boolean;
+        only_unassigned: boolean;
+        dry_run: boolean;
+      },
+    ) => request<ShuffleResult>('POST', `/projects/${projectId}/splits:shuffle`, body),
+    assign: (projectId: string, imageIds: string[], split: string | null) =>
+      request<{ changed: number }>('POST', `/projects/${projectId}/images:assign-split`, {
+        image_ids: imageIds,
+        split,
+      }),
+  },
+
   operations: {
     list: (projectId: string) =>
       request<OperationInfo[]>('GET', `/projects/${projectId}/operations`),
@@ -289,12 +311,14 @@ export const api = {
       statuses?: string[],
       copyImages = false,
       split?: { train: number; val: number; test: number; seed: number; stratify: boolean },
+      useSavedSplits = true,
     ) =>
       request<Job>('POST', `/projects/${projectId}/exports`, {
         format,
         statuses,
         copy_images: copyImages,
         split,
+        use_saved_splits: useSavedSplits,
       }),
   },
 };

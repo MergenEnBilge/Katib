@@ -33,6 +33,7 @@ class ImageLabels:
     shapes: list[Shape] = field(default_factory=list[Shape])
     width: int | None = None
     height: int | None = None
+    split: str | None = None  # "train", "val" or "test" when the dataset says so
 
 
 @dataclass(frozen=True)
@@ -84,6 +85,8 @@ class SplitSpec:
 class ExportOptions:
     copy_images: bool = False
     split: SplitSpec | None = None
+    # Use the splits saved on the images when no new split is asked for.
+    use_saved_splits: bool = False
 
 
 @dataclass

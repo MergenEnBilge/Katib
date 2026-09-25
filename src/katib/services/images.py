@@ -15,6 +15,7 @@ from typing import BinaryIO
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from katib.core.split import split_from_names
 from katib.db.ids import new_id
 from katib.db.models import Annotation, Image
 from katib.services.errors import ImportNotAllowed, InvalidInput, NotFound
@@ -140,6 +141,7 @@ def _add_image(
     position: int,
     known: dict[str, str],
     ctx: StorageContext,
+    split: str | None = None,
 ) -> Image | str:
     """Read `source`, add a row and a thumbnail. Returns the Image, or a reason it was skipped."""
     info = read_info(source)
@@ -157,6 +159,7 @@ def _add_image(
         sha256=info.sha256,
         phash=info.phash,
         position=position,
+        split=split,
     )
     session.add(image)
     known[info.sha256] = filename
@@ -201,6 +204,7 @@ def import_folder(
                     position,
                     known,
                     ctx,
+                    split_from_names([root.name, *candidate.relative_to(root).parts[:-1]]),
                 )
             except UnreadableImage as err:
                 report.skipped.append(Skipped(candidate.name, str(err)))
@@ -286,6 +290,7 @@ def list_images(
     q: str | None = None,
     has_annotations: bool | None = None,
     class_id: uuid.UUID | None = None,
+    split: str | None = None,
     after: uuid.UUID | None = None,
     limit: int = 100,
 ) -> ImagePage:
@@ -306,6 +311,10 @@ def list_images(
         stmt = stmt.where(count > 0)
     elif has_annotations is False:
         stmt = stmt.where(count == 0)
+    if split == "none":
+        stmt = stmt.where(Image.split.is_(None))
+    elif split:
+        stmt = stmt.where(Image.split == split)
     if class_id is not None:
         stmt = stmt.where(
             select(Annotation.id)

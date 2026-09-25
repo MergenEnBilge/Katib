@@ -45,6 +45,7 @@ def list_images(
     q: str | None = None,
     has_annotations: bool | None = None,
     class_id: uuid.UUID | None = None,
+    split: str | None = None,
     after: uuid.UUID | None = None,
     limit: int = 100,
 ) -> ImagePageOut:
@@ -57,6 +58,7 @@ def list_images(
         q=q,
         has_annotations=has_annotations,
         class_id=class_id,
+        split=split,
         after=after,
         limit=limit,
     )

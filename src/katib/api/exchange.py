@@ -46,6 +46,7 @@ def import_dataset(
         return {
             "format": summary.format_id,
             "images_matched": summary.images_matched,
+            "splits_set": summary.splits_set,
             "unmatched_images": summary.unmatched_images,
             "shapes_added": summary.shapes_added,
             "classes_created": summary.classes_created,
@@ -80,7 +81,9 @@ def export_dataset(
     if body.split:
         ratios = {"train": body.split.train, "val": body.split.val, "test": body.split.test}
         split = SplitSpec(ratios, body.split.seed, body.split.stratify)
-    opts = ExportOptions(copy_images=body.copy_images, split=split)
+    opts = ExportOptions(
+        copy_images=body.copy_images, split=split, use_saved_splits=body.use_saved_splits
+    )
 
     def work(progress: Progress) -> dict[str, object]:
         name = f"{body.format}-{uuid.uuid4().hex[:12]}"

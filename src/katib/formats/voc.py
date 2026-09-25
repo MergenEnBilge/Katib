@@ -26,6 +26,18 @@ def _xml_files(path: Path) -> list[Path]:
     return sorted(base.glob("*.xml"))
 
 
+def _listed_splits(path: Path) -> dict[str, str]:
+    """Splits from ImageSets/Main/train.txt and friends. Keys are lowercase image stems."""
+    listed: dict[str, str] = {}
+    for split in ("train", "val", "test"):
+        file = path / "ImageSets" / "Main" / f"{split}.txt"
+        if file.is_file():
+            for line in file.read_text(encoding="utf-8").splitlines():
+                if line.strip():
+                    listed[line.split()[0].lower()] = split
+    return listed
+
+
 def _read_root(file: Path) -> Element | None:
     try:
         root = SafeXml.parse(file).getroot()
@@ -60,6 +72,7 @@ class PascalVoc:
         if not files:
             raise FormatError("No .xml annotation files found in that folder.")
         result = ParsedDataset(class_names=[], images=[])
+        listed = _listed_splits(path)
         for file in files:
             root = _read_root(file)
             if root is None:
@@ -76,6 +89,7 @@ class PascalVoc:
                 filename=Path(name).name,
                 width=int(width) if width else None,
                 height=int(height) if height else None,
+                split=listed.get(Path(name).stem.lower()),
             )
             for number, obj in enumerate(root.findall("object"), start=1):
                 self._read_object(obj, labels, result, f"{file.name} object {number}")
