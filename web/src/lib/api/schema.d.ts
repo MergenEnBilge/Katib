@@ -1134,6 +1134,7 @@ export interface components {
             annotation_count: number;
             /** Attr Schema */
             attr_schema: components["schemas"]["AttrDef"][];
+            skeleton?: components["schemas"]["Skeleton"] | null;
         };
         /** ClassPatch */
         ClassPatch: {
@@ -1143,6 +1144,7 @@ export interface components {
             color?: string | null;
             /** Attr Schema */
             attr_schema?: components["schemas"]["AttrDef"][] | null;
+            skeleton?: components["schemas"]["Skeleton"] | null;
         };
         /** CommentIn */
         CommentIn: {
@@ -1581,7 +1583,7 @@ export interface components {
             /** Name */
             name: string;
             /** Annotation Types */
-            annotation_types?: ("box" | "polygon")[] | null;
+            annotation_types?: ("box" | "polygon" | "obb" | "keypoints" | "mask" | "tag")[] | null;
         };
         /** ProjectOut */
         ProjectOut: {
@@ -1705,6 +1707,19 @@ export interface components {
             urls: string[];
             /** Secure */
             secure: boolean;
+        };
+        /**
+         * Skeleton
+         * @description Landmark names in drawing order, and pairs of positions that are joined by a line.
+         */
+        Skeleton: {
+            /** Names */
+            names: string[];
+            /** Edges */
+            edges?: [
+                number,
+                number
+            ][];
         };
         /** SplitIn */
         SplitIn: {

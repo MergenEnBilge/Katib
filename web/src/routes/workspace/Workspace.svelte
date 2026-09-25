@@ -9,8 +9,11 @@
     Users,
     Maximize,
     Moon,
+    Brush,
+    Diamond,
     MousePointer2,
     Pentagon,
+    Waypoints,
     Redo2,
     Square,
     Sun,
@@ -78,11 +81,17 @@
   let panelOpen = $state(false);
   let zoom = $state(100);
 
-  const tools: { id: ToolName; label: string; key: string }[] = [
-    { id: 'select', label: 'Select', key: 'V' },
-    { id: 'box', label: 'Box', key: 'B' },
-    { id: 'polygon', label: 'Polygon', key: 'P' },
+  const allTools: { id: ToolName; type: string | null; label: string; key: string }[] = [
+    { id: 'select', type: null, label: 'Select', key: 'V' },
+    { id: 'box', type: 'box', label: 'Box', key: 'B' },
+    { id: 'polygon', type: 'polygon', label: 'Polygon', key: 'P' },
+    { id: 'obb', type: 'obb', label: 'Rotated box', key: 'O' },
+    { id: 'keypoints', type: 'keypoints', label: 'Keypoints', key: 'K' },
+    { id: 'brush', type: 'mask', label: 'Brush mask', key: 'R' },
   ];
+
+  // Only show the tools this project can save shapes for.
+  const tools = $derived(allTools.filter((t) => t.type === null || ws.types.includes(t.type)));
 
   const shared = $derived(session.mode === 'local');
 
@@ -134,7 +143,10 @@
       case 'tool:select':
       case 'tool:box':
       case 'tool:polygon':
-        tool = action.slice(5) as ToolName;
+      case 'tool:obb':
+      case 'tool:keypoints':
+      case 'tool:brush':
+        if (tools.some((t) => t.id === action.slice(5))) tool = action.slice(5) as ToolName;
         break;
       case 'class-picker':
         dialog = 'picker';
@@ -234,7 +246,7 @@
       {#each tools as t (t.id)}
         <IconButton label={t.label} shortcut={t.key} onclick={() => (tool = t.id)}>
           <span class="tool" class:active={tool === t.id}>
-            {#if t.id === 'select'}<MousePointer2 size={16} />{:else if t.id === 'box'}<Square size={16} />{:else}<Pentagon size={16} />{/if}
+            {#if t.id === 'select'}<MousePointer2 size={16} />{:else if t.id === 'box'}<Square size={16} />{:else if t.id === 'polygon'}<Pentagon size={16} />{:else if t.id === 'obb'}<Diamond size={16} />{:else if t.id === 'keypoints'}<Waypoints size={16} />{:else}<Brush size={16} />{/if}
           </span>
         </IconButton>
       {/each}

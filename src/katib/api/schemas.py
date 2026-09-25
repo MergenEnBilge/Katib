@@ -15,7 +15,9 @@ class ErrorBody(BaseModel):
 
 class ProjectIn(BaseModel):
     name: str
-    annotation_types: list[Literal["box", "polygon"]] | None = None
+    annotation_types: list[Literal["box", "polygon", "obb", "keypoints", "mask", "tag"]] | None = (
+        None
+    )
 
 
 class ProjectPatch(BaseModel):
@@ -47,10 +49,19 @@ class AttrDef(BaseModel):
     options: list[str] | None = None
 
 
+class Skeleton(BaseModel):
+    """Landmark names in drawing order, and pairs of positions that are joined by a line."""
+
+    names: list[str] = Field(max_length=128)
+    edges: list[tuple[int, int]] = Field(default_factory=list[tuple[int, int]])
+
+
 class ClassPatch(BaseModel):
     name: str | None = None
     color: str | None = None
     attr_schema: list[AttrDef] | None = None
+    # An empty list of names removes the skeleton.
+    skeleton: Skeleton | None = None
 
 
 class ClassOut(BaseModel):
@@ -61,6 +72,7 @@ class ClassOut(BaseModel):
     position: int
     annotation_count: int
     attr_schema: list[AttrDef]
+    skeleton: Skeleton | None = None
 
 
 class ReorderIn(BaseModel):

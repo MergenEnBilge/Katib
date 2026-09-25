@@ -1,13 +1,16 @@
 import { AnnotationModel } from './model';
 import { Renderer } from './renderer';
 import { BoxTool } from './tools/box';
+import { BrushTool } from './tools/brush';
+import { KeypointsTool } from './tools/keypoints';
+import { ObbTool } from './tools/obb';
 import { PolygonTool } from './tools/polygon';
 import { SelectTool } from './tools/select';
 import type { Tool, ToolContext } from './tools/tool';
 import type { ClassStyle, Point, ToolEvent } from './types';
 import { Viewport } from './viewport';
 
-export type ToolName = 'select' | 'box' | 'polygon';
+export type ToolName = 'select' | 'box' | 'polygon' | 'obb' | 'keypoints' | 'brush';
 
 export interface EngineOptions {
   activeClassId(): string | null;
@@ -79,6 +82,9 @@ export class Engine {
       select: new SelectTool(context),
       box: new BoxTool(context),
       polygon: new PolygonTool(context),
+      obb: new ObbTool(context),
+      keypoints: new KeypointsTool(context),
+      brush: new BrushTool(context),
     };
     this.tool = this.tools.select;
 

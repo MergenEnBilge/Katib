@@ -1,6 +1,8 @@
 """Coordinate conversions between normalized geometry and formats that use pixels or centers."""
 
-from katib.core.types import Box, Polygon
+import math
+
+from katib.core.types import Box, Obb, Polygon, obb_corners
 
 
 def box_to_yolo(box: Box) -> tuple[float, float, float, float]:
@@ -56,3 +58,42 @@ def polygon_to_box(poly: Polygon) -> Box:
     xs = [p[0] for p in poly.points]
     ys = [p[1] for p in poly.points]
     return Box(x=min(xs), y=min(ys), w=max(xs) - min(xs), h=max(ys) - min(ys))
+
+
+def obb_from_corners(points: list[tuple[float, float]], width: int, height: int) -> Obb:
+    """Build a rotated box from four normalized corners given in drawing order.
+
+    The sides are measured in pixels, so an image that is not square does not skew the angle.
+    """
+    if len(points) != 4:
+        raise ValueError("A rotated box has four corners.")
+    px = [(x * width, y * height) for x, y in points]
+    (x0, y0), (x1, y1), (x2, y2), _ = px
+    side_w = math.hypot(x1 - x0, y1 - y0)
+    side_h = math.hypot(x2 - x1, y2 - y1)
+    cx = sum(p[0] for p in px) / 4 / width
+    cy = sum(p[1] for p in px) / 4 / height
+    return Obb(
+        cx=min(1.0, max(0.0, cx)),
+        cy=min(1.0, max(0.0, cy)),
+        w=min(1.0, side_w / width),
+        h=min(1.0, side_h / height),
+        angle=math.atan2(y1 - y0, x1 - x0),
+    )
+
+
+def obb_to_polygon(obb: Obb, width: int, height: int) -> Polygon:
+    """The four corners as a polygon, clipped to the image."""
+    corners = obb_corners(obb, (width, height))
+    return Polygon(points=[(min(1.0, max(0.0, x)), min(1.0, max(0.0, y))) for x, y in corners])
+
+
+def box_to_polygon(box: Box) -> Polygon:
+    return Polygon(
+        points=[
+            (box.x, box.y),
+            (min(1.0, box.x + box.w), box.y),
+            (min(1.0, box.x + box.w), min(1.0, box.y + box.h)),
+            (box.x, min(1.0, box.y + box.h)),
+        ]
+    )

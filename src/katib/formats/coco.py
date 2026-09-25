@@ -1,6 +1,10 @@
-"""COCO format: one JSON file with images, annotations and categories. Boxes and polygons."""
+"""COCO format: one JSON file with images, annotations and categories.
+
+Boxes, polygons and keypoints. Rotated boxes are written as polygons.
+"""
 
 import json
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -12,9 +16,18 @@ from katib.core.dataset import (
     Note,
     ParsedDataset,
     Shape,
+    SkeletonSpec,
 )
-from katib.core.geometry import pixels_to_box, pixels_to_polygon, polygon_area
-from katib.core.types import Box, GeometryError, Polygon, geometry_bounds, validate_geometry
+from katib.core.geometry import obb_to_polygon, pixels_to_box, pixels_to_polygon, polygon_area
+from katib.core.types import (
+    Box,
+    GeometryError,
+    Keypoints,
+    Obb,
+    Polygon,
+    geometry_bounds,
+    validate_geometry,
+)
 from katib.formats.common import FormatError, copy_image, unique_names
 
 OUTPUT = "annotations.json"
@@ -38,10 +51,14 @@ def _load(path: Path) -> dict[str, Any]:
     return data
 
 
+def _unit(value: float) -> float:
+    return min(1.0, max(0.0, value))
+
+
 class Coco:
     id = "coco"
-    label = "COCO (boxes and polygons)"
-    supports = frozenset({"box", "polygon"})
+    label = "COCO (boxes, polygons and keypoints)"
+    supports = frozenset({"box", "polygon", "keypoints"})
 
     def detect(self, path: Path) -> bool:
         try:
@@ -50,10 +67,17 @@ class Coco:
             return False
         return True
 
-    def read(self, path: Path) -> ParsedDataset:
+    def read(self, path: Path, sizes: Mapping[str, tuple[int, int]] | None = None) -> ParsedDataset:
         data = _load(path)
         categories: dict[int, str] = {int(c["id"]): str(c["name"]) for c in data["categories"]}
         result = ParsedDataset(class_names=list(categories.values()), images=[])
+        for category in data["categories"]:
+            names = category.get("keypoints")
+            if isinstance(names, list) and names:
+                edges = [(int(a) - 1, int(b) - 1) for a, b in category.get("skeleton", [])]
+                result.skeletons[str(category["name"])] = SkeletonSpec(
+                    [str(n) for n in names], edges
+                )
         by_id: dict[int, ImageLabels] = {}
         for img in data["images"]:
             labels = ImageLabels(
@@ -89,6 +113,18 @@ class Coco:
             result.notes.append(Note(where, "Run-length masks are not supported yet."))
             return
         try:
+            points = ann.get("keypoints")
+            if isinstance(points, list) and any(points):
+                marks = [
+                    {
+                        "x": _unit(points[i] / w),
+                        "y": _unit(points[i + 1] / h),
+                        "v": int(points[i + 2]),
+                    }
+                    for i in range(0, len(points) - 2, 3)
+                ]
+                labels.shapes.append(Shape(name, "keypoints", {"points": marks}))
+                return
             if isinstance(seg, list) and seg:
                 rings: list[Any] = seg
                 for ring in rings:
@@ -124,6 +160,8 @@ class Coco:
             for shape in img.shapes:
                 try:
                     item = self._annotation(shape, img.width, img.height)
+                    if shape.type == "obb":
+                        report.notes.append(Note(name, "Rotated box written as a polygon."))
                 except GeometryError as err:
                     report.notes.append(Note(name, str(err)))
                     continue
@@ -139,7 +177,14 @@ class Coco:
                 copy_image(img.source, dest / "images" / part, name)
             report.images += 1
         report.shapes = total
-        categories = [{"id": category_id[n], "name": n} for n in names]
+        skeletons = view.skeletons
+        categories: list[dict[str, Any]] = []
+        for n in names:
+            category: dict[str, Any] = {"id": category_id[n], "name": n}
+            if n in skeletons:
+                category["keypoints"] = skeletons[n].names
+                category["skeleton"] = [[a + 1, b + 1] for a, b in skeletons[n].edges]
+            categories.append(category)
         for part, image_list in images_out.items():
             doc = {
                 "images": image_list,
@@ -152,7 +197,7 @@ class Coco:
 
     def _annotation(self, shape: Shape, width: int, height: int) -> dict[str, Any]:
         geometry = validate_geometry(shape.type, shape.geometry)
-        x, y, w, h = geometry_bounds(shape.type, shape.geometry)
+        x, y, w, h = geometry_bounds(shape.type, shape.geometry, (width, height))
         bbox = [
             round(x * width, 2),
             round(y * height, 2),
@@ -163,5 +208,25 @@ class Coco:
             flat = [round(c, 2) for px, py in geometry.points for c in (px * width, py * height)]
             area = polygon_area(geometry) * width * height
             return {"bbox": bbox, "segmentation": [flat], "area": round(area, 2)}
-        assert isinstance(geometry, Box)
+        if isinstance(geometry, Obb):
+            corners = obb_to_polygon(geometry, width, height)
+            flat = [round(c, 2) for px, py in corners.points for c in (px * width, py * height)]
+            area = geometry.w * width * geometry.h * height
+            return {"bbox": bbox, "segmentation": [flat], "area": round(area, 2)}
+        if isinstance(geometry, Keypoints):
+            flat = [
+                value
+                for p in geometry.points
+                for value in (round(p.x * width, 2), round(p.y * height, 2), p.v)
+            ]
+            shown = sum(1 for p in geometry.points if p.v > 0)
+            return {
+                "bbox": bbox,
+                "segmentation": [],
+                "area": round(bbox[2] * bbox[3], 2),
+                "keypoints": flat,
+                "num_keypoints": shown,
+            }
+        if not isinstance(geometry, Box):
+            raise GeometryError(f"A {shape.type} cannot be written in COCO.")
         return {"bbox": bbox, "segmentation": [], "area": round(bbox[2] * bbox[3], 2)}
