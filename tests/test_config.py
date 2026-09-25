@@ -3,7 +3,13 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from katib.config import Settings, is_loopback, load_settings
+from katib.config import (
+    Settings,
+    is_loopback,
+    load_settings,
+    write_data_dir_choice,
+    write_saved,
+)
 
 
 def test_defaults_run_without_a_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -66,3 +72,43 @@ def test_data_dir_placeholder_is_expanded(tmp_path: Path, sqlite_only: None) -> 
 )
 def test_is_loopback(host: str, expected: bool) -> None:
     assert is_loopback(host) is expected
+
+
+def test_saved_settings_beat_the_file_and_lose_to_the_environment(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    data = tmp_path / "data"
+    cfg = tmp_path / "katib.toml"
+    cfg.write_text(f'[storage]\ndata_dir = "{data.as_posix()}"\n[server]\nport = 9000\n')
+    write_saved(data, {"server": {"port": 9200}, "limits": {"max_upload_mb": 5}})
+    settings = load_settings(cfg)
+    assert settings.server.port == 9200
+    assert settings.limits.max_upload_mb == 5
+
+    monkeypatch.setenv("KATIB_SERVER__PORT", "9300")
+    assert load_settings(cfg).server.port == 9300
+
+
+def test_a_data_folder_chosen_in_the_app_is_used_and_its_settings_read(tmp_path: Path) -> None:
+    chosen = tmp_path / "elsewhere"
+    write_saved(chosen, {"limits": {"max_upload_mb": 7}})
+    write_data_dir_choice(str(chosen))
+    settings = load_settings()
+    assert settings.data_dir == chosen
+    assert settings.limits.max_upload_mb == 7
+
+
+def test_the_toml_file_still_names_the_data_folder_first(tmp_path: Path) -> None:
+    write_data_dir_choice(str(tmp_path / "chosen"))
+    cfg = tmp_path / "katib.toml"
+    cfg.write_text(f'[storage]\ndata_dir = "{(tmp_path / "from-file").as_posix()}"\n')
+    assert load_settings(cfg).data_dir == tmp_path / "from-file"
+
+
+def test_a_broken_saved_file_is_ignored(tmp_path: Path) -> None:
+    data = tmp_path / "data"
+    data.mkdir()
+    (data / "settings.json").write_text("{not json")
+    cfg = tmp_path / "katib.toml"
+    cfg.write_text(f'[storage]\ndata_dir = "{data.as_posix()}"\n')
+    assert load_settings(cfg).server.port == 8420
