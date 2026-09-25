@@ -19,7 +19,7 @@ from katib.api.deps import (
 )
 from katib.config import Settings
 from katib.db.models import User
-from katib.services import access, auth
+from katib.services import access, auth, setup_code
 from katib.services.errors import Forbidden, InvalidInput, TooManyAttempts, Unauthorized
 
 router = APIRouter(tags=["auth"])
@@ -36,6 +36,8 @@ class UserOut(BaseModel):
 class StatusOut(BaseModel):
     mode: Literal["none", "local"]
     needs_setup: bool
+    #: True when the first account must be created with the code from the server's log.
+    needs_setup_code: bool = False
     user: UserOut | None
 
 
@@ -43,6 +45,7 @@ class SetupIn(BaseModel):
     email: str
     name: str = ""
     password: str
+    setup_code: str = ""
 
 
 class LoginIn(BaseModel):
@@ -120,18 +123,42 @@ def _settings(request: Request) -> Settings:
 def status(request: Request, session: SessionDep) -> StatusOut:
     settings = _settings(request)
     user = find_user(request, session)
+    needs_setup = settings.auth.mode == "local" and not auth.has_users(session)
     return StatusOut(
         mode=settings.auth.mode,
-        needs_setup=settings.auth.mode == "local" and not auth.has_users(session),
+        needs_setup=needs_setup,
+        needs_setup_code=needs_setup and not setup_code.is_local_address(client_address(request)),
         user=_user(user) if user else None,
     )
 
 
 @router.post("/auth/setup", response_model=UserOut, status_code=201)
-def setup(body: SetupIn, request: Request, response: Response, session: SessionDep) -> UserOut:
-    if _settings(request).auth.mode != "local":
+def setup(
+    body: SetupIn,
+    request: Request,
+    response: Response,
+    session: SessionDep,
+    limiter: LimiterDep,
+) -> UserOut:
+    settings = _settings(request)
+    if settings.auth.mode != "local":
         raise Forbidden('Accounts are off. Turn on auth.mode = "local" to create them.')
+    address = client_address(request)
+    if not setup_code.is_local_address(address):
+        key = f"setup:{address}"
+        wait = limiter.retry_after(key)
+        if wait:
+            raise TooManyAttempts(
+                f"Too many attempts. Try again in {wait} seconds.", retry_after=wait
+            )
+        if not setup_code.matches(settings.data_dir, body.setup_code):
+            limiter.fail(key)
+            raise Forbidden(
+                "This server can be reached from the internet, so it needs its setup code. "
+                "You will find it in the server's log, or in setup-code.txt in its data folder."
+            )
     user = auth.setup_first_admin(session, body.email, body.name, body.password)
+    setup_code.clear(settings.data_dir)
     _, token = auth.login(session, body.email, body.password)
     _set_cookie(request, response, token)
     return _user(user)
