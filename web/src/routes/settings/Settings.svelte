@@ -10,6 +10,7 @@
   import AppearancePanel from './AppearancePanel.svelte';
   import BackupPanel from './BackupPanel.svelte';
   import SettingRow from './SettingRow.svelte';
+  import SharePanel from './SharePanel.svelte';
 
   let data = $state<AppSettings | null>(null);
   let error = $state('');
@@ -167,6 +168,8 @@
             {/snippet}
           </SettingRow>
         {/each}
+
+        {#if tab === 'sharing'}<SharePanel />{/if}
 
         {#if error}<Callout tone="danger">{error}</Callout>{/if}
         <div class="save">
