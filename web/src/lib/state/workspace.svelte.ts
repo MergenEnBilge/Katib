@@ -10,11 +10,12 @@ import type {
   ProjectClass,
 } from '../api/types';
 import type { ClassStyle, Shape } from '../canvas/types';
-import { isBox } from '../canvas/types';
+import { isBox, isDrawn } from '../canvas/types';
 import type { Engine } from '../canvas/engine';
 import { Autosave, shapeFromAnnotation, type SaveState } from '../sync/autosave';
 import { browserOutbox } from '../sync/outbox';
 import { isoIn, Realtime, type PresenceUser, type ServerEvent } from '../sync/realtime';
+import { onboarding } from './onboarding.svelte';
 import { session } from './session.svelte';
 import { announceOperation, revert } from './operations';
 import { toasts } from './toast.svelte';
@@ -241,6 +242,9 @@ export class Workspace {
       engine.model.onChange((_changes, origin) => {
         sync();
         if (origin === 'remote') return;
+        if (origin === 'edit' && _changes.some((c) => c.kind === 'create' && isDrawn(c.shape))) {
+          onboarding.mark('shape');
+        }
         const item = this.current;
         if (item) {
           item.annotation_count = engine.model.shapes.length;
@@ -651,6 +655,7 @@ export class Workspace {
       const updated = await api.images.setStatus(item.id, 'done');
       item.status = updated.status;
       item.version = updated.version;
+      onboarding.mark('done');
       if (this.project) this.project.done_count = await this.countDone();
     } catch (err) {
       toasts.show(err instanceof ApiError ? err.message : 'Could not mark this image as done.');
@@ -700,6 +705,7 @@ export class Workspace {
 
   async addClass(name: string): Promise<ProjectClass> {
     const created = await api.classes.create(this.projectId, name);
+    onboarding.mark('class');
     await this.refreshClasses();
     this.activeClassId = created.id;
     return created;

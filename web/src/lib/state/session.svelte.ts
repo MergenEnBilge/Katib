@@ -8,6 +8,7 @@ let phase = $state<Phase>('loading');
 let mode = $state<'none' | 'local'>('none');
 let user = $state<Person | null>(null);
 let problem = $state('');
+let needsCode = $state(false);
 
 async function load(): Promise<void> {
   problem = '';
@@ -15,6 +16,7 @@ async function load(): Promise<void> {
     const status = await api.auth.status();
     mode = status.mode;
     user = status.user ?? null;
+    needsCode = status.needs_setup_code === true;
     if (status.needs_setup) phase = 'setup';
     else phase = user ? 'ready' : 'signed-out';
   } catch (err) {
@@ -45,13 +47,17 @@ export const session = {
   get problem(): string {
     return problem;
   },
+  /** True when this server is open to the internet and the first account needs the code from its log. */
+  get needsSetupCode(): boolean {
+    return needsCode;
+  },
   load,
   async signIn(email: string, password: string): Promise<void> {
     user = await api.auth.login(email, password);
     phase = 'ready';
   },
-  async setup(email: string, name: string, password: string): Promise<void> {
-    user = await api.auth.setup(email, name, password);
+  async setup(email: string, name: string, password: string, code = ''): Promise<void> {
+    user = await api.auth.setup(email, name, password, code);
     phase = 'ready';
   },
   async accept(token: string, email: string, name: string, password: string): Promise<void> {
