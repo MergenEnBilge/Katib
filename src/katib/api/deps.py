@@ -72,6 +72,15 @@ def get_current_user(request: Request, session: SessionDep) -> User:
 UserDep = Annotated[User, Depends(get_current_user, scope="function")]
 
 
+def may_browse_anywhere(request: Request, user: UserDep) -> bool:
+    """Alone on your own computer you may look anywhere. On a shared server, only administrators."""
+    settings: Settings = request.app.state.settings
+    return settings.auth.mode == "none" or user.is_admin
+
+
+AnywhereDep = Annotated[bool, Depends(may_browse_anywhere, scope="function")]
+
+
 def get_storage(request: Request) -> StorageContext:
     ctx: StorageContext = request.app.state.storage
     return ctx

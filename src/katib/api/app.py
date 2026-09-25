@@ -16,6 +16,7 @@ from katib.api import (
     classes,
     errors,
     exchange,
+    folders,
     health,
     images,
     jobs,
@@ -32,6 +33,7 @@ from katib.db.migrate import upgrade_to_head
 from katib.db.session import make_engine, make_session_factory
 from katib.jobs.runner import JobRunner
 from katib.services import class_ops as class_ops_service
+from katib.services import folders as folders_service
 from katib.services.images import StorageContext
 from katib.storage.imaging import set_pixel_limit
 from katib.storage.local import LocalStorage
@@ -58,6 +60,7 @@ def create_app(settings: Settings) -> FastAPI:
         )
         app.state.operations = LocalStorage(settings.data_dir / "operations")
         with app.state.session_factory() as s:
+            folders_service.load_connected(s, app.state.storage)
             class_ops_service.purge_expired(
                 s, app.state.operations, settings.limits.operation_retention_days
             )
@@ -87,6 +90,7 @@ def create_app(settings: Settings) -> FastAPI:
         quality,
         tasks,
         exchange,
+        folders,
         jobs,
         realtime,
     ):
