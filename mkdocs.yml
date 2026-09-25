@@ -1,0 +1,42 @@
+site_name: Katib
+site_description: Label images with your team, on your own machine.
+docs_dir: docs
+exclude_docs: |
+  design/
+  adr/
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - content.code.copy
+  palette:
+    - scheme: default
+      primary: green
+      accent: green
+    - scheme: slate
+      primary: green
+      accent: green
+
+nav:
+  - Home: index.md
+  - Getting started:
+      - Install and first project: getting-started.md
+      - Drawing and shortcuts: drawing.md
+  - Working with data:
+      - Images, folders and formats: data.md
+      - Class tools and dataset health: classes.md
+      - Model help: assist.md
+  - Teams and servers:
+      - Working together: teams.md
+      - Running a server: server.md
+  - Automating:
+      - REST API and Python client: automation.md
+  - Security: security.md
+  - Contributing: contributing.md
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
