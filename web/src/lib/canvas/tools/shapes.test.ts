@@ -14,6 +14,7 @@ import { BrushTool } from './brush';
 import { KeypointsTool } from './keypoints';
 import { ObbTool } from './obb';
 import { SelectTool } from './select';
+import { WandTool } from './wand';
 import type { ToolContext } from './tool';
 
 const W = 1000;
@@ -48,6 +49,7 @@ function setup(withSkeleton = true) {
     needClass: () => {},
     newId: () => `id${++counter}`,
     accent: () => '#2fa366',
+    pixels: () => null,
   };
   return { ctx, model, hints };
 }
@@ -311,5 +313,54 @@ describe('SelectTool with the new shapes', () => {
     tool.pointerDown(ev(0.5, 0.5));
     tool.pointerUp(ev(0.5, 0.5));
     expect(model.selection.size).toBe(0);
+  });
+});
+
+describe('WandTool', () => {
+  const size = 40;
+  function world() {
+    const base = setup();
+    const data = new Uint8ClampedArray(size * size * 4);
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const inside = x >= 10 && x < 30 && y >= 10 && y < 30;
+        const i = (y * size + x) * 4;
+        data[i] = inside ? 230 : 10;
+        data[i + 1] = 10;
+        data[i + 2] = inside ? 10 : 230;
+        data[i + 3] = 255;
+      }
+    }
+    return { ...base, ctx: { ...base.ctx, pixels: () => ({ data, width: size, height: size }) } };
+  }
+
+  it('outlines the object under the click as a polygon', () => {
+    const { ctx, model } = world();
+    const tool = new WandTool(ctx);
+    tool.pointerDown(ev(0.5, 0.5));
+    const made = model.shapes[0] as Shape;
+    expect(made.type).toBe('polygon');
+    const points = (made.geometry as { points: [number, number][] }).points;
+    const xs = points.map((p) => p[0]);
+    expect(Math.min(...xs)).toBeCloseTo(0.26, 1);
+    expect(Math.max(...xs)).toBeCloseTo(0.74, 1);
+  });
+
+  it('changes the color range with [ and ]', () => {
+    const { ctx } = world();
+    const tool = new WandTool(ctx);
+    const before = tool.tolerance;
+    tool.key(key(']'));
+    expect(tool.tolerance).toBeGreaterThan(before);
+    tool.key(key('['));
+    tool.key(key('['));
+    expect(tool.tolerance).toBeLessThan(before);
+  });
+
+  it('waits when the picture has not loaded', () => {
+    const { ctx, model, hints } = setup();
+    new WandTool(ctx).pointerDown(ev(0.5, 0.5));
+    expect(model.shapes).toHaveLength(0);
+    expect(hints.at(-1)).toContain('still loading');
   });
 });

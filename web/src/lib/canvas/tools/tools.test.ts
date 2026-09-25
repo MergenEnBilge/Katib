@@ -31,6 +31,7 @@ function setup(active: string | null = 'car') {
     needClass: () => needed++,
     newId: () => `id${++counter}`,
     accent: () => '#2fa366',
+    pixels: () => null,
   };
   return { ctx, model, viewport, hints, needed: () => needed };
 }

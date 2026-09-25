@@ -1,6 +1,7 @@
 import type { AnnotationModel } from '../model';
 import type { ClassStyle, ToolEvent } from '../types';
 import type { Viewport } from '../viewport';
+import type { Pixels } from '../wand';
 
 export interface ToolContext {
   model: AnnotationModel;
@@ -16,6 +17,8 @@ export interface ToolContext {
   newId(): string;
   /** Accent color for chrome such as marquees, read from the theme. */
   accent(): string;
+  /** The picture's colors, shrunk to a working size, or null while it is still loading. */
+  pixels(): Pixels | null;
 }
 
 export interface KeyInfo {

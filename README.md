@@ -57,9 +57,27 @@ When you create a project, pick the kinds of shapes it will use. You can only sa
 | Rotated boxes | **O** | Drag along one edge, then move out to the other side and click. Drag the round handle to turn it. |
 | Keypoints | **K** | Click each landmark in order. Shift+click marks one as hidden, N skips one, Enter finishes early. |
 | Brush masks | **R** | Paint. E switches to the eraser, and [ and ] change the brush size. |
+| Magic wand | **W** | Click inside an object and Katib outlines the area of similar color as a polygon. [ and ] change how alike the colors must be. |
 | Image tags | | Switch a class on under "Tags on this image". |
 
 Keypoints need landmarks. Open **Manage classes**, choose a class, and write its landmarks one per line, for example `nose`, `left eye`, `right eye`. To draw lines between them, write pairs of numbers such as `1-2, 1-3`.
+
+### Pre-labeling with your own model
+
+If you already have a YOLO detection model saved as ONNX, Katib can draft boxes for you to correct. Nothing is downloaded and nothing leaves your computer.
+
+1. Install the extra package: `uv sync --extra ml`
+2. Turn it on in `katib.toml`:
+
+   ```toml
+   [ml]
+   enabled = true
+   ```
+
+3. Copy your `.onnx` file into the `models` folder inside Katib's data folder. The pre-label window shows the exact path.
+4. In a project, choose **Pre-label with a model** (the sparkle button), pick the model and a minimum confidence, and run it.
+
+Drafted boxes are drawn dashed and carry the model's confidence. Correct them like any other box. The whole run shows up in the history and can be undone for 30 days. Models exported from common YOLO tools list their own class names. If yours does not, the window asks you to type them in.
 
 ### Using a folder of images
 

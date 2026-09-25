@@ -5,12 +5,14 @@ import { BrushTool } from './tools/brush';
 import { KeypointsTool } from './tools/keypoints';
 import { ObbTool } from './tools/obb';
 import { PolygonTool } from './tools/polygon';
+import { WandTool } from './tools/wand';
 import { SelectTool } from './tools/select';
 import type { Tool, ToolContext } from './tools/tool';
 import type { ClassStyle, Point, ToolEvent } from './types';
 import { Viewport } from './viewport';
+import { WORKING_SIDE, type Pixels } from './wand';
 
-export type ToolName = 'select' | 'box' | 'polygon' | 'obb' | 'keypoints' | 'brush';
+export type ToolName = 'select' | 'box' | 'polygon' | 'obb' | 'keypoints' | 'brush' | 'wand';
 
 export interface EngineOptions {
   activeClassId(): string | null;
@@ -77,6 +79,7 @@ export class Engine {
       needClass: () => opts.needClass(),
       newId: () => crypto.randomUUID(),
       accent: () => getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(),
+      pixels: () => this.samplePixels(),
     };
     this.tools = {
       select: new SelectTool(context),
@@ -85,6 +88,7 @@ export class Engine {
       obb: new ObbTool(context),
       keypoints: new KeypointsTool(context),
       brush: new BrushTool(context),
+      wand: new WandTool(context),
     };
     this.tool = this.tools.select;
 
@@ -106,6 +110,26 @@ export class Engine {
   }
 
   private overlay: HTMLCanvasElement;
+  private sampled: { source: CanvasImageSource; pixels: Pixels } | null = null;
+
+  /** A shrunken copy of the picture for tools that look at its colors. Made once per picture. */
+  private samplePixels(): Pixels | null {
+    const source = this.renderer.currentBitmap;
+    if (!(source instanceof HTMLImageElement) || source.naturalWidth === 0) return null;
+    if (this.sampled?.source === source) return this.sampled.pixels;
+    const scale = Math.min(1, WORKING_SIDE / Math.max(source.naturalWidth, source.naturalHeight));
+    const width = Math.max(1, Math.round(source.naturalWidth * scale));
+    const height = Math.max(1, Math.round(source.naturalHeight * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const g = canvas.getContext('2d', { willReadFrequently: true });
+    if (!g) return null;
+    g.drawImage(source, 0, 0, width, height);
+    const pixels: Pixels = { data: g.getImageData(0, 0, width, height).data, width, height };
+    this.sampled = { source, pixels };
+    return pixels;
+  }
 
   private listen<K extends keyof HTMLElementEventMap>(
     target: HTMLElement,
