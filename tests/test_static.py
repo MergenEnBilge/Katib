@@ -63,8 +63,7 @@ def test_big_text_files_are_sent_compressed(
     static = tmp_path / "static"
     (static / "assets").mkdir(parents=True)
     (static / "index.html").write_text("<html></html>")
-    (static / "assets" / "big.js").write_bytes(b"const answer = 42;
-" * 500)
+    (static / "assets" / "big.js").write_bytes(b"const answer = 42;\n" * 500)
     (static / "assets" / "tiny.js").write_text("1")
     monkeypatch.setattr(app_module, "STATIC_DIR", static)
     with TestClient(create_app(Settings(storage={"data_dir": str(tmp_path / "d")}))) as c:
