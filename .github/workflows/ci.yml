@@ -13,7 +13,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-      - run: uv sync --locked
+      - run: uv sync --locked --extra ml
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run pyright
@@ -85,5 +85,30 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-      - run: uv sync --locked --extra postgres
+      - run: uv sync --locked --extra postgres --extra ml
       - run: uv run pytest --db postgres
+
+  bench:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run python scripts/bench.py --check
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t katib:ci .
+      - name: The image starts and answers
+        run: |
+          docker run -d --name katib -p 8420:8420 -e KATIB_DATABASE__URL=sqlite:////data/katib.db katib:ci
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8420/api/v1/health && exit 0
+            sleep 2
+          done
+          docker logs katib
+          exit 1
