@@ -266,6 +266,8 @@
     gap: var(--space-2);
     position: sticky;
     bottom: 0;
+    z-index: 2;
+    border-block-start: 1px solid var(--border);
     padding-block: var(--space-3);
     background: var(--bg);
   }
@@ -291,6 +293,11 @@
     .tabs {
       flex-direction: row;
       flex-wrap: wrap;
+    }
+
+    /* On a small screen the bar sits after the last setting, where it cannot cover anything. */
+    .save {
+      position: static;
     }
   }
 </style>
