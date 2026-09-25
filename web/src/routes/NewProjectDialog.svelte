@@ -64,7 +64,7 @@
   </fieldset>
   {#snippet footer()}
     <Button onclick={onclose}>Cancel</Button>
-    <Button variant="primary" disabled={busy || !name.trim() || chosen.length === 0} onclick={create}>Create project</Button>
+    <Button variant="primary" loading={busy} disabled={!name.trim() || chosen.length === 0} onclick={create}>Create project</Button>
   {/snippet}
 </Modal>
 

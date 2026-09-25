@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { Engine, type ToolName } from '../../lib/canvas/engine';
+  import Spinner from '../../lib/ui/Spinner.svelte';
   import { toasts } from '../../lib/state/toast.svelte';
   import type { Workspace } from '../../lib/state/workspace.svelte';
 
@@ -65,7 +66,7 @@
   <span class="hint">{hint}</span>
 </div>
 {#if ws.imageLoading}
-  <div class="loading" role="status">Loading image</div>
+  <div class="loading" role="status"><Spinner size={16} />Loading image</div>
 {/if}
 
 <style>
@@ -83,6 +84,9 @@
     display: flex;
     gap: var(--space-3);
     max-width: calc(100% - 2 * var(--space-3));
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
     padding: 4px var(--space-3);
     color: var(--text-2);
     font-size: var(--text-small);
