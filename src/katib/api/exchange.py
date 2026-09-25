@@ -46,6 +46,7 @@ def import_dataset(
         return {
             "format": summary.format_id,
             "images_matched": summary.images_matched,
+            "splits_set": summary.splits_set,
             "unmatched_images": summary.unmatched_images,
             "shapes_added": summary.shapes_added,
             "classes_created": summary.classes_created,

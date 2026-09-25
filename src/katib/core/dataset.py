@@ -33,6 +33,7 @@ class ImageLabels:
     shapes: list[Shape] = field(default_factory=list[Shape])
     width: int | None = None
     height: int | None = None
+    split: str | None = None  # "train", "val" or "test" when the dataset says so
 
 
 @dataclass(frozen=True)
