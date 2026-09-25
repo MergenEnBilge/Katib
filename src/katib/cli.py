@@ -61,6 +61,26 @@ def share(
 
 
 @app.command()
+def restore(
+    backup_file: Annotated[Path, typer.Argument(help="A backup zip made from Katib's settings.")],
+    replace: Annotated[
+        bool, typer.Option("--replace", help="Replace the database that is already there.")
+    ] = False,
+    config: Annotated[Path | None, typer.Option(help="Path to katib.toml.")] = None,
+) -> None:
+    """Put a backup back into the data folder. Stop Katib first."""
+    from katib.services import backup
+    from katib.services.errors import InvalidInput
+
+    settings = load_settings(config)
+    try:
+        report = backup.restore(backup_file, settings.data_dir, replace)
+    except InvalidInput as err:
+        raise typer.BadParameter(err.message) from err
+    typer.echo(f"Restored {report.files} files into {settings.data_dir}. Start Katib again.")
+
+
+@app.command()
 def dev() -> None:
     """Run the API with auto-reload on the configured port."""
     _configure_logging()
