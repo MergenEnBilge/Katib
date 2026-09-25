@@ -143,6 +143,70 @@ export class Workspace {
     ]);
   }
 
+  /** The text entries on the open image, in the order they were written. */
+  textShapes(): Shape[] {
+    void this.modelTick;
+    return (this.engine?.model.shapes ?? []).filter((s) => s.type === 'text');
+  }
+
+  textOf(shape: Shape): string {
+    return 'text' in shape.geometry ? shape.geometry.text : '';
+  }
+
+  addText(): void {
+    const model = this.engine?.model;
+    if (!model || this.readOnly) return;
+    model.commit([
+      {
+        kind: 'create',
+        shape: { id: crypto.randomUUID(), type: 'text', classId: '', geometry: { text: '' }, attrs: {}, version: 0 },
+      },
+    ]);
+  }
+
+  setText(id: string, text: string): void {
+    const model = this.engine?.model;
+    const shape = model?.get(id);
+    if (!model || !shape || this.readOnly || this.textOf(shape) === text) return;
+    model.commit([
+      { kind: 'update', id, before: { geometry: shape.geometry }, after: { geometry: { text } } },
+    ]);
+  }
+
+  setTextLabel(id: string, classId: string): void {
+    const model = this.engine?.model;
+    const shape = model?.get(id);
+    if (!model || !shape || this.readOnly || shape.classId === classId) return;
+    model.commit([
+      { kind: 'update', id, before: { classId: shape.classId }, after: { classId } },
+    ]);
+  }
+
+  removeText(id: string): void {
+    const model = this.engine?.model;
+    const shape = model?.get(id);
+    if (!model || !shape || this.readOnly) return;
+    model.commit([{ kind: 'delete', shape }]);
+  }
+
+  /** Text written for one shape, such as the word inside a box. */
+  transcriptionOf(shape: Shape): string {
+    const value = shape.attrs.transcription;
+    return typeof value === 'string' ? value : '';
+  }
+
+  setTranscription(id: string, text: string): void {
+    const model = this.engine?.model;
+    const shape = model?.get(id);
+    if (!model || !shape || this.readOnly || this.transcriptionOf(shape) === text) return;
+    const attrs = { ...shape.attrs };
+    if (text) attrs.transcription = text;
+    else delete attrs.transcription;
+    model.commit([
+      { kind: 'update', id, before: { attrs: shape.attrs }, after: { attrs } },
+    ]);
+  }
+
   get styles(): Map<string, ClassStyle> {
     // Plain data handed to the canvas engine, which is not reactive, so a SvelteMap would add nothing.
     // eslint-disable-next-line svelte/prefer-svelte-reactivity

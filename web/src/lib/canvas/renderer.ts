@@ -250,10 +250,12 @@ export class Renderer {
   ): void {
     const bounds = boundsOf(shape, vp.imageW, vp.imageH);
     const anchor = vp.normToScreen({ x: bounds.x, y: bounds.y });
-    const text =
+    const name =
       shape.source === 'model' && shape.confidence != null
         ? `${style.name} ${shape.confidence.toFixed(2)}`
         : style.name;
+    const words = typeof shape.attrs.transcription === 'string' ? shape.attrs.transcription : '';
+    const text = words ? `${name}: ${words.length > 30 ? `${words.slice(0, 29)}…` : words}` : name;
     g.save();
     g.font = `500 11px ${cssVar('--font-ui', 'sans-serif')}`;
     const width = g.measureText(text).width + 10;

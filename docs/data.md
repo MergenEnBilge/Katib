@@ -70,6 +70,19 @@ Every shuffle can be undone from **History** for 30 days. To move a single image
 | COCO | Boxes, polygons, keypoints | Rotated boxes are written as polygons. Run-length masks are not read yet |
 | Pascal VOC | Boxes | One XML file per image |
 | LabelMe | Boxes and polygons | One JSON file per image |
+| Tags and text (JSON Lines) | Tags, captions, text in shapes, and every shape kind | One `metadata.jsonl` file. Loads in Hugging Face |
+
+### Tags and text
+
+The JSON Lines format is the one to use for image tags, captions and text found in pictures. Each line describes one image:
+
+```json
+{"file_name": "images/train/a.jpg", "width": 640, "height": 480, "split": "train",
+ "tags": ["street"], "text": "A red bicycle by a wall.", "texts": ["A red bicycle by a wall."],
+ "regions": [{"label": "sign", "type": "box", "geometry": {"x": 0.1, "y": 0.1, "w": 0.2, "h": 0.2}, "text": "STOP"}]}
+```
+
+`text` is the first caption and `texts` lists them all. `regions` holds shapes with their coordinates as fractions of the image, and the words written inside them. Include the image files in the export and the folder loads straight into Hugging Face with `load_dataset("imagefolder", data_dir=...)`. The same file can be imported back.
 
 Shapes that a format cannot hold are converted where that is sensible (for example, a polygon becomes its bounding box in YOLO detection) and skipped otherwise. The export report lists every change, so nothing disappears silently.
 

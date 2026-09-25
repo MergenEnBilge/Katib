@@ -1707,7 +1707,7 @@ export interface components {
             /** Name */
             name: string;
             /** Annotation Types */
-            annotation_types?: ("box" | "polygon" | "obb" | "keypoints" | "mask" | "tag")[] | null;
+            annotation_types?: ("box" | "polygon" | "obb" | "keypoints" | "mask" | "tag" | "text")[] | null;
         };
         /** ProjectOut */
         ProjectOut: {

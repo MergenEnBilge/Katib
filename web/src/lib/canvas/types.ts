@@ -48,15 +48,21 @@ export interface MaskGeometry {
 /** A label for the whole image. It has no geometry. */
 export type TagGeometry = Record<string, never>;
 
+/** Words about the whole image, such as a caption. It has no place on the picture. */
+export interface TextGeometry {
+  text: string;
+}
+
 export type Geometry =
   | BoxGeometry
   | PolygonGeometry
   | ObbGeometry
   | KeypointsGeometry
   | MaskGeometry
-  | TagGeometry;
+  | TagGeometry
+  | TextGeometry;
 
-export type ShapeType = 'box' | 'polygon' | 'obb' | 'keypoints' | 'mask' | 'tag';
+export type ShapeType = 'box' | 'polygon' | 'obb' | 'keypoints' | 'mask' | 'tag' | 'text';
 
 /** Everything that can change on a shape after it is created. */
 export interface ShapePatch {
@@ -123,7 +129,7 @@ export function isMask(g: Geometry): g is MaskGeometry {
   return 'rle' in g;
 }
 
-/** Tags belong to the image, not to a place on it, so the canvas never draws or hits them. */
+/** Tags and text belong to the image, not to a place on it, so the canvas never draws or hits them. */
 export function isDrawn(shape: Shape): boolean {
-  return shape.type !== 'tag';
+  return shape.type !== 'tag' && shape.type !== 'text';
 }

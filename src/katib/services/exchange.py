@@ -119,9 +119,10 @@ def import_dataset(
                 Annotation(
                     id=new_id(),
                     image_id=image.id,
-                    class_id=class_ids[shape.class_name],
+                    class_id=class_ids.get(shape.class_name),
                     type=shape.type,
                     geometry=geometry,
+                    attrs=shape.attrs,
                     source="import",
                 )
             )
@@ -141,8 +142,10 @@ class ProjectView:
         ctx: StorageContext,
         statuses: list[str] | None = None,
         splits: dict[uuid.UUID, str] | None = None,
+        with_text: bool = False,
     ) -> None:
         self._splits = splits or {}
+        self._with_text = with_text
         self._session = session
         self._project_id = project_id
         self._ctx = ctx
@@ -187,8 +190,10 @@ class ProjectView:
             for ann in rows:
                 if ann.class_id in self._names:
                     by_image[ann.image_id].append(
-                        Shape(self._names[ann.class_id], ann.type, ann.geometry)
+                        Shape(self._names[ann.class_id], ann.type, ann.geometry, ann.attrs)
                     )
+                elif ann.class_id is None and ann.type == "text" and self._with_text:
+                    by_image[ann.image_id].append(Shape("", ann.type, ann.geometry))
             for img in chunk:
                 try:
                     source: Path | None = image_path(img, self._ctx)
@@ -262,8 +267,8 @@ def export_dataset(
     except FormatError as err:
         raise InvalidInput(str(err)) from err
     splits = _assign_splits(session, project_id, opts, statuses)
-    view = ProjectView(session, project_id, ctx, statuses, splits)
-    if not view.class_names:
+    view = ProjectView(session, project_id, ctx, statuses, splits, "text" in fmt.supports)
+    if not view.class_names and "text" not in fmt.supports:
         raise InvalidInput("Add at least one class before exporting.")
     report = fmt.write(view, dest, opts)
     del report.notes[MAX_NOTES:]
