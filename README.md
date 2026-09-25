@@ -78,6 +78,32 @@ The first person to open the page creates the administrator account. From there,
 
 If you run Katib without accounts (`mode = "none"`), it only listens on your own computer, and it will refuse to start on a network address. This keeps an open instance from being exposed by accident.
 
+### Running it on a server with Docker
+
+This is the easiest way to run Katib for a team. It starts Katib, a Postgres database, and Caddy, which adds HTTPS.
+
+```bash
+cp .env.example .env
+```
+
+Open `.env` and set `KATIB_DB_PASSWORD`. Point `KATIB_PHOTOS` at the folder with your photos, and set `KATIB_HOST` to the name people will type, such as `katib.example.com` or the server's address. Then:
+
+```bash
+docker compose up -d
+```
+
+Open `https://` and that name. The first person to arrive creates the administrator account. In **Import images**, connect the folder called `/photos`.
+
+On a public domain, set `KATIB_TLS` to your email address and Caddy gets a real certificate on its own. On a private network, leave it as `internal`. Caddy then signs its own certificate, and each browser shows a warning once. To remove the warning, install Caddy's root certificate on those computers. You can copy it from the running container:
+
+```bash
+docker compose cp caddy:/data/caddy/pki/authorities/local/root.crt ./katib-root.crt
+```
+
+Your data lives in Docker volumes, so it survives `docker compose down` and upgrades. To upgrade, pull the new code and run `docker compose up -d --build`.
+
+### Using Postgres without Docker
+
 Prefer Postgres to the built-in database? Install the driver and add the address to `katib.toml`:
 
 ```bash
@@ -155,7 +181,7 @@ After changing an API route, refresh the TypeScript types with `pnpm --dir web g
 
 ## Status
 
-Katib is under active development and has not had a stable release yet. Single-user labeling, class tools, dataset health, and team workflows with accounts, roles, review and live presence all work today. Docker packaging, a desktop app, and offline support for phones are next.
+Katib is under active development and has not had a stable release yet. Single-user labeling, class tools, dataset health, and team workflows with accounts, roles, review and live presence all work today. Docker packaging is done. A desktop app and offline support for phones are next.
 
 ## License
 
