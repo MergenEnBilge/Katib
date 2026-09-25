@@ -7,6 +7,7 @@ from fastapi import APIRouter, Response
 from pydantic import BaseModel
 
 from katib.api.deps import SessionDep, StorageDep, UserDep, need
+from katib.core.types import geometry_bounds
 from katib.db.models import Annotation
 from katib.services import access, images, quality
 from katib.services.errors import NotFound
@@ -134,7 +135,7 @@ def crop(
     if ann is None:
         raise NotFound("That shape does not exist.")
     image = images.get_image(session, ann.image_id)
-    x, y, w, h = quality.bounds_of(ann.geometry)
+    x, y, w, h = geometry_bounds(ann.type, ann.geometry, (image.width, image.height))
     data = crop_jpeg(images.image_path(image, storage), x, y, w, h, max(32, min(size, 512)))
     headers = {**CACHE, "ETag": f'"{ann.id}-{ann.version}-{size}"'}
     return Response(data, media_type="image/jpeg", headers=headers)

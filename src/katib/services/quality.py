@@ -2,7 +2,7 @@
 
 import uuid
 from dataclasses import dataclass, field
-from typing import Any, cast
+from typing import Any
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -14,6 +14,7 @@ from katib.core.quality import (
     is_tiny,
     near_duplicates,
 )
+from katib.core.types import geometry_bounds
 from katib.db.models import Annotation, Class, Image
 from katib.services.projects import get_project
 
@@ -42,13 +43,11 @@ class HealthReport:
     look_alikes: list[list[ImageRef]] = field(default_factory=list[list[ImageRef]])
 
 
-def bounds_of(geometry: dict[str, Any]) -> tuple[float, float, float, float]:
-    if "points" in geometry:
-        pts = cast("list[list[float]]", geometry["points"])
-        xs = [p[0] for p in pts]
-        ys = [p[1] for p in pts]
-        return min(xs), min(ys), max(xs) - min(xs), max(ys) - min(ys)
-    return float(geometry["x"]), float(geometry["y"]), float(geometry["w"]), float(geometry["h"])
+def bounds_of(type_name: str, geometry: dict[str, Any]) -> tuple[float, float, float, float] | None:
+    """The rectangle around a shape, or None for shapes that do not sit anywhere, like tags."""
+    if type_name == "tag":
+        return None
+    return geometry_bounds(type_name, geometry)
 
 
 def project_health(session: Session, project_id: uuid.UUID) -> HealthReport:
@@ -75,13 +74,22 @@ def project_health(session: Session, project_id: uuid.UUID) -> HealthReport:
 
     items: list[BoxItem] = []
     rows = session.execute(
-        select(Annotation.id, Annotation.image_id, Annotation.class_id, Annotation.geometry)
+        select(
+            Annotation.id,
+            Annotation.image_id,
+            Annotation.class_id,
+            Annotation.type,
+            Annotation.geometry,
+        )
         .join(Image, Image.id == Annotation.image_id)
         .where(Image.project_id == project_id)
         .order_by(Annotation.image_id)
     ).yield_per(5000)
-    for ann_id, image_id, class_id, geometry in rows:
-        x, y, w, h = bounds_of(geometry)
+    for ann_id, image_id, class_id, type_name, geometry in rows:
+        found_bounds = bounds_of(type_name, geometry)
+        if found_bounds is None:
+            continue
+        x, y, w, h = found_bounds
         if is_tiny(w, h):
             report.tiny_shapes += 1
             if len(report.tiny_sample) < SAMPLE:
@@ -157,8 +165,8 @@ def list_shapes(
             break
         for a, f, st in batch:
             last = a.id
-            _, _, w, h = bounds_of(a.geometry)
-            if is_tiny(w, h):
+            found_bounds = bounds_of(a.type, a.geometry)
+            if found_bounds is not None and is_tiny(found_bounds[2], found_bounds[3]):
                 found.append(GalleryRow(a, f, st))
         if len(batch) < 500:
             break
