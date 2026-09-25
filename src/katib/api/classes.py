@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from katib.api.deps import SessionDep, UserDep, need
 from katib.api.hub import emit
-from katib.api.schemas import AttrDef, ClassIn, ClassOut, ClassPatch, ReorderIn
+from katib.api.schemas import AttrDef, ClassIn, ClassOut, ClassPatch, ReorderIn, Skeleton
 from katib.services import access, classes, projects
 from katib.services.classes import ClassWithCount
 
@@ -23,6 +23,7 @@ def _out(c: ClassWithCount) -> ClassOut:
         position=c.cls.position,
         annotation_count=c.annotation_count,
         attr_schema=[AttrDef.model_validate(a) for a in c.cls.attr_schema],
+        skeleton=Skeleton.model_validate(c.cls.skeleton) if c.cls.skeleton else None,
     )
 
 
@@ -62,6 +63,8 @@ def update_class(
         classes.set_attr_schema(
             session, class_id, [a.model_dump(exclude_none=True) for a in body.attr_schema]
         )
+    if body.skeleton is not None:
+        classes.set_skeleton(session, class_id, body.skeleton.names, body.skeleton.edges)
     emit(session.info, cls.project_id, {"type": "class.changed"})
     return _one(session, cls.project_id, class_id)
 
