@@ -17,6 +17,7 @@ Most annotation tools are either a quick desktop app that falls apart once a sec
 - **Learn as you go.** A practice project with a guided tour and a checklist gets a new person drawing in two minutes.
 - **Work together.** Invite people with a link and give them a role: owner, manager, annotator, reviewer or viewer. Katib hands each annotator the next image, shows who else is on the project, and keeps two people from editing the same image at once. Reviewers can approve images or send them back with a comment.
 - **Change everything in the app.** Every setting has a page in Settings with a plain explanation, and a backup is one button.
+- **Learn with it, not from a manual.** Short tips appear the first time you use a tool or window, and tours explain the workspace, the home screen and Settings based on what your project has.
 - **Use any device.** The interface adapts from a wide desktop screen to a phone. Install it on a phone and it keeps working when the signal drops.
 
 ## Get started
@@ -193,7 +194,7 @@ url = "postgresql://katib:secret@localhost/katib"
 
 Open the address from **Share** on your phone. The interface fits the screen and you draw with a finger or a stylus.
 
-Katib can also be installed like an app. On Android, open the browser menu and choose **Install app**. On an iPhone, choose **Add to Home Screen** from the share sheet. This needs a secure address, so use the Docker setup with HTTPS or open Katib on the same computer.
+There is also an Android app, `Katib-android.apk` on the releases page. It connects to your server and opens it full screen. See [android-app/README.md](android-app/README.md). Or install Katib like an app from the browser. On Android, open the browser menu and choose **Install app**. On an iPhone, choose **Add to Home Screen** from the share sheet. This needs a secure address, so use the Docker setup with HTTPS or open Katib on the same computer.
 
 Once installed, Katib opens without a connection and keeps the images you have looked at. If the connection drops while you draw, your edits are kept on the device and sent the next time you open Katib with a connection. Images you have not opened yet are not available offline.
 
@@ -218,6 +219,10 @@ If you prefer files, create `katib.toml` in the folder you start Katib from, or 
 - Katib makes no network requests on its own. There is no telemetry.
 - Passwords are stored with argon2id. Session and invite tokens are stored only as hashes.
 - Your original images are only ever read.
+
+## Your logo
+
+The logo shown in Katib and used for every app icon comes from two files in `brand/`. Replace `logo.svg` and `logo.png` with yours and run `python scripts/apply_brand.py`. See `brand/README.md`. The ones there now are placeholders.
 
 ## Documentation
 
