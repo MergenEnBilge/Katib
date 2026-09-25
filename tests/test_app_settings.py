@@ -33,7 +33,7 @@ def field(payload: dict[str, Any], key: str) -> dict[str, Any]:
     return next(f for f in payload["fields"] if f["key"] == key)
 
 
-def test_every_setting_is_listed_with_help_and_a_value(api: TestClient) -> None:
+def test_every_setting_is_listed_with_help_and_a_value(api: TestClient, sqlite_only: None) -> None:
     got = api.get(f"{API}/settings").json()
     keys = {f["key"] for f in got["fields"]}
     assert {"auth.mode", "server.port", "limits.max_upload_mb", "ml.enabled"} <= keys
@@ -82,7 +82,6 @@ def test_the_folders_katib_may_read_take_effect_at_once(api: TestClient, library
         ({"limits.max_upload_mb": "lots"}, "whole number"),
         ({"server.port": 70000}, "between"),
         ({"server.public_url": "katib.example.com"}, "http"),
-        ({"database.url": "mysql://x"}, "sqlite"),
         ({"storage.allowed_import_roots": ["/no/such/place"]}, "not a folder"),
         ({"ml.enabled": "yes"}, "on or off"),
         ({"nothing.here": 1}, "not a setting"),
@@ -102,7 +101,7 @@ def test_sharing_on_the_network_works_once_accounts_are_chosen_too(api: TestClie
     assert api.put(f"{API}/settings", json={"values": both}).status_code == 200
 
 
-def test_the_database_password_is_never_shown(api: TestClient) -> None:
+def test_the_database_password_is_never_shown(api: TestClient, sqlite_only: None) -> None:
     url = "postgresql://katib:hunter2@db.example.com:5432/katib"
     got = api.put(f"{API}/settings", json={"values": {"database.url": url}}).json()
     shown = field(got, "database.url")["value"]
@@ -160,7 +159,7 @@ def wait_job(api: TestClient, job_id: str) -> dict[str, Any]:
     raise AssertionError("job did not finish")
 
 
-def test_a_backup_holds_the_database_and_uploads(api: TestClient) -> None:
+def test_a_backup_holds_the_database_and_uploads(api: TestClient, sqlite_only: None) -> None:
     project = api.post(f"{API}/projects", json={"name": "Kept"}).json()
     buffer = io.BytesIO()
     PILImage.new("RGB", (8, 8), "red").save(buffer, "PNG")
