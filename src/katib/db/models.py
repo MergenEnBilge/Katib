@@ -66,6 +66,7 @@ class Image(Base):
         Index("ix_images_project_status", "project_id", "status"),
         Index("ix_images_project_position", "project_id", "position"),
         Index("ix_images_project_assignee", "project_id", "assignee_id"),
+        Index("ix_images_project_split", "project_id", "split"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_id)
@@ -82,6 +83,8 @@ class Image(Base):
     locked_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
     locked_until: Mapped[datetime | None] = mapped_column(UTCDateTime)
     position: Mapped[int] = mapped_column(Integer)
+    #: "train", "val" or "test", or None while the image is not in a split.
+    split: Mapped[str | None] = mapped_column(String(10))
     version: Mapped[int] = mapped_column(Integer, default=1)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, onupdate=utcnow)

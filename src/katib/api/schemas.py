@@ -88,6 +88,7 @@ class ImageOut(BaseModel):
     width: int
     height: int
     status: str
+    split: str | None = None
     position: int
     version: int
     annotation_count: int = 0
