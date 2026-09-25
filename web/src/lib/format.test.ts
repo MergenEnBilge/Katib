@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { plural, relativeTime } from './format';
+import { formatBytes, plural, relativeTime } from './format';
 
 describe('plural', () => {
   it('uses the singular for one', () => {
@@ -27,5 +27,14 @@ describe('relativeTime', () => {
   });
   it('handles missing values', () => {
     expect(relativeTime(null, now)).toBe('never');
+  });
+});
+
+describe('formatBytes', () => {
+  it('picks a unit that keeps the number short', () => {
+    expect(formatBytes(0)).toBe('0 B');
+    expect(formatBytes(1536)).toBe('1.5 KB');
+    expect(formatBytes(3 * 1024 * 1024)).toBe('3.0 MB');
+    expect(formatBytes(250 * 1024 * 1024 * 1024)).toBe('250 GB');
   });
 });

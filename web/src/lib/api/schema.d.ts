@@ -574,6 +574,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Settings */
+        get: operations["read_settings_api_v1_settings_get"];
+        /** Save Settings */
+        put: operations["save_settings_api_v1_settings_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settings/test-database": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Test Database */
+        post: operations["test_database_api_v1_settings_test_database_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settings/restart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restart Katib */
+        post: operations["restart_katib_api_v1_settings_restart_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settings/backup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start Backup */
+        post: operations["start_backup_api_v1_settings_backup_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/images/{image_id}/annotations": {
         parameters: {
             query?: never;
@@ -1069,6 +1138,11 @@ export interface components {
             /** Password */
             password: string;
         };
+        /** Accepted */
+        Accepted: {
+            /** Restarting */
+            restarting: boolean;
+        };
         /** ActivityOut */
         ActivityOut: {
             /**
@@ -1286,6 +1360,18 @@ export interface components {
              */
             created_at: string;
         };
+        /** DatabaseTestIn */
+        DatabaseTestIn: {
+            /** Url */
+            url: string;
+        };
+        /** DatabaseTestOut */
+        DatabaseTestOut: {
+            /** Ok */
+            ok: boolean;
+            /** Message */
+            message: string;
+        };
         /** DatasetImportIn */
         DatasetImportIn: {
             /** Path */
@@ -1319,6 +1405,41 @@ export interface components {
              */
             copy_images: boolean;
         };
+        /** FieldOut */
+        FieldOut: {
+            /** Key */
+            key: string;
+            /** Group */
+            group: string;
+            /** Label */
+            label: string;
+            /** Help */
+            help: string;
+            /** Kind */
+            kind: string;
+            /** Live */
+            live: boolean;
+            /** Minimum */
+            minimum: number | null;
+            /** Maximum */
+            maximum: number | null;
+            /** Options */
+            options: components["schemas"]["OptionOut"][];
+            /** Allow Other */
+            allow_other: boolean;
+            /** Secret */
+            secret: boolean;
+            /** Value */
+            value: unknown;
+            /** Running */
+            running: unknown;
+            /** Source */
+            source: string;
+            /** Restart Pending */
+            restart_pending: boolean;
+            /** Env Name */
+            env_name: string | null;
+        };
         /** FolderImportIn */
         FolderImportIn: {
             /** Folder */
@@ -1347,6 +1468,15 @@ export interface components {
             label: string;
             /** Supports */
             supports: string[];
+        };
+        /** GroupOut */
+        GroupOut: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Help */
+            help: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1474,6 +1604,27 @@ export interface components {
             assigned: components["schemas"]["InboxItem"][];
             /** To Review */
             to_review: components["schemas"]["InboxItem"][];
+        };
+        /** InfoOut */
+        InfoOut: {
+            /** Version */
+            version: string;
+            /** Python */
+            python: string;
+            /** System */
+            system: string;
+            /** Data Dir */
+            data_dir: string;
+            /** Database */
+            database: string;
+            /** Data Bytes */
+            data_bytes: number;
+            /** Free Bytes */
+            free_bytes: number;
+            /** Can Restart */
+            can_restart: boolean;
+            /** Restart Pending */
+            restart_pending: boolean;
         };
         /** InviteIn */
         InviteIn: {
@@ -1664,6 +1815,13 @@ export interface components {
             /** Can Revert */
             can_revert: boolean;
         };
+        /** OptionOut */
+        OptionOut: {
+            /** Value */
+            value: string;
+            /** Label */
+            label: string;
+        };
         /** PlaceOut */
         PlaceOut: {
             /** Name */
@@ -1772,6 +1930,21 @@ export interface components {
             skipped: number;
             /** Message */
             message: string;
+        };
+        /** SettingsIn */
+        SettingsIn: {
+            /** Values */
+            values: {
+                [key: string]: unknown;
+            };
+        };
+        /** SettingsOut */
+        SettingsOut: {
+            /** Groups */
+            groups: components["schemas"]["GroupOut"][];
+            /** Fields */
+            fields: components["schemas"]["FieldOut"][];
+            info: components["schemas"]["InfoOut"];
         };
         /** SetupIn */
         SetupIn: {
@@ -3365,6 +3538,132 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_settings_api_v1_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsOut"];
+                };
+            };
+        };
+    };
+    save_settings_api_v1_settings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SettingsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    test_database_api_v1_settings_test_database_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DatabaseTestIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatabaseTestOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restart_katib_api_v1_settings_restart_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Accepted"];
+                };
+            };
+        };
+    };
+    start_backup_api_v1_settings_backup_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobOut"];
                 };
             };
         };

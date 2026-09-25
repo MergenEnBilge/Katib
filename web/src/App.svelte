@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Inbox as InboxIcon, Layers, LogOut, Moon, Sun } from '@lucide/svelte';
+  import { Inbox as InboxIcon, Layers, LogOut, Moon, Settings as SettingsIcon, Sun } from '@lucide/svelte';
   import { onMount } from 'svelte';
   import { i18n, t } from './lib/i18n/index.svelte';
   import { sendWaitingEdits } from './lib/sync/offline';
@@ -16,6 +16,7 @@
   import Gallery from './routes/gallery/Gallery.svelte';
   import Inbox from './routes/Inbox.svelte';
   import Projects from './routes/Projects.svelte';
+  import Settings from './routes/settings/Settings.svelte';
   import WorkspacesDialog from './routes/WorkspacesDialog.svelte';
   import Workspace from './routes/workspace/Workspace.svelte';
 
@@ -86,6 +87,12 @@
           aria-current={route.name === 'inbox' ? 'page' : undefined}
           onclick={(e) => go(e, '/inbox')}><InboxIcon size={16} />{t('nav.inbox')}</a
         >
+        <a
+          class="nav-item"
+          href="/settings"
+          aria-current={route.name === 'settings' ? 'page' : undefined}
+          onclick={(e) => go(e, '/settings')}><SettingsIcon size={16} />{t('nav.settings')}</a
+        >
       </nav>
 
       <div class="sidebar-footer">
@@ -116,6 +123,8 @@
         <Projects />
       {:else if route.name === 'inbox'}
         <Inbox />
+      {:else if route.name === 'settings'}
+        <Settings />
       {:else}
         <EmptyState
           title={t('notFound.title')}
