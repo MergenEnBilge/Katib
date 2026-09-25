@@ -279,6 +279,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/samples": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Sample Project
+         * @description A practice project with drawn pictures, for learning Katib.
+         */
+        post: operations["create_sample_project_api_v1_samples_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}": {
         parameters: {
             query?: never;
@@ -1957,6 +1977,11 @@ export interface components {
             name: string;
             /** Password */
             password: string;
+            /**
+             * Setup Code
+             * @default
+             */
+            setup_code: string;
         };
         /** ShapeOut */
         ShapeOut: {
@@ -2134,6 +2159,11 @@ export interface components {
             mode: "none" | "local";
             /** Needs Setup */
             needs_setup: boolean;
+            /**
+             * Needs Setup Code
+             * @default false
+             */
+            needs_setup_code: boolean;
             user: components["schemas"]["UserOut"] | null;
         };
         /** TokenIn */
@@ -2769,6 +2799,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_sample_project_api_v1_samples_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectOut"];
                 };
             };
         };

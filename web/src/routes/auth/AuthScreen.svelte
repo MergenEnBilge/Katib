@@ -16,6 +16,7 @@
   let email = $state('');
   let name = $state('');
   let password = $state('');
+  let code = $state('');
   let error = $state('');
   let busy = $state(false);
 
@@ -39,7 +40,7 @@
     busy = true;
     error = '';
     try {
-      if (kind === 'setup') await session.setup(email, name, password);
+      if (kind === 'setup') await session.setup(email, name, password, code);
       else if (kind === 'invite') {
         await session.accept(token, email, name, password);
         router.navigate('/');
@@ -67,6 +68,9 @@
     <TextField label={t('auth.email')} bind:value={email} placeholder="you@example.com" />
     {#if kind !== 'signin'}
       <TextField label={t('auth.name')} bind:value={name} />
+    {/if}
+    {#if kind === 'setup' && session.needsSetupCode}
+      <TextField label={t('auth.setup.code')} bind:value={code} hint={t('auth.setup.codeHint')} />
     {/if}
     <label class="pw">
       <span>{t('auth.password')}</span>
