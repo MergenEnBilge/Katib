@@ -112,6 +112,36 @@ export class Workspace {
     return this.images.findIndex((i) => i.id === this.currentId);
   }
 
+  /** The annotation types this project uses, in toolbar order. */
+  get types(): string[] {
+    return this.project?.annotation_types ?? ['box', 'polygon'];
+  }
+
+  /** Classes that have a tag on the open image. */
+  taggedClasses(): Set<string> {
+    void this.modelTick;
+    const model = this.engine?.model;
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity
+    return new Set((model?.shapes ?? []).filter((s) => s.type === 'tag').map((s) => s.classId));
+  }
+
+  /** Add the class as a tag on the open image, or take it off when it is already there. */
+  toggleTag(classId: string): void {
+    const model = this.engine?.model;
+    if (!model || this.readOnly) return;
+    const existing = model.shapes.find((s) => s.type === 'tag' && s.classId === classId);
+    if (existing) {
+      model.commit([{ kind: 'delete', shape: existing }]);
+      return;
+    }
+    model.commit([
+      {
+        kind: 'create',
+        shape: { id: crypto.randomUUID(), type: 'tag', classId, geometry: {}, attrs: {}, version: 0 },
+      },
+    ]);
+  }
+
   get styles(): Map<string, ClassStyle> {
     // Plain data handed to the canvas engine, which is not reactive, so a SvelteMap would add nothing.
     // eslint-disable-next-line svelte/prefer-svelte-reactivity
@@ -123,6 +153,9 @@ export class Workspace {
         hidden: this.hiddenClasses.has(c.id),
         locked: this.lockedClasses.has(c.id),
         dash: DASHES[i % DASHES.length] ?? [],
+        skeleton: c.skeleton
+          ? { names: [...c.skeleton.names], edges: (c.skeleton.edges ?? []).map(([a, b]) => [a, b] as [number, number]) }
+          : null,
       });
     });
     return map;

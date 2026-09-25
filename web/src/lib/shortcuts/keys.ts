@@ -4,6 +4,9 @@ export type Action =
   | 'tool:select'
   | 'tool:box'
   | 'tool:polygon'
+  | 'tool:obb'
+  | 'tool:keypoints'
+  | 'tool:brush'
   | 'class-picker'
   | 'class-manager'
   | 'prev'
@@ -33,6 +36,11 @@ export const SHORTCUT_LIST: { keys: string; action: string; group: string }[] = 
   { group: 'Tools', keys: 'V', action: 'Select' },
   { group: 'Tools', keys: 'B', action: 'Box' },
   { group: 'Tools', keys: 'P', action: 'Polygon' },
+  { group: 'Tools', keys: 'O', action: 'Rotated box' },
+  { group: 'Tools', keys: 'K', action: 'Keypoints' },
+  { group: 'Tools', keys: 'R', action: 'Brush mask' },
+  { group: 'Editing', keys: 'E, [ and ]', action: 'Brush: switch to the eraser, change the size' },
+  { group: 'Editing', keys: 'V or Delete on a landmark', action: 'Hide it, or remove it' },
   { group: 'Classes', keys: '1 to 9', action: 'Choose a class, or relabel the selection' },
   { group: 'Classes', keys: 'C', action: 'Search classes' },
   { group: 'Classes', keys: 'M', action: 'Class manager' },
@@ -79,6 +87,12 @@ export function resolveShortcut(e: KeyPress): Action | null {
       return 'tool:box';
     case 'p':
       return 'tool:polygon';
+    case 'o':
+      return 'tool:obb';
+    case 'k':
+      return 'tool:keypoints';
+    case 'r':
+      return 'tool:brush';
     case 'c':
     case '/':
       return 'class-picker';

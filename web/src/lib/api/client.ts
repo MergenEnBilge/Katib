@@ -164,7 +164,8 @@ export const api = {
   projects: {
     list: (q?: string) => request<Project[]>('GET', `/projects${query({ q })}`),
     get: (id: string) => request<Project>('GET', `/projects/${id}`),
-    create: (name: string) => request<Project>('POST', '/projects', { name }),
+    create: (name: string, annotationTypes?: string[]) =>
+      request<Project>('POST', '/projects', { name, annotation_types: annotationTypes }),
     rename: (id: string, name: string) => request<Project>('PATCH', `/projects/${id}`, { name }),
     remove: (id: string) => request<void>('DELETE', `/projects/${id}`),
   },
@@ -173,7 +174,15 @@ export const api = {
     list: (projectId: string) => request<ProjectClass[]>('GET', `/projects/${projectId}/classes`),
     create: (projectId: string, name: string, color?: string) =>
       request<ProjectClass>('POST', `/projects/${projectId}/classes`, { name, color }),
-    update: (id: string, patch: { name?: string; color?: string; attr_schema?: AttrDef[] }) =>
+    update: (
+      id: string,
+      patch: {
+        name?: string;
+        color?: string;
+        attr_schema?: AttrDef[];
+        skeleton?: { names: string[]; edges: [number, number][] };
+      },
+    ) =>
       request<ProjectClass>('PATCH', `/classes/${id}`, patch),
     reorder: (projectId: string, ids: string[]) =>
       request<void>('POST', `/projects/${projectId}/classes:reorder`, { class_ids: ids }),
