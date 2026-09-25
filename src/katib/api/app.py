@@ -75,7 +75,9 @@ def create_app(settings: Settings) -> FastAPI:
         app.state.runner.shutdown()
         app.state.engine.dispose()
 
-    app = FastAPI(title="Katib", lifespan=lifespan)
+    # The built-in /docs pages load scripts from a public CDN, which Katib's security headers
+    # (and a machine with no internet) would block. /openapi.json is still served.
+    app = FastAPI(title="Katib", lifespan=lifespan, docs_url=None, redoc_url=None)
     app.state.settings = settings
     errors.install(app)
     security.install(app)
