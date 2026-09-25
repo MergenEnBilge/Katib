@@ -1,4 +1,5 @@
 <script lang="ts">
+  import TipCard from '../../lib/ui/TipCard.svelte';
   import { api, ApiError } from '../../lib/api/client';
   import type { Health } from '../../lib/api/types';
   import { plural } from '../../lib/format';
@@ -49,6 +50,7 @@
   width={620}
   {onclose}
 >
+  <TipCard id="dialog:health" />
   {#if error}
     <Callout tone="danger">
       {error}

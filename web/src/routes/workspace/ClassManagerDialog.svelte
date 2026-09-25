@@ -1,4 +1,5 @@
 <script lang="ts">
+  import TipCard from '../../lib/ui/TipCard.svelte';
   import { Plus, Trash, X } from '@lucide/svelte';
   import { untrack } from 'svelte';
   import { api, ApiError } from '../../lib/api/client';
@@ -188,6 +189,7 @@
   width={760}
   {onclose}
 >
+  <TipCard id="dialog:classes" />
   <div class="layout">
     <div class="left">
       <input type="search" placeholder="Search classes" aria-label="Search classes" bind:value={query} />

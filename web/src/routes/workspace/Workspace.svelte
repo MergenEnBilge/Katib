@@ -65,6 +65,8 @@
   import TeamDialog from './TeamDialog.svelte';
   import TextPanel from './TextPanel.svelte';
   import Tour from './Tour.svelte';
+  import TipCard from '../../lib/ui/TipCard.svelte';
+  import { tourSteps } from '../../lib/tour/steps';
 
   let { projectId }: { projectId: string } = $props();
 
@@ -95,6 +97,14 @@
   let panelOpen = $state(false);
   let zoom = $state(100);
   let touring = $state(false);
+  // A tool's tip waits until the person picks a tool themselves, so it never crowds the first screen.
+  let toolPicked = $state(false);
+  let firstTool = true;
+  $effect(() => {
+    void tool;
+    if (firstTool) firstTool = false;
+    else toolPicked = true;
+  });
 
   const allTools: { id: ToolName; type: string | null; label: string; key: string }[] = [
     { id: 'select', type: null, label: 'Select', key: 'V' },
@@ -306,7 +316,7 @@
       <button type="button" class="save {ws.saveState}" onclick={showSaveStatus} aria-label="Save status: {saveLabel}">
         <span class="pip"></span><span class="save-text">{saveLabel}</span>
       </button>
-      <span class="hide-narrow"><Button onclick={() => (dialog = 'import-images')}><Upload size={16} />Import</Button></span>
+      <span class="hide-narrow" data-tour="import"><Button onclick={() => (dialog = 'import-images')}><Upload size={16} />Import</Button></span>
       <span class="hide-narrow" data-tour="export"><Button onclick={() => (dialog = 'export')}><Download size={16} />Export</Button></span>
       {#if ws.canManage}
         <span class="hide-narrow" data-tour="split">
@@ -314,7 +324,7 @@
         </span>
       {/if}
       {#if shared}
-        <span class="hide-narrow">
+        <span class="hide-narrow" data-tour="team">
           <IconButton label="Team" onclick={() => (dialog = 'team')}><Users size={16} /></IconButton>
         </span>
       {/if}
@@ -371,6 +381,7 @@
 
       <main class="canvas" data-tour="canvas">
         <CanvasView {ws} {tool} onzoom={(p) => (zoom = p)} />
+        {#key tool}<TipCard id="tool:{tool}" floating hold={touring || !toolPicked || ws.readOnly} />{/key}
         {#if ws.currentId && ws.readOnly}
           <div class="banner" role="status">
             {#if !ws.canEdit}
@@ -440,6 +451,7 @@
         {/if}
 
         <div class="tab-body">
+          {#key tab}<TipCard id="panel:{tab}" hold={touring || tab === 'classes'} />{/key}
           {#if tab === 'classes'}
             <ClassesPanel {ws} onmanage={() => (dialog = 'classes')} />
           {:else if tab === 'review'}
@@ -493,7 +505,17 @@
 {/if}
 
 {#if touring && ws.project}
-  <Tour {ws} onclose={() => (touring = false)} />
+  <Tour
+    {ws}
+    steps={tourSteps('workspace', {
+      types: ws.types,
+      hasImages: (ws.project?.image_count ?? 0) > 0,
+      hasClasses: ws.classes.length > 0,
+      canManage: ws.canManage,
+      shared,
+    })}
+    onclose={() => (touring = false)}
+  />
 {/if}
 
 <Toast />

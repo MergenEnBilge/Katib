@@ -13,6 +13,8 @@
   import IconButton from './lib/ui/IconButton.svelte';
   import Splash from './lib/ui/Splash.svelte';
   import Toast from './lib/ui/Toast.svelte';
+  import { tourSteps, type TourName } from './lib/tour/steps';
+  import Tour from './routes/workspace/Tour.svelte';
   import AuthScreen from './routes/auth/AuthScreen.svelte';
   import InviteScreen from './routes/auth/InviteScreen.svelte';
   import Inbox from './routes/Inbox.svelte';
@@ -36,6 +38,14 @@
 
   let showWorkspaces = $state(false);
   let showHelp = $state(false);
+  let tourName = $state<TourName | null>(null);
+
+  function startTour(name: TourName): void {
+    showHelp = false;
+    if (name === 'settings') router.navigate('/settings');
+    else if (name === 'home') router.navigate('/');
+    tourName = name;
+  }
 
   const route = $derived(router.route);
 
@@ -93,16 +103,18 @@
         <a
           class="nav-item"
           href="/inbox"
+          data-tour="nav-inbox"
           aria-current={route.name === 'inbox' ? 'page' : undefined}
           onclick={(e) => go(e, '/inbox')}><InboxIcon size={16} />{t('nav.inbox')}</a
         >
         <a
           class="nav-item"
           href="/settings"
+          data-tour="nav-settings"
           aria-current={route.name === 'settings' ? 'page' : undefined}
           onclick={(e) => go(e, '/settings')}><SettingsIcon size={16} />{t('nav.settings')}</a
         >
-        <button type="button" class="nav-item" onclick={() => (showHelp = true)}
+        <button type="button" class="nav-item" data-tour="nav-help" onclick={() => (showHelp = true)}
           ><CircleHelp size={16} />{t('nav.help')}</button
         >
       </nav>
@@ -159,6 +171,16 @@
     <HelpDialog
       onclose={() => (showHelp = false)}
       onsample={() => ((showHelp = false), startPractice())}
+      tours={[
+        { label: 'Tour of the home screen', note: 'Projects, search, settings and help.', run: () => startTour('home') },
+        { label: 'Tour of Settings', note: 'What each section does and how saving works.', run: () => startTour('settings') },
+      ]}
+    />
+  {/if}
+  {#if tourName}
+    <Tour
+      steps={tourSteps(tourName, { types: [], hasImages: true, hasClasses: true, canManage: true, shared: session.mode === 'local' })}
+      onclose={() => (tourName = null)}
     />
   {/if}
   <Toast />
