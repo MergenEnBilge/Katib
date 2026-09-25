@@ -53,6 +53,10 @@ export class Renderer {
     this.bitmap = bitmap;
   }
 
+  get currentBitmap(): CanvasImageSource | null {
+    return this.bitmap;
+  }
+
   resize(width: number, height: number, dpr: number): void {
     this.width = width;
     this.height = height;
