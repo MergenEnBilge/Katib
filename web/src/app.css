@@ -43,3 +43,8 @@ p {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
+
+/* Arrows and panel icons that point a direction turn around in right-to-left languages. */
+[dir='rtl'] .mirror {
+  transform: scaleX(-1);
+}

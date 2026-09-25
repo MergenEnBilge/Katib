@@ -2,7 +2,8 @@
   import { Layers, Plus, Search } from '@lucide/svelte';
   import { api, ApiError } from '../lib/api/client';
   import type { Project } from '../lib/api/types';
-  import { plural, relativeTime } from '../lib/format';
+  import { relativeTime } from '../lib/format';
+  import { t, tp } from '../lib/i18n/index.svelte';
   import { router } from '../lib/state/router.svelte';
   import Button from '../lib/ui/Button.svelte';
   import Callout from '../lib/ui/Callout.svelte';
@@ -21,7 +22,7 @@
       projects = await api.projects.list(search.trim() || undefined);
       loaded = true;
     } catch (err) {
-      error = err instanceof ApiError ? err.message : 'Could not load projects.';
+      error = err instanceof ApiError ? err.message : t('projects.loadFailed');
     }
   }
 
@@ -52,14 +53,14 @@
 </script>
 
 <header class="page-header">
-  <h1>Projects</h1>
+  <h1>{t('projects.title')}</h1>
   <div class="actions">
     <label class="search">
       <Search size={16} aria-hidden="true" />
-      <input type="search" placeholder="Search projects" aria-label="Search projects" bind:value={search} />
+      <input type="search" placeholder={t('projects.search')} aria-label={t('projects.search')} bind:value={search} />
     </label>
     <Button variant="primary" onclick={() => (creating = true)}>
-      <Plus size={16} />New project
+      <Plus size={16} />{t('projects.new')}
     </Button>
   </div>
 </header>
@@ -67,7 +68,7 @@
 {#if error}
   <Callout tone="danger">
     {error}
-    {#snippet action()}<Button onclick={load}>Try again</Button>{/snippet}
+    {#snippet action()}<Button onclick={load}>{t('tryAgain')}</Button>{/snippet}
   </Callout>
 {:else if projects === null}
   <div class="grid" aria-busy="true">
@@ -75,16 +76,16 @@
   </div>
 {:else if projects.length === 0 && !search.trim()}
   <EmptyState
-    title="No projects yet"
-    description="A project holds a set of images, its classes and every annotation."
+    title={t('projects.empty.title')}
+    description={t('projects.empty.body')}
   >
     {#snippet icon()}<Layers size={20} />{/snippet}
     {#snippet action()}
-      <Button variant="primary" onclick={() => (creating = true)}><Plus size={16} />New project</Button>
+      <Button variant="primary" onclick={() => (creating = true)}><Plus size={16} />{t('projects.new')}</Button>
     {/snippet}
   </EmptyState>
 {:else if projects.length === 0}
-  <p class="none">No project matches “{search.trim()}”.</p>
+  <p class="none">{t('projects.noMatch', { query: search.trim() })}</p>
 {:else}
   <div class="grid">
     {#each projects as project (project.id)}
@@ -92,11 +93,11 @@
         <div class="cover"></div>
         <div class="info">
           <h2 title={project.name}>{project.name}</h2>
-          <p class="meta">{plural(project.image_count, 'image')}</p>
+          <p class="meta">{tp('projects.images', project.image_count)}</p>
           <div
             class="bar"
             role="progressbar"
-            aria-label="Images done"
+            aria-label={t('projects.doneLabel')}
             aria-valuemin="0"
             aria-valuemax={project.image_count}
             aria-valuenow={project.done_count}
@@ -108,8 +109,8 @@
             ></span>
           </div>
           <p class="foot">
-            <span class="mono">{project.done_count.toLocaleString()} of {project.image_count.toLocaleString()} done</span>
-            <span>Edited {relativeTime(project.last_edited ?? project.created_at)}</span>
+            <span class="mono">{t('projects.done', { done: project.done_count.toLocaleString(), total: project.image_count.toLocaleString() })}</span>
+            <span>{t('projects.edited', { when: relativeTime(project.last_edited ?? project.created_at) })}</span>
           </p>
         </div>
       </a>
