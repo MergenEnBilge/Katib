@@ -8,16 +8,32 @@ Most annotation tools are either a quick desktop app that falls apart once a sec
 
 ## What you can do with it
 
-- **Draw fast.** Boxes, polygons, rotated boxes, keypoints, brush masks and whole-image tags on a smooth canvas. Number keys pick classes, arrow keys nudge shapes, and every edit saves on its own. Undo and redo work as you expect.
+- **Draw fast.** Boxes, polygons, rotated boxes, keypoints, brush masks, whole-image tags and text on a smooth canvas. Number keys pick classes, arrow keys nudge shapes, and every edit saves on its own. Undo and redo work as you expect.
 - **Fix mistakes in bulk.** Rename a class and every shape follows. Merge two classes, delete one with all its shapes, or relabel a selection from the class gallery. Every bulk change shows what it will touch first, and you can undo it for 30 days, even after closing the browser.
 - **Spot problems before you train.** The health panel finds tiny stray shapes, duplicates, near-identical photos, and classes with far fewer examples than the rest.
 - **Bring your data, take it with you.** Import and export YOLO (detection, segmentation and rotated boxes), COCO (including keypoints), Pascal VOC and LabelMe, with train, validation and test splits. Importing the same file twice never doubles your labels.
+- **Keep your splits.** Katib reads the train, validation and test split your dataset already has, keeps it on each image, and lets you reshuffle or set your own ratios for each kind of dataset. Exports use it.
+- **Write about pictures.** Add captions to whole images and write the text found inside a shape, then export it as JSON Lines that loads straight into Hugging Face.
+- **Learn as you go.** A practice project with a guided tour and a checklist gets a new person drawing in two minutes.
 - **Work together.** Invite people with a link and give them a role: owner, manager, annotator, reviewer or viewer. Katib hands each annotator the next image, shows who else is on the project, and keeps two people from editing the same image at once. Reviewers can approve images or send them back with a comment.
+- **Change everything in the app.** Every setting has a page in Settings with a plain explanation, and a backup is one button.
 - **Use any device.** The interface adapts from a wide desktop screen to a phone. Install it on a phone and it keeps working when the signal drops.
 
-## Get started in five minutes
+## Get started
 
-You need Python 3.12 or newer and Node 20 or newer. Install the two helper tools once:
+Pick whichever is easiest for you.
+
+**Install it.** Download the installer for your system from the [releases page](https://github.com/MergenEnBilge/Katib/releases): a setup program for Windows, a disk image for macOS, or a `.deb` package and archive for Linux. Open Katib and it runs in its own window.
+
+**Run it with Docker.** If you have Docker, this is the whole install:
+
+```bash
+docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:latest
+```
+
+Open <http://localhost:8420>. On a Linux server, `curl -fsSL https://raw.githubusercontent.com/MergenEnBilge/Katib/main/install.sh | sh` does the same and prints the address for you. The [guide to putting Katib online](docs/deploy.md) has step-by-step help for Docker Desktop, servers and Raspberry Pi.
+
+**Run it from the source.** You need Python 3.12 or newer and Node 20 or newer. Install the two helper tools once:
 
 ```bash
 pip install uv
@@ -33,9 +49,11 @@ pnpm --dir web build
 uv run katib
 ```
 
-If your terminal says `uv` is not recognized, `pip` put it in a folder that is not on your PATH. Put `python -m` in front of it instead, for example `python -m uv sync` and `python -m uv run katib`.
+If your terminal says `uv` is not recognized, `pip` put it in a folder that is not on your PATH. Put `python -m` in front of it instead, for example `python -m uv run katib`. If you are inside an activated virtual environment (your prompt starts with the environment name), `uv` is not installed in it, so run the `katib` command directly instead.
 
 Your browser opens on Katib. Nothing else is needed: the data lives in a small local database in your user folder.
+
+New to labeling? On the home page choose **Try it with practice pictures**. It makes a small project and walks you through it.
 
 ### Your first project
 
@@ -96,9 +114,9 @@ allowed_import_roots = ["/data/photos"]
 
 ### Installers
 
-Each tagged version (for example `v0.1.0`) is built for Windows (`Katib-<version>-windows-setup.exe`), macOS (`Katib-macos.dmg`) and Linux (`Katib-linux.tar.gz`) and attached to its GitHub release. Install, open Katib, and it runs in its own window with its data in your user folder. The installers are not code-signed yet, so Windows and macOS may warn the first time you open one.
+Each tagged version (for example `v0.1.0`) is built for Windows (`Katib-<version>-windows-setup.exe`), macOS (`Katib-macos.dmg`) and Linux (`katib_<version>_<arch>.deb` and `Katib-linux.tar.gz`), and a Docker image is published for Intel and ARM machines. They are attached to the GitHub release. Install, open Katib, and it runs in its own window with its data in your user folder. The installers are not code-signed yet, so Windows and macOS may warn the first time you open one. On macOS, right-click the app and choose Open.
 
-On Linux the window needs WebKitGTK (`gir1.2-webkit2-4.1` on Debian and Ubuntu).
+The `.deb` needs WebKitGTK (`gir1.2-webkit2-4.1`), which the package asks apt to install.
 
 ### Katib in its own window
 
@@ -191,18 +209,9 @@ Once installed, Katib opens without a connection and keeps the images you have l
 
 ## Settings
 
-Katib runs without any settings. To change something, create `katib.toml` in the folder you start Katib from, or set an environment variable such as `KATIB_SERVER__PORT=9000`.
+Katib runs without any settings. Everything you might want to change is in **Settings** in the sidebar, each with a short explanation: who can use Katib, the port, where data lives, the folders Katib may read, limits, and model help. A setting either applies at once or tells you it needs a restart, and a **Restart Katib now** button does it for you. **Settings**, then **Backup**, makes a zip of your projects and uploads. Restore it with `katib restore your-backup.zip`.
 
-| Setting | Default | What it does |
-|---------|---------|--------------|
-| `server.host` | `127.0.0.1` | Address to listen on |
-| `server.port` | `8420` | Port to listen on |
-| `auth.mode` | `none` | `none` for one person on one computer, `local` for accounts |
-| `database.url` | SQLite in your data folder | Where projects are stored |
-| `storage.data_dir` | Your user data folder | Where Katib keeps its database, thumbnails and uploads |
-| `storage.allowed_import_roots` | none | Folders that everyone on a shared server may import from |
-| `limits.max_upload_mb` | `50` | Largest file the browser may upload |
-| `limits.operation_retention_days` | `30` | How long bulk changes stay undoable |
+If you prefer files, create `katib.toml` in the folder you start Katib from, or set an environment variable such as `KATIB_SERVER__PORT=9000`. Environment variables win, then settings saved in the app, then the file. See [Running a server](docs/server.md#settings) for the full list.
 
 ## Your data and your privacy
 
@@ -249,7 +258,9 @@ After changing an API route, refresh the TypeScript types with `pnpm --dir web g
 
 ## Status
 
-Katib is under active development and has not had a stable release yet. Everything described above works today: labeling with six kinds of shapes, class tools, dataset health, four dataset formats, teams with accounts, roles and review, sharing on a network, Docker with HTTPS, installing on a phone with offline edits, a desktop window, model pre-labeling and a Python client.
+Katib is under active development and has not had a stable release yet. Everything described above works today: labeling with six kinds of shapes and text, splits, class tools, dataset health, five dataset formats, teams with accounts, roles and review, sharing on a network, Docker with HTTPS, installing on a phone with offline edits, a desktop window, model pre-labeling, in-app settings and backups, and a Python client.
+
+The Windows app has been run on Windows. The macOS and Linux installers and the published Docker image are built by the release workflow and have not yet been run on those systems.
 
 Not available yet:
 
