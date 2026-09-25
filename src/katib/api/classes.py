@@ -27,8 +27,8 @@ def _out(c: ClassWithCount) -> ClassOut:
     )
 
 
-def _one(session: Session, project_id: uuid.UUID, class_id: uuid.UUID) -> ClassOut:
-    return next(_out(c) for c in classes.list_classes(session, project_id) if c.cls.id == class_id)
+def _one(session: Session, class_id: uuid.UUID) -> ClassOut:
+    return _out(classes.get_with_count(session, class_id))
 
 
 @router.get("/projects/{project_id}/classes", response_model=list[ClassOut])
@@ -46,7 +46,7 @@ def create_class(
     projects.get_project(session, project_id)
     cls = classes.create_class(session, project_id, body.name, body.color)
     emit(session.info, project_id, {"type": "class.changed"})
-    return _one(session, project_id, cls.id)
+    return _one(session, cls.id)
 
 
 @router.patch("/classes/{class_id}", response_model=ClassOut)
@@ -66,7 +66,7 @@ def update_class(
     if body.skeleton is not None:
         classes.set_skeleton(session, class_id, body.skeleton.names, body.skeleton.edges)
     emit(session.info, cls.project_id, {"type": "class.changed"})
-    return _one(session, cls.project_id, class_id)
+    return _one(session, class_id)
 
 
 @router.post("/projects/{project_id}/classes:reorder", status_code=204)
