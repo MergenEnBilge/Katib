@@ -14,6 +14,9 @@ This page explains what Katib protects, what it leaves to you, and what was chec
 - **Uploads and pictures.** Files are limited in size and in pixel count (a defense against decompression bombs). Katib opens only the picture formats it supports, by their content, so a file's name cannot change how it is decoded. Uploaded files are stored under generated names, never a name you typed.
 - **Datasets you import.** XML is parsed with a library that refuses entity expansion attacks. Import paths must sit inside allowed folders.
 - **Pages** are served with a strict Content-Security-Policy, `X-Frame-Options: DENY` and `nosniff`. The interface never inserts untrusted text as HTML.
+- **First account.** Whoever creates the first administrator account owns the server. When that happens from outside your own network, or through a proxy Katib was not told to trust, Katib asks for a setup code that only someone with access to the server's log or data folder can read. Guessing it is rate limited.
+- **Settings, backups and restarts** can only be used by administrators. Passwords inside a database address are never shown again after they are saved, and the files that hold them are readable only by the account that runs Katib. Backups made in the app are deleted from the server after a day.
+- **Browser features** Katib does not use, such as the camera and location, are switched off for its pages. HTTPS visits get a `Strict-Transport-Security` header.
 - **No telemetry.** Katib makes no network requests on its own.
 
 ## What is up to you
@@ -37,9 +40,22 @@ Before the first release the code was reviewed against the list above. That revi
 | The model status page showed the server's folder path to every signed-in person | Only administrators see it |
 | The built-in API documentation page loaded scripts from a public CDN, which the security headers blocked | The page is turned off. `/openapi.json` is still served |
 
+A second review covered the settings page, backups, restore, the setup code, the practice project and the Android app. It found and fixed:
+
+| Finding | Fix |
+|---------|-----|
+| A proxy in front of Katib that was not marked as trusted made every visitor look like a private address, which would have skipped the setup code | Requests that carry proxy headers need the code unless `server.behind_proxy` is on |
+| Files holding a database password or the setup code used the default file permissions | They are readable only by the owner where the system supports it |
+| Backup zips, which contain every password hash, stayed on the server | They are deleted after 24 hours |
+| Pages could ask the browser for the camera, microphone or location | A Permissions-Policy header switches them off |
+
 Dependencies are checked with `pnpm audit` and `pip-audit`, and neither reports known vulnerabilities in what ships.
 
 ## Known limits
+
+- The database connection test in Settings connects to whatever address an administrator types, like any tool that can talk to a database. Only administrators can use it.
+- The Android app allows plain HTTP addresses, because home servers usually have no certificate. It warns before connecting to one that is not on a private network.
+- Compressed API replies are a known trade-off on encrypted connections. Katib's replies do not mix secret values with text an attacker can choose, which is what such attacks need.
 
 - Login attempts are counted in memory, so a restart resets them, and separate server processes do not share them.
 - Locks and presence are advisory. They prevent almost all edit conflicts, and version checks catch the rest.
