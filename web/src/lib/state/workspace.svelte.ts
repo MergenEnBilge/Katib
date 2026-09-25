@@ -13,6 +13,7 @@ import type { ClassStyle, Shape } from '../canvas/types';
 import { isBox } from '../canvas/types';
 import type { Engine } from '../canvas/engine';
 import { Autosave, shapeFromAnnotation, type SaveState } from '../sync/autosave';
+import { browserOutbox } from '../sync/outbox';
 import { isoIn, Realtime, type PresenceUser, type ServerEvent } from '../sync/realtime';
 import { session } from './session.svelte';
 import { announceOperation, revert } from './operations';
@@ -371,6 +372,7 @@ export class Workspace {
               : `${n} shapes were changed by someone else. They now show their versions.`,
           ),
         onRejected: (message) => toasts.show(message),
+        outbox: browserOutbox,
       }, annotations);
       this.saveState = 'saved';
       this.pending = 0;

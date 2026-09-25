@@ -2,6 +2,7 @@ import type { Change } from '../canvas/model';
 import type { AnnotationModel } from '../canvas/model';
 import type { Shape } from '../canvas/types';
 import type { Annotation, BatchOp, OpResult } from '../api/types';
+import type { Outbox } from './outbox';
 
 export type SaveState = 'saved' | 'saving' | 'error';
 
@@ -16,6 +17,8 @@ export interface AutosaveOptions {
   /** Some edits were rejected and the shapes were reset to the server's version. */
   onConflict(count: number): void;
   onRejected(message: string): void;
+  /** Where to keep edits that could not be sent, so they survive a reload. */
+  outbox?: Pick<Outbox, 'put' | 'remove'>;
   /** Timers are injectable so tests do not wait. */
   schedule?: (fn: () => void, ms: number) => ReturnType<typeof setTimeout>;
 }
@@ -53,6 +56,8 @@ export class Autosave {
   private timer: ReturnType<typeof setTimeout> | undefined;
   private inFlight: Promise<void> | null = null;
   private failures = 0;
+  /** True while the outbox holds an entry for this image. */
+  private stored = false;
   private stopListening: () => void;
   private state: SaveState = 'saved';
 
@@ -94,8 +99,15 @@ export class Autosave {
         }
       }
     }
+    // While offline, keep the outbox current so a closed tab does not lose the latest edits.
+    if (this.failures > 0) this.store(this.buildOps().ops);
     this.setState('saving');
     this.arm(this.opts.debounceMs ?? 400);
+  }
+
+  private store(ops: BatchOp[]): void {
+    this.stored = true;
+    void this.opts.outbox?.put(this.imageId, ops);
   }
 
   private arm(ms: number): void {
@@ -167,12 +179,17 @@ export class Autosave {
       }
     } catch {
       this.failures++;
+      this.store(ops);
       this.setState('error');
       const wait = BACKOFF_MS[Math.min(this.failures - 1, BACKOFF_MS.length - 1)] as number;
       this.arm(wait);
       return;
     }
     this.failures = 0;
+    if (this.stored) {
+      this.stored = false;
+      void this.opts.outbox?.remove(this.imageId);
+    }
     for (const [id, rev] of sent) {
       if (this.revs.get(id) === rev) this.touched.delete(id);
     }
