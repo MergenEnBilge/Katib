@@ -8,10 +8,10 @@ Most annotation tools are either a quick desktop app that falls apart once a sec
 
 ## What you can do with it
 
-- **Draw fast.** Boxes and polygons on a smooth canvas. Number keys pick classes, arrow keys nudge shapes, and every edit saves on its own. Undo and redo work as you expect.
+- **Draw fast.** Boxes, polygons, rotated boxes, keypoints, brush masks and whole-image tags on a smooth canvas. Number keys pick classes, arrow keys nudge shapes, and every edit saves on its own. Undo and redo work as you expect.
 - **Fix mistakes in bulk.** Rename a class and every shape follows. Merge two classes, delete one with all its shapes, or relabel a selection from the class gallery. Every bulk change shows what it will touch first, and you can undo it for 30 days, even after closing the browser.
 - **Spot problems before you train.** The health panel finds tiny stray shapes, duplicates, near-identical photos, and classes with far fewer examples than the rest.
-- **Bring your data, take it with you.** Import and export YOLO and COCO, including train, validation and test splits. Importing the same file twice never doubles your labels.
+- **Bring your data, take it with you.** Import and export YOLO (detection, segmentation and rotated boxes), COCO (including keypoints), Pascal VOC and LabelMe, with train, validation and test splits. Importing the same file twice never doubles your labels.
 - **Work together.** Invite people with a link and give them a role: owner, manager, annotator, reviewer or viewer. Katib hands each annotator the next image, shows who else is on the project, and keeps two people from editing the same image at once. Reviewers can approve images or send them back with a comment.
 - **Use any device.** The interface adapts from a wide desktop screen to a phone. Install it on a phone and it keeps working when the signal drops.
 
@@ -45,6 +45,21 @@ Your browser opens on Katib. Nothing else is needed: the data lives in a small l
 6. When you are ready, choose **Export**, pick a format, and download a zip file.
 
 Press **?** at any time to see every shortcut.
+
+### Choosing what to draw
+
+When you create a project, pick the kinds of shapes it will use. You can only save the kinds you pick, and only those tools appear in the toolbar.
+
+| Kind | Tool | How |
+|------|------|-----|
+| Boxes | **B** | Drag a rectangle. |
+| Polygons | **P** | Click around an outline, then press Enter. |
+| Rotated boxes | **O** | Drag along one edge, then move out to the other side and click. Drag the round handle to turn it. |
+| Keypoints | **K** | Click each landmark in order. Shift+click marks one as hidden, N skips one, Enter finishes early. |
+| Brush masks | **R** | Paint. E switches to the eraser, and [ and ] change the brush size. |
+| Image tags | | Switch a class on under "Tags on this image". |
+
+Keypoints need landmarks. Open **Manage classes**, choose a class, and write its landmarks one per line, for example `nose`, `left eye`, `right eye`. To draw lines between them, write pairs of numbers such as `1-2, 1-3`.
 
 ### Using a folder of images
 
