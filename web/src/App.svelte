@@ -14,10 +14,13 @@
   import Gallery from './routes/gallery/Gallery.svelte';
   import Inbox from './routes/Inbox.svelte';
   import Projects from './routes/Projects.svelte';
+  import WorkspacesDialog from './routes/WorkspacesDialog.svelte';
   import Workspace from './routes/workspace/Workspace.svelte';
 
   $effect(applyTheme);
   onMount(() => void session.load());
+
+  let showWorkspaces = $state(false);
 
   const route = $derived(router.route);
 
@@ -74,9 +77,14 @@
       </nav>
 
       <div class="sidebar-footer">
-        <span class="workspace" title={session.user?.email}>
+        <button
+          type="button"
+          class="workspace"
+          title="Share this computer or switch to another server"
+          onclick={() => (showWorkspaces = true)}
+        >
           {session.mode === 'local' ? (session.user?.name ?? 'Signed in') : 'Local workspace'}
-        </span>
+        </button>
         <span class="tools">
           {#if session.mode === 'local'}
             <IconButton label="Sign out" onclick={() => session.signOut()}><LogOut size={16} /></IconButton>
@@ -109,6 +117,7 @@
       {/if}
     </main>
   </div>
+  {#if showWorkspaces}<WorkspacesDialog onclose={() => (showWorkspaces = false)} />{/if}
   <Toast />
 {/if}
 
@@ -183,6 +192,11 @@
   }
 
   .workspace {
+    padding: 0;
+    text-align: start;
+    background: none;
+    border: 0;
+    cursor: pointer;
     overflow: hidden;
     font-size: var(--text-small);
     color: var(--text-2);

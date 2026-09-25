@@ -928,6 +928,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/share": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Share
+         * @description Where to reach this server from a phone or another computer.
+         */
+        get: operations["share_api_v1_share_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/share/qr.svg": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Qr */
+        get: operations["qr_api_v1_share_qr_svg_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1657,6 +1694,17 @@ export interface components {
             items: components["schemas"]["ShapeOut"][];
             /** Next */
             next: string | null;
+        };
+        /** ShareOut */
+        ShareOut: {
+            /** Reachable */
+            reachable: boolean;
+            /** Accounts */
+            accounts: boolean;
+            /** Urls */
+            urls: string[];
+            /** Secure */
+            secure: boolean;
         };
         /** SplitIn */
         SplitIn: {
@@ -3749,6 +3797,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    share_api_v1_share_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareOut"];
+                };
+            };
+        };
+    };
+    qr_api_v1_share_qr_svg_get: {
+        parameters: {
+            query: {
+                text: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
