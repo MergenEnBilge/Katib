@@ -16,6 +16,7 @@ class View:
 
     def __init__(self, data: ParsedDataset, size: tuple[int, int] = (200, 100)) -> None:
         self.class_names = data.class_names
+        self.skeletons = data.skeletons
         self._data = data
         self._size = size
 

@@ -4,7 +4,7 @@ Formats read and write these and never see the database (ARCHITECTURE.md section
 Geometry is normalized, class references are names, and image references are filenames.
 """
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
@@ -13,8 +13,16 @@ from typing import Any, Protocol
 @dataclass(frozen=True)
 class Shape:
     class_name: str
-    type: str  # "box" or "polygon"
+    type: str  # "box", "polygon", "obb" or "keypoints"
     geometry: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class SkeletonSpec:
+    """Landmark names in order, and pairs of positions joined by a line."""
+
+    names: list[str]
+    edges: list[tuple[int, int]]
 
 
 @dataclass
@@ -40,6 +48,7 @@ class ParsedDataset:
     class_names: list[str]
     images: list[ImageLabels]
     notes: list[Note] = field(default_factory=list[Note])
+    skeletons: dict[str, SkeletonSpec] = field(default_factory=dict[str, SkeletonSpec])
 
 
 @dataclass(frozen=True)
@@ -57,6 +66,9 @@ class DatasetView(Protocol):
 
     @property
     def class_names(self) -> list[str]: ...
+
+    @property
+    def skeletons(self) -> dict[str, SkeletonSpec]: ...
 
     def images(self) -> Iterable[ExportImage]: ...
 
@@ -88,6 +100,9 @@ class Format(Protocol):
 
     def detect(self, path: Path) -> bool: ...
 
-    def read(self, path: Path) -> ParsedDataset: ...
+    def read(self, path: Path, sizes: Mapping[str, tuple[int, int]] | None = None) -> ParsedDataset:
+        """Read a dataset. `sizes` maps lowercase file stems to image pixels, for formats whose
+        files do not say how big the picture is."""
+        ...
 
     def write(self, view: DatasetView, dest: Path, opts: ExportOptions) -> ExportReport: ...

@@ -12,7 +12,14 @@ from pathlib import Path
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from katib.core.dataset import ExportImage, ExportOptions, ExportReport, Note, Shape
+from katib.core.dataset import (
+    ExportImage,
+    ExportOptions,
+    ExportReport,
+    Note,
+    Shape,
+    SkeletonSpec,
+)
 from katib.core.split import SplitError, SplitItem, assign_splits
 from katib.core.types import GeometryError, validate_geometry
 from katib.db.ids import new_id
@@ -45,9 +52,15 @@ def import_dataset(
     (YOLO). Images that already have shapes are left alone so importing twice cannot duplicate
     them. Class names resolve through names and aliases, and unknown names become new classes.
     """
+    sizes = {
+        Path(name).stem.lower(): (width, height)
+        for name, width, height in session.execute(
+            select(Image.filename, Image.width, Image.height).where(Image.project_id == project_id)
+        )
+    }
     try:
         fmt = get_format(format_id) if format_id else detect_format(path)
-        parsed = fmt.read(path)
+        parsed = fmt.read(path, sizes)
     except FormatError as err:
         raise InvalidInput(str(err)) from err
 
@@ -59,6 +72,9 @@ def import_dataset(
             cls = classes.create_class(session, project_id, name)
             summary.classes_created.append(cls.name)
         class_ids[name] = cls.id
+        spec = parsed.skeletons.get(name)
+        if spec is not None and cls.skeleton is None:
+            classes.set_skeleton(session, cls.id, spec.names, spec.edges)
 
     by_name: dict[str, Image] = {}
     by_stem: dict[str, list[Image]] = {}
@@ -135,6 +151,15 @@ class ProjectView:
         ).all()
         self._names = {cid: name for cid, name in rows}
         self.class_names = list(self._names.values())
+        self.skeletons: dict[str, SkeletonSpec] = {}
+        for name, skeleton in session.execute(
+            select(Class.name, Class.skeleton).where(
+                Class.project_id == project_id, Class.skeleton.is_not(None)
+            )
+        ):
+            if skeleton:
+                edges = [(int(a), int(b)) for a, b in skeleton["edges"]]
+                self.skeletons[name] = SkeletonSpec(list(skeleton["names"]), edges)
 
     def images(self) -> Iterator[ExportImage]:
         stmt = select(Image).where(Image.project_id == self._project_id)
