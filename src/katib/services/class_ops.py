@@ -132,6 +132,19 @@ def _close_gap(session: Session, project_id: uuid.UUID, position: int) -> None:
     )
 
 
+def record(
+    session: Session,
+    storage: LocalStorage,
+    project_id: uuid.UUID,
+    user_id: uuid.UUID | None,
+    kind: str,
+    summary: str,
+    inverse: dict[str, Any],
+) -> Operation:
+    """Write an operation to the log with the data needed to undo it."""
+    return _log(session, storage, project_id, user_id, kind, summary, inverse)
+
+
 def _log(
     session: Session,
     storage: LocalStorage,
@@ -456,6 +469,8 @@ def revert(session: Session, storage: LocalStorage, operation_id: uuid.UUID) -> 
     elif op.kind == "bulk_delete":
         restored, skipped = _restore_annotations(session, data["annotations"])
         result = RevertResult(restored, skipped)
+    elif op.kind == "prelabel":
+        result = _revert_prelabel(session, op, data)
     else:
         raise NotRevertible("This kind of operation cannot be undone.")
 
@@ -505,6 +520,21 @@ def _revert_merge(session: Session, op: Operation, data: dict[str, Any]) -> Reve
             .values(attrs=attrs)
         )
     return RevertResult(restored, len(moved) - restored)
+
+
+def _revert_prelabel(session: Session, op: Operation, data: dict[str, Any]) -> RevertResult:
+    """Remove the shapes a model added, except ones someone has edited since."""
+    ids = [uuid.UUID(i) for i in data["annotation_ids"]]
+    removed = 0
+    for start in range(0, len(ids), INSERT_CHUNK):
+        result = session.execute(
+            delete(Annotation).where(
+                Annotation.id.in_(ids[start : start + INSERT_CHUNK]),
+                Annotation.updated_at <= op.created_at,
+            )
+        )
+        removed += _rows(result)
+    return RevertResult(removed, len(ids) - removed)
 
 
 def _revert_reclass(session: Session, op: Operation, data: dict[str, Any]) -> RevertResult:
