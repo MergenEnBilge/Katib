@@ -75,3 +75,19 @@ def test_palette_generates_distinct_colors_past_ten() -> None:
     for _ in range(15):
         used.append(next_color(used))
     assert len(set(c.lower() for c in used)) == 25
+
+
+def test_skeleton_names_and_lines_are_checked(session: Session) -> None:
+    pid = projects.create_project(session, "Poses").id
+    cls = classes.create_class(session, pid, "person")
+
+    classes.set_skeleton(session, cls.id, [" nose ", "left eye", "right eye"], [(0, 1), (0, 2)])
+    assert cls.skeleton == {"names": ["nose", "left eye", "right eye"], "edges": [[0, 1], [0, 2]]}
+
+    with pytest.raises(InvalidInput, match="own name"):
+        classes.set_skeleton(session, cls.id, ["nose", "Nose"], [])
+    with pytest.raises(InvalidInput, match="two different landmarks"):
+        classes.set_skeleton(session, cls.id, ["nose", "eye"], [(0, 5)])
+
+    classes.set_skeleton(session, cls.id, [], [])
+    assert cls.skeleton is None

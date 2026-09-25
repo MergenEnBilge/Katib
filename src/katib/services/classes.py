@@ -145,6 +145,24 @@ def set_attr_schema(session: Session, class_id: uuid.UUID, schema: list[dict[str
     return cls
 
 
+def set_skeleton(
+    session: Session, class_id: uuid.UUID, names: list[str], edges: list[tuple[int, int]]
+) -> Class:
+    """Set the landmarks for a class. An empty list of names removes the skeleton."""
+    cls = get_class(session, class_id)
+    cleaned = [n.strip() for n in names]
+    if not cleaned:
+        cls.skeleton = None
+    else:
+        if any(not n for n in cleaned) or len({n.lower() for n in cleaned}) != len(cleaned):
+            raise InvalidInput("Each landmark needs its own name.")
+        if any(a == b or not (0 <= a < len(cleaned) and 0 <= b < len(cleaned)) for a, b in edges):
+            raise InvalidInput("Every line has to join two different landmarks.")
+        cls.skeleton = {"names": cleaned, "edges": [[a, b] for a, b in edges]}
+    session.flush()
+    return cls
+
+
 def resolve_class(session: Session, project_id: uuid.UUID, name: str) -> Class | None:
     """Find a class by current name or alias, ignoring case. Used by imports."""
     lowered = name.strip().lower()

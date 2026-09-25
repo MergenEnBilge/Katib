@@ -178,7 +178,7 @@ def test_mark_done(api: TestClient, library: Path) -> None:
 
 def test_formats_are_listed(api: TestClient) -> None:
     ids = {f["id"] for f in api.get(f"{API}/formats").json()}
-    assert ids == {"yolo-detect", "coco"}
+    assert ids == {"yolo-detect", "yolo-segment", "yolo-obb", "coco", "voc", "labelme"}
 
 
 def test_yolo_import_then_coco_export(api: TestClient, library: Path, tmp_path: Path) -> None:

@@ -28,6 +28,9 @@
   let busy = $state(false);
   let attrs = $state<AttrDef[]>([]);
   let attrError = $state('');
+  let landmarks = $state('');
+  let joins = $state('');
+  let skeletonError = $state('');
 
   const filtered = $derived(
     ws.classes.filter((c) => c.name.toLowerCase().includes(query.trim().toLowerCase())),
@@ -42,6 +45,9 @@
     untrack(() => {
       draft = selected?.name ?? '';
       attrs = structuredClone($state.snapshot(selected?.attr_schema ?? [])) as AttrDef[];
+      landmarks = (selected?.skeleton?.names ?? []).join('\n');
+      joins = (selected?.skeleton?.edges ?? []).map(([a, b]) => `${a + 1}-${b + 1}`).join(', ');
+      skeletonError = '';
       error = '';
       attrError = '';
       mode = 'edit';
@@ -108,6 +114,37 @@
       await ws.refreshClasses();
     } catch (err) {
       attrError = err instanceof ApiError ? err.message : 'Could not save the attributes.';
+    }
+  }
+
+  /** Read "1-2, 2-3" into pairs of landmark positions, counting from zero. */
+  function parseJoins(text: string, count: number): [number, number][] | null {
+    const pairs: [number, number][] = [];
+    for (const part of text.split(',').map((p) => p.trim()).filter(Boolean)) {
+      const match = /^(\d+)\s*-\s*(\d+)$/.exec(part);
+      if (!match) return null;
+      const a = Number(match[1]) - 1;
+      const b = Number(match[2]) - 1;
+      if (a === b || a < 0 || b < 0 || a >= count || b >= count) return null;
+      pairs.push([a, b]);
+    }
+    return pairs;
+  }
+
+  async function saveSkeleton(): Promise<void> {
+    if (!selected) return;
+    skeletonError = '';
+    const names = landmarks.split('\n').map((n) => n.trim()).filter(Boolean);
+    const edges = parseJoins(joins, names.length);
+    if (edges === null) {
+      skeletonError = 'Write lines as pairs of landmark numbers, for example 1-2, 2-3.';
+      return;
+    }
+    try {
+      await api.classes.update(selected.id, { skeleton: { names, edges } });
+      await ws.refreshClasses();
+    } catch (err) {
+      skeletonError = err instanceof ApiError ? err.message : 'Could not save the landmarks.';
     }
   }
 
@@ -240,6 +277,25 @@
         </div>
         {#if attrError}<p class="error" role="alert">{attrError}</p>{/if}
         <p class="note">Removing an attribute keeps the values already stored. They reappear if you add it back.</p>
+
+        {#if ws.types.includes('keypoints')}
+          <p class="label">Landmarks</p>
+          <textarea
+            class="landmarks"
+            rows="4"
+            aria-label="Landmarks, one per line"
+            placeholder="One per line, for example: nose"
+            bind:value={landmarks}
+          ></textarea>
+          <input
+            aria-label="Lines between landmarks"
+            placeholder="Lines, for example 1-2, 1-3"
+            bind:value={joins}
+          />
+          <div class="attr-actions"><Button onclick={saveSkeleton}>Save landmarks</Button></div>
+          {#if skeletonError}<p class="error" role="alert">{skeletonError}</p>{/if}
+          <p class="note">Landmarks are placed in this order with the keypoints tool. Leave the list empty to remove them.</p>
+        {/if}
 
         <p class="label">Usage</p>
         <p class="meta mono">{plural(selected.annotation_count, 'annotation')}</p>
@@ -476,6 +532,16 @@
     background: transparent;
     border: 0;
     cursor: pointer;
+  }
+
+  .landmarks {
+    width: 100%;
+    padding: var(--space-2);
+    resize: vertical;
+    background: var(--bg);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-control);
+    font: inherit;
   }
 
   .attr-actions,

@@ -2,7 +2,8 @@
   import { Trash } from '@lucide/svelte';
   import { boundsOf, clamp01, polygonArea } from '../../lib/canvas/geometry';
   import type { Change } from '../../lib/canvas/model';
-  import { isBox, type Shape } from '../../lib/canvas/types';
+  import { maskCells } from '../../lib/canvas/mask';
+  import { isBox, isKeypoints, isMask, isObb, isPolygon, type Shape } from '../../lib/canvas/types';
   import { plural } from '../../lib/format';
   import type { Workspace } from '../../lib/state/workspace.svelte';
   import Button from '../../lib/ui/Button.svelte';
@@ -53,8 +54,28 @@
   }
 
   function pixels(s: Shape): string {
-    const b = boundsOf(s);
+    const b = boundsOf(s, item?.width, item?.height);
     return item ? `${Math.round(b.w * item.width)} x ${Math.round(b.h * item.height)} px` : '';
+  }
+
+  /** One line about a shape that has no box fields to edit. */
+  function describe(s: Shape): string {
+    const g = s.geometry;
+    if (isPolygon(g)) {
+      const area = item ? Math.round(polygonArea(g.points) * item.width * item.height) : 0;
+      return `${plural(g.points.length, 'point')}, ${pixels(s)}, area ${area.toLocaleString()} px`;
+    }
+    if (isObb(g)) return `${pixels(s)} around it, turned ${Math.round((g.angle * 180) / Math.PI)} degrees`;
+    if (isKeypoints(g)) {
+      const labeled = g.points.filter((p) => p.v > 0).length;
+      return `${labeled} of ${plural(g.points.length, 'landmark')} placed. Hover one and press V to hide it, Delete to remove it.`;
+    }
+    if (isMask(g)) {
+      const cells = maskCells(g);
+      const share = cells ? cells.reduce((sum, c) => sum + c, 0) / cells.length : 0;
+      return `Covers ${(share * 100).toFixed(1)}% of the image. Use the brush to add or erase.`;
+    }
+    return '';
   }
 </script>
 
@@ -102,13 +123,8 @@
           </label>
         {/each}
       </div>
-    {:else if !isBox(shape.geometry)}
-      <p class="meta mono">
-        {plural(shape.geometry.points.length, 'point')}, {pixels(shape)}, area
-        {item
-          ? Math.round(polygonArea(shape.geometry.points) * item.width * item.height).toLocaleString()
-          : 0} px
-      </p>
+    {:else}
+      <p class="meta mono">{describe(shape)}</p>
     {/if}
 
     {#if schema.length > 0}

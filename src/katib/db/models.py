@@ -111,6 +111,8 @@ class Class(Base):
     color: Mapped[str] = mapped_column(String(9))
     position: Mapped[int] = mapped_column(Integer)
     attr_schema: Mapped[list[Any]] = mapped_column(default=list)
+    # Landmark names and the lines between them, for classes drawn with the keypoints tool.
+    skeleton: Mapped[dict[str, Any] | None] = mapped_column()
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
 

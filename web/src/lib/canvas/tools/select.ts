@@ -1,15 +1,13 @@
-import { boundsOf, clamp01, resizeBox, translate } from '../geometry';
+import { boundsOf, clamp01, resizeBox, resizeObbCorner, rotateObb, translate } from '../geometry';
 import { handleAt, hitShape, isBoxHandle, segmentAt } from '../hit';
 import type { Change } from '../model';
-import type { BoxGeometry, Point, PolygonGeometry, Shape, ToolEvent } from '../types';
-import { isBox, isPolygon } from '../types';
+import type { Geometry, Point, PolygonGeometry, Shape, ToolEvent } from '../types';
+import { isBox, isDrawn, isKeypoints, isObb, isPolygon } from '../types';
 import type { KeyInfo, Tool, ToolContext } from './tool';
 
 const DRAG_THRESHOLD_PX = 3;
 const DUPLICATE_OFFSET = 0.02;
 const DEFAULT_HINT = 'Click a shape to select it. Drag to move. Drag empty space to select several.';
-
-type Geometry = BoxGeometry | PolygonGeometry;
 
 type Drag =
   | {
@@ -33,6 +31,12 @@ const RESIZE_CURSORS: Record<string, string> = {
   w: 'ew-resize',
 };
 
+function handleCursor(handle: string): string {
+  if (handle === 'rot') return 'grab';
+  if (/^c\d$/.test(handle)) return 'crosshair';
+  return RESIZE_CURSORS[handle] ?? 'move';
+}
+
 export class SelectTool implements Tool {
   readonly name = 'select';
   private drag: Drag | null = null;
@@ -50,7 +54,8 @@ export class SelectTool implements Tool {
     return !style?.locked && !style?.hidden;
   };
 
-  private hittable = (s: Shape): boolean => !this.ctx.classStyle(s.classId)?.hidden;
+  private hittable = (s: Shape): boolean =>
+    isDrawn(s) && !this.ctx.classStyle(s.classId)?.hidden;
 
   private selectedShapes(): Shape[] {
     const { model } = this.ctx;
@@ -152,8 +157,20 @@ export class SelectTool implements Tool {
       drag.originals.forEach((geometry, id) => model.setPreview(id, translate(geometry, dx, dy)));
     } else if (drag.kind === 'handle') {
       const p = { x: clamp01(e.norm.x), y: clamp01(e.norm.y) };
+      const { imageW, imageH } = this.ctx.viewport;
       if (isBoxHandle(drag.handle) && isBox(drag.baseline)) {
         drag.working = resizeBox(drag.baseline, drag.handle, p);
+      } else if (isObb(drag.baseline)) {
+        drag.working =
+          drag.handle === 'rot'
+            ? rotateObb(drag.baseline, e.norm, imageW, imageH, e.shift)
+            : resizeObbCorner(drag.baseline, Number(drag.handle.slice(1)), p, imageW, imageH);
+      } else if (isKeypoints(drag.working)) {
+        const index = Number(drag.handle.slice(1));
+        const points = [...drag.working.points];
+        const moved = points[index];
+        if (moved) points[index] = { ...moved, x: p.x, y: p.y };
+        drag.working = { points };
       } else if (isPolygon(drag.working)) {
         const index = Number(drag.handle.slice(1));
         const points = [...drag.working.points];
@@ -168,7 +185,7 @@ export class SelectTool implements Tool {
   }
 
   pointerUp(e: ToolEvent): void {
-    const { model } = this.ctx;
+    const { model, viewport } = this.ctx;
     const drag = this.drag;
     this.drag = null;
     if (!drag) return;
@@ -186,7 +203,7 @@ export class SelectTool implements Tool {
           .visible()
           .filter((s) => this.hittable(s))
           .filter((s) => {
-            const b = boundsOf(s);
+            const b = boundsOf(s, viewport.imageW, viewport.imageH);
             return b.x <= x1 && b.x + b.w >= x0 && b.y <= y1 && b.y + b.h >= y0;
           })
           .map((s) => s.id);
@@ -266,9 +283,51 @@ export class SelectTool implements Tool {
 
     const targets = this.selectedShapes().filter((s) => this.editable(s));
 
+    if (e.key.toLowerCase() === 'v') {
+      // On a landmark, V switches it between visible and hidden.
+      const landmark = this.hoverHandle;
+      const only = this.single();
+      if (landmark && only && only.id === landmark.shapeId && isKeypoints(only.geometry)) {
+        const index = Number(landmark.handle.slice(1));
+        const point = only.geometry.points[index];
+        if (!point) return true;
+        const points = only.geometry.points.map((p, i) =>
+          i === index ? { ...p, v: p.v === 2 ? (1 as const) : (2 as const) } : p,
+        );
+        model.commit([
+          {
+            kind: 'update',
+            id: only.id,
+            before: { geometry: only.geometry },
+            after: { geometry: { points } },
+          },
+        ]);
+        return true;
+      }
+    }
+
     if (e.key === 'Delete' || e.key === 'Backspace') {
       const vertex = this.hoverHandle;
       const only = this.single();
+      if (vertex && only && only.id === vertex.shapeId && isKeypoints(only.geometry)) {
+        // Removing a landmark marks it as not labeled. The shape keeps its other points.
+        const index = Number(vertex.handle.slice(1));
+        const points = only.geometry.points.map((p, i) =>
+          i === index ? { ...p, v: 0 as const } : p,
+        );
+        if (points.some((p) => p.v > 0)) {
+          model.commit([
+            {
+              kind: 'update',
+              id: only.id,
+              before: { geometry: only.geometry },
+              after: { geometry: { points } },
+            },
+          ]);
+          this.hoverHandle = null;
+          return true;
+        }
+      }
       if (vertex && only && only.id === vertex.shapeId && isPolygon(only.geometry) && /^v\d+$/.test(vertex.handle)) {
         if (only.geometry.points.length > 3) {
           const index = Number(vertex.handle.slice(1));
@@ -340,8 +399,8 @@ export class SelectTool implements Tool {
 
   cursor(): string {
     if (this.drag?.kind === 'move' && this.drag.active) return 'move';
-    if (this.drag?.kind === 'handle') return RESIZE_CURSORS[this.drag.handle] ?? 'move';
-    if (this.hoverHandle) return RESIZE_CURSORS[this.hoverHandle.handle] ?? 'move';
+    if (this.drag?.kind === 'handle') return handleCursor(this.drag.handle);
+    if (this.hoverHandle) return handleCursor(this.hoverHandle.handle);
     if (this.hoverShape && this.ctx.model.selection.has(this.hoverShape)) return 'move';
     return 'default';
   }
