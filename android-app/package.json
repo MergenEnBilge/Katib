@@ -1,0 +1,20 @@
+{
+  "name": "katib-android",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Katib for Android. It connects to a Katib server you choose.",
+  "scripts": {
+    "add": "cap add android",
+    "assets": "capacitor-assets generate --android --assetPath resources",
+    "sync": "cap sync android",
+    "apk": "cd android && ./gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/core": "^7.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^7.0.0"
+  }
+}
