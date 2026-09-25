@@ -108,6 +108,17 @@ class Tag(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+MAX_TEXT = 5000
+
+
+class Text(BaseModel):
+    """Words about the whole image, such as a caption or a transcription. It has no place on it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    text: str = Field(max_length=MAX_TEXT)
+
+
 def box_bounds(g: Box, size: Size | None = None) -> Bounds:
     return (g.x, g.y, g.w, g.h)
 
@@ -154,6 +165,10 @@ def tag_bounds(g: Tag, size: Size | None = None) -> Bounds:
     return (0.0, 0.0, 1.0, 1.0)
 
 
+def text_bounds(g: Text, size: Size | None = None) -> Bounds:
+    return (0.0, 0.0, 1.0, 1.0)
+
+
 @dataclass(frozen=True)
 class AnnotationType:
     name: str
@@ -168,7 +183,11 @@ _REGISTRY: dict[str, AnnotationType] = {
     "keypoints": AnnotationType("keypoints", Keypoints, keypoints_bounds),
     "mask": AnnotationType("mask", Mask, mask_bounds),
     "tag": AnnotationType("tag", Tag, tag_bounds),
+    "text": AnnotationType("text", Text, text_bounds),
 }
+
+# Shapes about the image as a whole. They are listed beside it, not drawn on it.
+WHOLE_IMAGE = frozenset({"tag", "text"})
 
 
 def known_types() -> list[str]:

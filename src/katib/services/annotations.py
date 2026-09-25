@@ -13,7 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from katib.core.attributes import AttributeError_, check_attrs
-from katib.core.types import GeometryError, validate_geometry
+from katib.core.types import MAX_TEXT, GeometryError, validate_geometry
 from katib.db.base import utcnow
 from katib.db.models import Annotation, Class, Image, Project
 from katib.services.errors import InvalidInput, NotFound
@@ -49,8 +49,12 @@ def list_annotations(session: Session, image_id: uuid.UUID) -> list[Annotation]:
     return list(session.scalars(stmt))
 
 
-def _check_class(session: Session, image: Image, class_id: uuid.UUID | None) -> None:
+def _check_class(
+    session: Session, image: Image, class_id: uuid.UUID | None, type_name: str
+) -> None:
     if class_id is None:
+        if type_name == "text":  # text may stand alone, or be filed under a class such as "caption"
+            return
         raise InvalidInput("Choose a class for this shape.")
     cls = session.get(Class, class_id)
     if cls is None or cls.project_id != image.project_id:
@@ -58,6 +62,11 @@ def _check_class(session: Session, image: Image, class_id: uuid.UUID | None) -> 
 
 
 def _check_values(session: Session, class_id: uuid.UUID | None, attrs: dict[str, Any]) -> None:
+    transcription = attrs.get("transcription")
+    if transcription is not None and (
+        not isinstance(transcription, str) or len(transcription) > MAX_TEXT
+    ):
+        raise InvalidInput(f"Text can be up to {MAX_TEXT:,} characters.")
     cls = session.get(Class, class_id) if class_id else None
     if cls is None or not attrs:
         return
@@ -84,7 +93,7 @@ def _create(session: Session, image: Image, op: Op, user_id: uuid.UUID | None) -
         if not op.type or op.geometry is None:
             raise InvalidInput("A new shape needs a type and geometry.")
         _check_type(session, image, op.type)
-        _check_class(session, image, op.class_id)
+        _check_class(session, image, op.class_id, op.type)
         geometry = validate_geometry(op.type, op.geometry).model_dump()
         _check_values(session, op.class_id, op.attrs or {})
     except (InvalidInput, GeometryError) as err:
@@ -118,7 +127,7 @@ def _update(session: Session, image: Image, op: Op) -> OpResult:
         if "class_id" in op.patch:
             raw = op.patch["class_id"]
             new_class = uuid.UUID(str(raw)) if raw else None
-            _check_class(session, image, new_class)
+            _check_class(session, image, new_class, ann.type)
         if "geometry" in op.patch:
             new_geometry = validate_geometry(ann.type, op.patch["geometry"]).model_dump()
         if "attrs" in op.patch:
@@ -127,7 +136,7 @@ def _update(session: Session, image: Image, op: Op) -> OpResult:
     except (InvalidInput, GeometryError, ValueError) as err:
         return OpResult(op.id, "invalid", ann, str(err))
     # Nothing is changed until every part of the patch has passed validation.
-    if new_class is not None:
+    if "class_id" in op.patch:
         ann.class_id = new_class
     if new_geometry is not None:
         ann.geometry = new_geometry
