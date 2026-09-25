@@ -33,6 +33,8 @@ pnpm --dir web build
 uv run katib
 ```
 
+If your terminal says `uv` is not recognized, `pip` put it in a folder that is not on your PATH. Put `python -m` in front of it instead, for example `python -m uv sync` and `python -m uv run katib`.
+
 Your browser opens on Katib. Nothing else is needed: the data lives in a small local database in your user folder.
 
 ### Your first project
@@ -91,6 +93,12 @@ On a shared server, only the administrator can connect a new folder. Everyone el
 [storage]
 allowed_import_roots = ["/data/photos"]
 ```
+
+### Installers
+
+Each tagged version (for example `v0.1.0`) is built for Windows (`Katib-<version>-windows-setup.exe`), macOS (`Katib-macos.dmg`) and Linux (`Katib-linux.tar.gz`) and attached to its GitHub release. Install, open Katib, and it runs in its own window with its data in your user folder. The installers are not code-signed yet, so Windows and macOS may warn the first time you open one.
+
+On Linux the window needs WebKitGTK (`gir1.2-webkit2-4.1` on Debian and Ubuntu).
 
 ### Katib in its own window
 
@@ -245,7 +253,6 @@ Katib is under active development and has not had a stable release yet. Everythi
 
 Not available yet:
 
-- Ready-made installers for Windows, macOS and Linux. Use `katib app` for a window of its own.
 - Click-to-segment with a neural network. The magic wand covers simple cases.
 - Translations. The interface is English, and the groundwork for other languages and right-to-left layouts is in place. See `docs/contributing.md`.
 
