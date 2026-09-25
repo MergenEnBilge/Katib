@@ -13,7 +13,7 @@ Most annotation tools are either a quick desktop app that falls apart once a sec
 - **Spot problems before you train.** The health panel finds tiny stray shapes, duplicates, near-identical photos, and classes with far fewer examples than the rest.
 - **Bring your data, take it with you.** Import and export YOLO and COCO, including train, validation and test splits. Importing the same file twice never doubles your labels.
 - **Work together.** Invite people with a link and give them a role: owner, manager, annotator, reviewer or viewer. Katib hands each annotator the next image, shows who else is on the project, and keeps two people from editing the same image at once. Reviewers can approve images or send them back with a comment.
-- **Use any device.** The interface adapts from a wide desktop screen to a phone.
+- **Use any device.** The interface adapts from a wide desktop screen to a phone. Install it on a phone and it keeps working when the signal drops.
 
 ## Get started in five minutes
 
@@ -119,6 +119,14 @@ uv sync --extra postgres
 url = "postgresql://katib:secret@localhost/katib"
 ```
 
+## On a phone or tablet
+
+Open the address from **Share** on your phone. The interface fits the screen and you draw with a finger or a stylus.
+
+Katib can also be installed like an app. On Android, open the browser menu and choose **Install app**. On an iPhone, choose **Add to Home Screen** from the share sheet. This needs a secure address, so use the Docker setup with HTTPS or open Katib on the same computer.
+
+Once installed, Katib opens without a connection and keeps the images you have looked at. If the connection drops while you draw, your edits are kept on the device and sent the next time you open Katib with a connection. Images you have not opened yet are not available offline.
+
 ## Roles
 
 | Role | What they can do |
@@ -185,7 +193,7 @@ After changing an API route, refresh the TypeScript types with `pnpm --dir web g
 
 ## Status
 
-Katib is under active development and has not had a stable release yet. Single-user labeling, class tools, dataset health, and team workflows with accounts, roles, review and live presence all work today. Docker packaging is done. A desktop app and offline support for phones are next.
+Katib is under active development and has not had a stable release yet. Single-user labeling, class tools, dataset health, and team workflows with accounts, roles, review and live presence all work today. Docker packaging is done. A desktop app is next.
 
 ## License
 
