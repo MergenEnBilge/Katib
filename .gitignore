@@ -27,3 +27,5 @@ katib.toml
 web/openapi.json
 
 web/.e2e/
+
+photos/

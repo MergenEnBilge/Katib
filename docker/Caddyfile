@@ -1,0 +1,9 @@
+# KATIB_HOST is the name people type in the browser.
+# KATIB_TLS is "internal" for a private network, where Caddy signs its own certificate,
+# or your email address for a public domain, where Caddy gets a real one automatically.
+
+{$KATIB_HOST:localhost} {
+	tls {$KATIB_TLS:internal}
+	encode gzip
+	reverse_proxy katib:8420
+}
