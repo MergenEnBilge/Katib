@@ -65,7 +65,9 @@
       <h2>{title}</h2>
       {#if description}<p>{description}</p>{/if}
     </header>
-    <div class="body">{@render children()}</div>
+    <!-- The body scrolls when the content is tall, so keyboard users need to be able to reach it. -->
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+    <div class="body" role="region" aria-label={title} tabindex="0">{@render children()}</div>
     {#if footer}<footer>{@render footer()}</footer>{/if}
   </div>
 </div>

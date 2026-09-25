@@ -150,7 +150,7 @@
 <div class="page">
   <header class="bar">
     <IconButton label="Back to the workspace" onclick={() => router.navigate(`/p/${projectId}`)}>
-      <ArrowLeft size={16} />
+      <ArrowLeft size={16} class="mirror" />
     </IconButton>
     <h1>{project?.name ?? 'Loading'} <span class="sub">Class gallery</span></h1>
   </header>
@@ -372,7 +372,7 @@
   }
 
   .tile.on {
-    border-color: var(--accent);
+    border-color: var(--accent-text);
     background: var(--accent-muted);
   }
 

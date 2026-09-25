@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Inbox as InboxIcon, Layers, LogOut, Moon, Sun } from '@lucide/svelte';
   import { onMount } from 'svelte';
+  import { i18n, t } from './lib/i18n/index.svelte';
   import { sendWaitingEdits } from './lib/sync/offline';
   import { router } from './lib/state/router.svelte';
   import { session } from './lib/state/session.svelte';
@@ -19,6 +20,7 @@
   import Workspace from './routes/workspace/Workspace.svelte';
 
   $effect(applyTheme);
+  i18n.init(undefined, navigator.languages);
   onMount(() => void session.load());
 
   // Edits made offline in an earlier visit go out as soon as someone is signed in.
@@ -41,12 +43,12 @@
 </script>
 
 {#if session.phase === 'loading'}
-  <div class="splash" role="status" aria-label="Loading"></div>
+  <div class="splash" role="status" aria-label={t('loading')}></div>
 {:else if session.phase === 'error'}
   <main class="center">
     <Callout tone="danger">
       {session.problem}
-      {#snippet action()}<Button onclick={() => session.load()}>Try again</Button>{/snippet}
+      {#snippet action()}<Button onclick={() => session.load()}>{t('tryAgain')}</Button>{/snippet}
     </Callout>
   </main>
 {:else if session.phase === 'setup'}
@@ -71,18 +73,18 @@
         <span class="version mono">dev</span>
       </div>
 
-      <nav aria-label="Main">
+      <nav aria-label={t('nav.main')}>
         <a
           class="nav-item"
           href="/"
           aria-current={route.name === 'projects' ? 'page' : undefined}
-          onclick={(e) => go(e, '/')}><Layers size={16} />Projects</a
+          onclick={(e) => go(e, '/')}><Layers size={16} />{t('nav.projects')}</a
         >
         <a
           class="nav-item"
           href="/inbox"
           aria-current={route.name === 'inbox' ? 'page' : undefined}
-          onclick={(e) => go(e, '/inbox')}><InboxIcon size={16} />Inbox</a
+          onclick={(e) => go(e, '/inbox')}><InboxIcon size={16} />{t('nav.inbox')}</a
         >
       </nav>
 
@@ -90,17 +92,17 @@
         <button
           type="button"
           class="workspace"
-          title="Share this computer or switch to another server"
+          title={t('nav.workspaceHint')}
           onclick={() => (showWorkspaces = true)}
         >
-          {session.mode === 'local' ? (session.user?.name ?? 'Signed in') : 'Local workspace'}
+          {session.mode === 'local' ? (session.user?.name ?? t('nav.signedIn')) : t('nav.localWorkspace')}
         </button>
         <span class="tools">
           {#if session.mode === 'local'}
-            <IconButton label="Sign out" onclick={() => session.signOut()}><LogOut size={16} /></IconButton>
+            <IconButton label={t('nav.signOut')} onclick={() => session.signOut()}><LogOut size={16} /></IconButton>
           {/if}
           <IconButton
-            label={theme.current === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+            label={theme.current === 'dark' ? t('theme.toLight') : t('theme.toDark')}
             onclick={() => theme.toggle()}
           >
             {#if theme.current === 'dark'}<Sun size={16} />{:else}<Moon size={16} />{/if}
@@ -116,12 +118,12 @@
         <Inbox />
       {:else}
         <EmptyState
-          title="Page not found"
-          description="This address does not match anything in Katib."
+          title={t('notFound.title')}
+          description={t('notFound.body')}
         >
           {#snippet icon()}<Layers size={20} />{/snippet}
           {#snippet action()}
-            <Button variant="primary" onclick={() => router.navigate('/')}>Back to projects</Button>
+            <Button variant="primary" onclick={() => router.navigate('/')}>{t('notFound.back')}</Button>
           {/snippet}
         </EmptyState>
       {/if}

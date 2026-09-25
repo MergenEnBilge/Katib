@@ -68,7 +68,7 @@
   .danger-quiet {
     background: transparent;
     border-color: var(--border);
-    color: var(--danger);
+    color: var(--danger-text);
   }
   .danger-quiet:hover {
     border-color: var(--border-strong);
