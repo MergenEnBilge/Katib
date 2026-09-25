@@ -59,6 +59,17 @@ On a shared server, only the administrator can connect a new folder. Everyone el
 allowed_import_roots = ["/data/photos"]
 ```
 
+### Katib in its own window
+
+If you would rather not use a browser tab, Katib can open in its own window:
+
+```bash
+uv sync --extra desktop
+uv run katib app
+```
+
+The window runs Katib on your computer only, on a port nobody else can reach. Closing the window stops it.
+
 ## Working with a team
 
 Turn on accounts, and Katib asks people to sign in. Add this to `katib.toml`:
@@ -193,7 +204,7 @@ After changing an API route, refresh the TypeScript types with `pnpm --dir web g
 
 ## Status
 
-Katib is under active development and has not had a stable release yet. Single-user labeling, class tools, dataset health, and team workflows with accounts, roles, review and live presence all work today. Docker packaging is done. A desktop app is next.
+Katib is under active development and has not had a stable release yet. Single-user labeling, class tools, dataset health, and team workflows with accounts, roles, review and live presence all work today. Docker packaging is done. Ready-made installers for Windows, macOS and Linux are not available yet.
 
 ## License
 

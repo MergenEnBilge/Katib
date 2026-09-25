@@ -1,4 +1,4 @@
-"""Command line entry point: `katib`, `katib serve`, `katib share`, `katib dev`."""
+"""Command line entry point: `katib`, `katib serve`, `katib share`, `katib app`, `katib dev`."""
 
 import contextlib
 import logging
@@ -35,6 +35,20 @@ def serve(
 ) -> None:
     """Start the server without opening a browser."""
     _run(open_browser=False, host=host, port=port, config=config)
+
+
+@app.command(name="app")
+def desktop_app(
+    config: Annotated[Path | None, typer.Option(help="Path to katib.toml.")] = None,
+) -> None:
+    """Open Katib in its own window. Needs the desktop extra."""
+    from katib.desktop.window import DesktopUnavailable, run_desktop
+
+    _configure_logging()
+    try:
+        run_desktop(load_settings(config))
+    except DesktopUnavailable as err:
+        raise typer.BadParameter(str(err)) from err
 
 
 @app.command()
