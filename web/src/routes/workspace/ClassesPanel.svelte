@@ -77,6 +77,23 @@
         </li>
       {/each}
     </ul>
+    {#if ws.types.includes('tag') && ws.current}
+      <p class="label">Tags on this image</p>
+      <div class="tags" role="group" aria-label="Tags on this image">
+        {#each ws.classes as cls (cls.id)}
+          <button
+            type="button"
+            class="tag"
+            class:on={ws.taggedClasses().has(cls.id)}
+            aria-pressed={ws.taggedClasses().has(cls.id)}
+            disabled={ws.readOnly}
+            onclick={() => ws.toggleTag(cls.id)}
+          >
+            <span class="swatch small" style:background={cls.color}></span>{cls.name}
+          </button>
+        {/each}
+      </div>
+    {/if}
     <div class="foot">
       <Button onclick={onmanage}>Manage classes...</Button>
     </div>
@@ -108,6 +125,51 @@
 
   input[aria-invalid='true'] {
     border-color: var(--danger);
+  }
+
+  .label {
+    margin: var(--space-2) 0 0;
+    font-size: var(--text-overline);
+    font-weight: 500;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+  }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    height: var(--h-button-sm);
+    padding-inline: var(--space-2);
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-control);
+    cursor: pointer;
+  }
+
+  .tag.on {
+    color: var(--accent);
+    background: var(--accent-muted);
+    border-color: var(--accent);
+  }
+
+  .tag:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .swatch.small {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
   }
 
   .error {
