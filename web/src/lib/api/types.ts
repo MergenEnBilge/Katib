@@ -8,6 +8,7 @@ export type ImageItem = S['ImageOut'];
 export type ImagePage = S['ImagePageOut'];
 export type Annotation = S['AnnotationOut'];
 export type Job = S['JobOut'];
+export type ShareInfo = S['ShareOut'];
 export type FolderListing = S['FolderListingOut'];
 export type ConnectedFolder = S['ConnectedFolderOut'];
 export type ConnectResult = S['ConnectResultOut'];
