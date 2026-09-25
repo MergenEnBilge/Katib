@@ -1,3 +1,4 @@
+import type { Page } from '@playwright/test';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { crc32, deflateSync } from 'node:zlib';
@@ -52,4 +53,11 @@ export function prepare(): void {
     [30, 80, 60],
   ];
   colors.forEach((rgb, i) => writeFileSync(join(LIBRARY, `street${i + 1}.png`), png(600, 400, rgb)));
+}
+
+/** In the open Import dialog, connect the test library by typing its path. */
+export async function connectLibrary(page: Page): Promise<void> {
+  await page.getByText('Type a folder path instead').click();
+  await page.getByLabel('Folder on the Katib computer').fill(LIBRARY);
+  await page.getByRole('button', { name: 'Connect', exact: true }).click();
 }

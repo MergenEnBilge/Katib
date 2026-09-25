@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { LIBRARY } from './fixtures';
+import { connectLibrary } from './fixtures';
 
 const API = '/api/v1';
 
@@ -32,8 +32,7 @@ test('create a project, import images, label one and keep it after a reload', as
 
   // Import three images from the server folder.
   await page.getByRole('button', { name: 'Import images' }).last().click();
-  await page.getByLabel('Folder on the Katib computer').fill(LIBRARY);
-  await page.getByRole('button', { name: 'Import folder' }).click();
+  await connectLibrary(page);
   await expect(page.getByText('3 images added.')).toBeVisible();
   await page.getByRole('dialog').getByRole('button', { name: 'Done' }).click();
 

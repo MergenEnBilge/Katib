@@ -107,6 +107,32 @@ class FolderImportIn(BaseModel):
     folder: str
 
 
+class PlaceOut(BaseModel):
+    name: str
+    path: str
+
+
+class FolderListingOut(BaseModel):
+    path: str | None
+    parent: str | None
+    places: list[PlaceOut]
+    folders: list[PlaceOut]
+    images_here: int
+    can_connect: bool
+
+
+class ConnectFolderIn(BaseModel):
+    path: str
+
+
+class ConnectedFolderOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    path: str
+    created_at: datetime
+
+
 class JobOut(BaseModel):
     id: uuid.UUID
     kind: str
@@ -114,6 +140,11 @@ class JobOut(BaseModel):
     progress: float
     result: dict[str, Any] | None
     error: str | None
+
+
+class ConnectResultOut(BaseModel):
+    folder: ConnectedFolderOut
+    job: JobOut
 
 
 class AnnotationOut(BaseModel):

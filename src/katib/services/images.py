@@ -59,7 +59,8 @@ class ImportReport:
 Progress = Callable[[float], None]
 
 
-def _inside(path: Path, roots: list[Path]) -> bool:
+def inside(path: Path, roots: list[Path]) -> bool:
+    """True when `path` is one of `roots` or lives below one."""
     return any(root == path or root in path.parents for root in roots)
 
 
@@ -67,13 +68,14 @@ def resolve_path(raw: str, roots: list[Path]) -> Path:
     """Resolve a user-supplied path and require it to sit inside an allowed root."""
     if not roots:
         raise ImportNotAllowed(
-            "Folder import is off. Add a folder to storage.allowed_import_roots to enable it."
+            "No folder is connected yet. Ask an administrator to connect one, "
+            "or add it to storage.allowed_import_roots."
         )
     try:
         path = Path(raw).expanduser().resolve(strict=True)
     except (OSError, RuntimeError) as err:
         raise InvalidInput("That path does not exist.") from err
-    if not _inside(path, [r.resolve() for r in roots]):
+    if not inside(path, [r.resolve() for r in roots]):
         raise ImportNotAllowed("That path is outside the allowed import folders.")
     return path
 
@@ -89,7 +91,7 @@ def image_path(image: Image, ctx: StorageContext) -> Path:
     """Where the original file for an image lives. Re-checks roots for referenced files."""
     if image.storage_key.startswith(FILE_PREFIX):
         path = Path(image.storage_key[len(FILE_PREFIX) :]).resolve()
-        if not _inside(path, [r.resolve() for r in ctx.allowed_roots]):
+        if not inside(path, [r.resolve() for r in ctx.allowed_roots]):
             raise NotFound("That image is no longer in an allowed folder.")
         return path
     return ctx.uploads.path(image.storage_key)
@@ -110,6 +112,16 @@ def thumb_path(image: Image, ctx: StorageContext) -> Path:
 def _next_position(session: Session, project_id: uuid.UUID) -> int:
     top = session.scalar(select(func.max(Image.position)).where(Image.project_id == project_id))
     return 0 if top is None else top + 1
+
+
+def _known_keys(session: Session, project_id: uuid.UUID) -> set[str]:
+    return set(
+        session.scalars(
+            select(Image.storage_key).where(
+                Image.project_id == project_id, Image.storage_key.startswith(FILE_PREFIX)
+            )
+        )
+    )
 
 
 def _known_hashes(session: Session, project_id: uuid.UUID) -> dict[str, str]:
@@ -170,10 +182,13 @@ def import_folder(
 
     report = ImportReport()
     known = _known_hashes(session, project_id)
+    # A rescan meets files it has already added. Leave those alone.
+    already_added = _known_keys(session, project_id)
+    files = [f for f in files if FILE_PREFIX + str(f.resolve()) not in already_added]
     position = _next_position(session, project_id)
     for i, candidate in enumerate(files, start=1):
         real = candidate.resolve()
-        if not _inside(real, resolved_roots):
+        if not inside(real, resolved_roots):
             report.skipped.append(Skipped(candidate.name, "links outside the allowed folders"))
         else:
             try:

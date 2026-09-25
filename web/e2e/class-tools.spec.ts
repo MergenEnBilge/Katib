@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { LIBRARY } from './fixtures';
+import { connectLibrary } from './fixtures';
 
 const API = '/api/v1';
 
@@ -24,8 +24,7 @@ test('merge two classes, undo it, then clean up from the gallery', async ({ page
   const projectId = page.url().split('/p/')[1] as string;
 
   await page.getByRole('button', { name: 'Import images' }).last().click();
-  await page.getByLabel('Folder on the Katib computer').fill(LIBRARY);
-  await page.getByRole('button', { name: 'Import folder' }).click();
+  await connectLibrary(page);
   await expect(page.getByText('images added.')).toBeVisible();
   await page.getByRole('dialog').getByRole('button', { name: 'Done' }).click();
 
