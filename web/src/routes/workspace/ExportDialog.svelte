@@ -1,4 +1,5 @@
 <script lang="ts">
+  import TipCard from '../../lib/ui/TipCard.svelte';
   import { Download } from '@lucide/svelte';
   import { api, ApiError, waitForJob } from '../../lib/api/client';
   import type { FormatInfo } from '../../lib/api/types';
@@ -93,6 +94,7 @@
   description="Write your labels to a zip file in the format your training code expects."
   {onclose}
 >
+  <TipCard id="dialog:export" />
   <div class="form">
     <label class="field">
       <span>Format</span>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import TipCard from '../../lib/ui/TipCard.svelte';
   import { Sparkles } from '@lucide/svelte';
   import { api, ApiError, waitForJob } from '../../lib/api/client';
   import type { MlStatus } from '../../lib/api/types';
@@ -89,6 +90,7 @@
   width={520}
   {onclose}
 >
+  <TipCard id="dialog:prelabel" />
   {#if status === null && !problem}
     <div class="sk" aria-busy="true"></div>
   {:else if status && !status.enabled}

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import TipCard from '../../lib/ui/TipCard.svelte';
   import { Copy, X } from '@lucide/svelte';
   import { api, ApiError } from '../../lib/api/client';
   import type { Activity, Role } from '../../lib/api/types';
@@ -108,6 +109,7 @@
 </script>
 
 <Modal title="Team" description="Who works on this project, what they did, and how review works." width={600} {onclose}>
+  <TipCard id="dialog:team" />
   <div class="tabs" role="tablist">
     {#each [['members', 'Members'], ['activity', 'Activity'], ['settings', 'Settings']] as const as [id, label] (id)}
       <button type="button" role="tab" aria-selected={tab === id} class:active={tab === id} onclick={() => (tab = id)}>{label}</button>

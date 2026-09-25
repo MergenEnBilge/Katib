@@ -2,12 +2,12 @@
   import { tick } from 'svelte';
   import { isDrawn } from '../../lib/canvas/types';
   import type { Workspace } from '../../lib/state/workspace.svelte';
-  import { placeCard, tourSteps, type Rect } from '../../lib/tour/steps';
+  import { placeCard, type Rect, type TourStep } from '../../lib/tour/steps';
   import Button from '../../lib/ui/Button.svelte';
 
-  let { ws, onclose }: { ws: Workspace; onclose: () => void } = $props();
+  /** `ws` is only needed by tours with a step that waits for the person to draw. */
+  let { steps, ws, onclose }: { steps: TourStep[]; ws?: Workspace; onclose: () => void } = $props();
 
-  const steps = $derived(tourSteps(ws.types));
   let index = $state(0);
   let target = $state<Rect | null>(null);
   let card = $state<HTMLDivElement | undefined>();
@@ -45,7 +45,7 @@
 
   // The practice step is done when the person draws a shape themselves, on any picture.
   $effect(() => {
-    const model = ws.engine?.model;
+    const model = ws?.engine?.model;
     if (!model || step?.until !== 'shape') return;
     return model.onChange((changes, origin) => {
       if (origin === 'edit' && changes.some((c) => c.kind === 'create' && isDrawn(c.shape))) drew = true;
@@ -54,9 +54,12 @@
 
   $effect(() => {
     const again = (): void => void arrange();
+    // Screens that load on demand may not have their parts ready yet, so look again now and then.
+    const timer = setInterval(again, 500);
     window.addEventListener('resize', again);
     window.addEventListener('scroll', again, true);
     return () => {
+      clearInterval(timer);
       window.removeEventListener('resize', again);
       window.removeEventListener('scroll', again, true);
     };

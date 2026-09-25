@@ -31,7 +31,7 @@ test('a setting that needs a restart says so and offers the button', async ({ pa
   await page.getByRole('button', { name: 'Save changes' }).click();
   await expect(page.getByText('Some saved settings apply after Katib restarts.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Restart Katib now' })).toBeVisible();
-  await expect(page.getByText('Needs a restart')).toBeVisible();
+  await expect(page.getByText('Needs a restart', { exact: true })).toBeVisible();
 
   // Undo the change. The port comes back to what is running, so nothing waits any more.
   await page.getByLabel('Port').fill('8499');

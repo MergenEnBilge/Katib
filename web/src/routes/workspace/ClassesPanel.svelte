@@ -36,6 +36,7 @@
     }}
   >
     <input
+      data-tour="class-input"
       placeholder="New class name"
       aria-label="New class name"
       aria-invalid={error ? 'true' : undefined}
