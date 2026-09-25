@@ -97,6 +97,13 @@ def list_classes(session: Session, project_id: uuid.UUID) -> list[ClassWithCount
     return [ClassWithCount(c, n) for c, n in session.execute(stmt).all()]
 
 
+def get_with_count(session: Session, class_id: uuid.UUID) -> ClassWithCount:
+    """One class and how many shapes use it. Counts only this class, not the whole project."""
+    cls = get_class(session, class_id)
+    count = session.scalar(select(func.count(Annotation.id)).where(Annotation.class_id == class_id))
+    return ClassWithCount(cls, count or 0)
+
+
 def rename_class(session: Session, class_id: uuid.UUID, name: str) -> Class:
     cls = get_class(session, class_id)
     name = _clean_name(name)
