@@ -15,6 +15,10 @@ describe('matchRoute', () => {
   it('matches the class gallery', () => {
     expect(matchRoute(`/p/${ID}/gallery`)).toEqual({ name: 'gallery', projectId: ID });
   });
+  it('matches the settings page', () => {
+    expect(matchRoute('/settings')).toEqual({ name: 'settings' });
+    expect(matchRoute('/settings/')).toEqual({ name: 'settings' });
+  });
   it('matches the inbox and invite links', () => {
     expect(matchRoute('/inbox')).toEqual({ name: 'inbox' });
     expect(matchRoute('/invite/abcdefghijklmnop1234')).toEqual({

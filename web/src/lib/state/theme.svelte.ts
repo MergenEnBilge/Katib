@@ -25,6 +25,13 @@ let systemLight = $state(query.matches);
 query.addEventListener('change', (event) => (systemLight = event.matches));
 
 export const theme = {
+  get pref(): ThemePref {
+    return pref;
+  },
+  set(next: ThemePref): void {
+    pref = next;
+    writePref(next);
+  },
   get current(): Theme {
     return resolveTheme(pref, systemLight);
   },

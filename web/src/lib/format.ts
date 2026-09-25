@@ -25,3 +25,15 @@ export function relativeTime(iso: string | null | undefined, now = Date.now()): 
     day: 'numeric',
   });
 }
+
+/** A file size in the largest unit that keeps the number small, such as "3.4 MB". */
+export function formatBytes(bytes: number): string {
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let value = bytes;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  return `${unit === 0 || value >= 100 ? Math.round(value) : value.toFixed(1)} ${units[unit]}`;
+}

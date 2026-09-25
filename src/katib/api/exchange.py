@@ -3,17 +3,17 @@
 import shutil
 import uuid
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse
 
-from katib.api.deps import RunnerDep, SessionDep, StorageDep, UserDep, need
+from katib.api.deps import RunnerDep, SessionDep, StorageDep, UserDep, may_browse_anywhere, need
 from katib.api.jobs import job_out
 from katib.api.schemas import DatasetImportIn, ExportIn, FormatOut, JobOut
 from katib.core.dataset import ExportOptions, SplitSpec
 from katib.formats import REGISTRY
 from katib.jobs.runner import Progress
 from katib.services import exchange, images, projects
-from katib.services.errors import InvalidInput, NotFound
+from katib.services.errors import Forbidden, InvalidInput, NotFound
 
 router = APIRouter(tags=["exchange"])
 
@@ -113,13 +113,25 @@ def export_dataset(
 
 @router.get("/jobs/{job_id}/download")
 def download_export(
-    job_id: uuid.UUID, runner: RunnerDep, storage: StorageDep, session: SessionDep, user: UserDep
+    job_id: uuid.UUID,
+    request: Request,
+    runner: RunnerDep,
+    storage: StorageDep,
+    session: SessionDep,
+    user: UserDep,
 ) -> FileResponse:
     job = runner.get(job_id)
-    if job is None or job.kind != "export" or job.status != "done" or not job.result:
+    if (
+        job is None
+        or job.kind not in ("export", "backup")
+        or job.status != "done"
+        or not job.result
+    ):
         raise NotFound("That export is not ready.")
     if job.project_id is not None:
         need(session, user, job.project_id, "manage")
+    elif job.kind == "backup" and not may_browse_anywhere(request, user):
+        raise Forbidden("Only an administrator can download a backup.")
     file = storage.exports.path(str(job.result["file"]))
     if not file.is_file():
         raise NotFound("That export file has been removed.")

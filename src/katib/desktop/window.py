@@ -36,9 +36,9 @@ def run_desktop(settings: Settings) -> None:
         ) from err
 
     port = free_port()
-    server = uvicorn.Server(
-        uvicorn.Config(create_app(settings), host="127.0.0.1", port=port, log_level="warning")
-    )
+    api = create_app(settings)
+    api.state.can_restart = False  # the window would be left pointing at a server that is gone
+    server = uvicorn.Server(uvicorn.Config(api, host="127.0.0.1", port=port, log_level="warning"))
     thread = threading.Thread(target=server.run, daemon=True)
     thread.start()
 

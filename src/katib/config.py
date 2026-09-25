@@ -1,19 +1,22 @@
 """Settings loading.
 
 Values come from, in order of priority: environment variables of the form
-``KATIB_SECTION__KEY``, a ``katib.toml`` file, then the defaults below. The
-defaults are enough to run with no file at all.
+``KATIB_SECTION__KEY``, the settings saved from inside the app (``settings.json`` in the data
+folder), a ``katib.toml`` file, then the defaults below. The defaults are enough to run with no
+file at all.
 """
 
 from __future__ import annotations
 
 import ipaddress
+import json
+import os
 import tomllib
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal
 
-from platformdirs import user_data_path
+from platformdirs import user_config_path, user_data_path
 from pydantic import BaseModel, Field, model_validator
 from pydantic_settings import (
     BaseSettings,
@@ -125,6 +128,58 @@ def is_loopback(host: str) -> bool:
         return False
 
 
+SAVED_FILE = "settings.json"
+
+
+def config_dir() -> Path:
+    """Where the pointer to the data folder lives. `KATIB_CONFIG_DIR` moves it, mostly for tests."""
+    override = os.environ.get("KATIB_CONFIG_DIR")
+    return Path(override) if override else user_config_path("katib", appauthor=False)
+
+
+def _read_json(path: Path) -> dict[str, Any]:
+    try:
+        data: Any = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}  # type: ignore[return-value]
+
+
+def _write_json(path: Path, data: dict[str, Any]) -> None:
+    """Write a file so a crash never leaves half of it."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    scratch = path.with_suffix(".tmp")
+    scratch.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    scratch.replace(path)
+
+
+def read_data_dir_choice() -> str:
+    """The data folder chosen inside the app, or an empty string."""
+    return str(_read_json(config_dir() / "location.json").get("data_dir", ""))
+
+
+def write_data_dir_choice(data_dir: str) -> None:
+    _write_json(config_dir() / "location.json", {"data_dir": data_dir})
+
+
+def read_saved(data_dir: Path) -> dict[str, dict[str, Any]]:
+    """Settings saved from inside the app, as {section: {key: value}}."""
+    raw = _read_json(data_dir / SAVED_FILE)
+    return {s: dict(v) for s, v in raw.items() if isinstance(v, dict)}  # type: ignore[arg-type]
+
+
+def write_saved(data_dir: Path, values: dict[str, dict[str, Any]]) -> None:
+    _write_json(data_dir / SAVED_FILE, values)
+
+
+def _data_dir_for(file_values: dict[str, Any]) -> Path:
+    named = os.environ.get("KATIB_STORAGE__DATA_DIR") or file_values.get("storage", {}).get(
+        "data_dir"
+    )
+    named = named or read_data_dir_choice()
+    return Path(named).expanduser() if named else user_data_path("katib", appauthor=False)
+
+
 def load_settings(path: Path | None = None) -> Settings:
     """Build settings from ``path`` (default ``./katib.toml`` when present) and the environment."""
     file_values: dict[str, Any] = {}
@@ -135,6 +190,11 @@ def load_settings(path: Path | None = None) -> Settings:
     elif path is not None:
         raise FileNotFoundError(f"Config file not found: {path}")
 
+    chosen = read_data_dir_choice()
+    if chosen and not file_values.get("storage", {}).get("data_dir"):
+        file_values.setdefault("storage", {})["data_dir"] = chosen
+    for section, values in read_saved(_data_dir_for(file_values)).items():
+        file_values.setdefault(section, {}).update(values)
     return Settings(**file_values)
 
 

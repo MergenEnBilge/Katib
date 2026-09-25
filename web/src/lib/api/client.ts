@@ -1,5 +1,6 @@
 import type {
   Activity,
+  AppSettings,
   Annotation,
   ApiToken,
   AttrDef,
@@ -213,6 +214,16 @@ export const api = {
         image_ids: imageIds,
         split,
       }),
+  },
+
+  settings: {
+    get: () => request<AppSettings>('GET', '/settings'),
+    save: (values: Record<string, unknown>) =>
+      request<AppSettings>('PUT', '/settings', { values }),
+    testDatabase: (url: string) =>
+      request<{ ok: boolean; message: string }>('POST', '/settings/test-database', { url }),
+    restart: () => request<{ restarting: boolean }>('POST', '/settings/restart'),
+    backup: () => request<Job>('POST', '/settings/backup'),
   },
 
   operations: {
