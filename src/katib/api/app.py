@@ -38,6 +38,7 @@ from katib.db.session import make_engine, make_session_factory
 from katib.jobs.runner import JobRunner
 from katib.services import app_settings as settings_service
 from katib.services import auth as auth_service
+from katib.services import backup as backup_service
 from katib.services import class_ops as class_ops_service
 from katib.services import folders as folders_service
 from katib.services import setup_code
@@ -72,6 +73,7 @@ def create_app(settings: Settings) -> FastAPI:
                 s, app.state.operations, settings.limits.operation_retention_days
             )
             s.commit()
+            backup_service.remove_old_backups(settings.data_dir / "exports")
             if settings.auth.mode == "local" and not auth_service.has_users(s):
                 log.warning(
                     "Katib is waiting for its first administrator. If you open it from outside "

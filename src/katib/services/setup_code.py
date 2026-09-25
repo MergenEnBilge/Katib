@@ -6,8 +6,10 @@ request does not come from the local network, the person must type a code that o
 access to the server's files or logs can read.
 """
 
+import contextlib
 import ipaddress
 import secrets
+from collections.abc import Mapping
 from pathlib import Path
 
 FILE = "setup-code.txt"
@@ -25,6 +27,21 @@ def is_local_address(host: str) -> bool:
     return address.is_private or address.is_loopback or address.is_link_local
 
 
+PROXY_HEADERS = ("x-forwarded-for", "x-real-ip", "forwarded")
+
+
+def needs_code(address: str, headers: Mapping[str, str], trusts_proxy: bool) -> bool:
+    """Whether creating the first account from here calls for the setup code.
+
+    Anyone whose address is not on the local network does. So does anyone who arrives through a
+    proxy that Katib was not told to trust: the address Katib sees is then the proxy's, which is
+    usually private, and says nothing about who is really there.
+    """
+    if not is_local_address(address):
+        return True
+    return not trusts_proxy and any(name in headers for name in PROXY_HEADERS)
+
+
 def get_or_create(data_dir: Path) -> str:
     file = data_dir / FILE
     try:
@@ -36,6 +53,8 @@ def get_or_create(data_dir: Path) -> str:
     code = "".join(secrets.choice(ALPHABET) for _ in range(LENGTH))
     data_dir.mkdir(parents=True, exist_ok=True)
     file.write_text(code + "\n", encoding="utf-8")
+    with contextlib.suppress(OSError):
+        file.chmod(0o600)
     return code
 
 

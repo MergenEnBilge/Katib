@@ -1,4 +1,6 @@
+import os
 import sqlite3
+import time
 import zipfile
 from contextlib import closing
 from pathlib import Path
@@ -107,3 +109,17 @@ def test_the_restart_button_starts_a_restart(
         blocked = api.post("/api/v1/settings/restart")
         assert blocked.status_code == 422
     assert calls == ["restart"]
+
+
+def test_old_backups_are_deleted_and_new_ones_kept(tmp_path: Path) -> None:
+    old, fresh = tmp_path / "katib-backup-old.zip", tmp_path / "katib-backup-new.zip"
+    other = tmp_path / "yolo-export.zip"
+    for file in (old, fresh, other):
+        file.write_bytes(b"x")
+    long_ago = time.time() - 3 * 24 * 3600
+    os.utime(old, (long_ago, long_ago))
+    os.utime(other, (long_ago, long_ago))
+    assert backup.remove_old_backups(tmp_path) == 1
+    assert not old.exists()
+    assert fresh.exists()
+    assert other.exists()  # only backups are touched
