@@ -35,6 +35,31 @@ Labels are matched to images by file name. If two images have the same name, the
 
 Every import ends with a report of what was added and what was skipped, and why.
 
+## Splits
+
+A split says which images are for training, which are for checking progress (validation), and which are held back for the final test. Katib keeps the split on each image, so it is the same every time you export.
+
+### Picking up an existing split
+
+When your data already comes divided, Katib notices and keeps it:
+
+- **Folders.** Images inside folders called `train`, `val`, `valid`, `validation` or `test` join that split. This works when you connect a folder and when you import labels.
+- **YOLO.** Labels in `labels/train`, `labels/val` and so on, and the `train.txt` and `val.txt` lists named in `data.yaml`.
+- **COCO.** A file such as `instances_train2017.json` puts its images in the train split. A folder with one file per split is read as a whole.
+- **Pascal VOC.** The lists in `ImageSets/Main`.
+
+### Dividing your own images
+
+Choose **Train, validation and test** in the toolbar (the shuffle icon). The bar shows how many images are in each split now.
+
+1. Pick the kind of dataset. Katib fills in a ratio that suits it, for example 80/10/10 for object detection. Change the numbers to whatever you like.
+2. Use **New shuffle** for a different arrangement, or keep the seed to get the same one again.
+3. Tick **Keep rare classes in every split** so a class with few examples is not lost from validation or test.
+4. Tick **Only place images that have no split yet** to leave existing splits alone. This is handy after adding more photos.
+5. Read the preview line, then choose **Split images**. Reshuffling images that already have a split asks you to confirm first.
+
+Every shuffle can be undone from **History** for 30 days. To move a single image, use the **Split** menu above the tabs on the right. The image list can be filtered by split.
+
 ## Formats
 
 | Format | Reads and writes | Notes |
@@ -54,7 +79,7 @@ Choose **Export**, pick a format and which images to include (all, done, or not 
 
 ### Train, validation and test splits
 
-Turn on splits and set the ratios. Images are assigned by a seeded shuffle, so the same seed gives the same split. **Stratify** keeps the class mix similar across the splits.
+If your images have a saved split, exporting uses it and writes the `train`, `val` and `test` folders your training code expects. Images with no split go with the training images. You can instead make a new split just for that export, or leave the export unsplit. See [Splits](#splits).
 
 ### Class order
 
