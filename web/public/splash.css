@@ -1,0 +1,37 @@
+/* Shown before the app's scripts arrive, so the first paint is a logo and a spinner, not a blank page. */
+#app > .boot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  height: 100vh;
+  color: #a3aea5;
+  font: 13px system-ui, sans-serif;
+}
+:root[data-theme='light'] #app > .boot {
+  color: #535b52;
+}
+#app > .boot img {
+  width: 72px;
+  height: 72px;
+  border-radius: 22%;
+}
+#app > .boot .ring {
+  width: 22px;
+  height: 22px;
+  border: 2px solid rgba(128, 139, 129, 0.3);
+  border-top-color: #2fa366;
+  border-radius: 50%;
+  animation: boot-spin 0.7s linear infinite;
+}
+@keyframes boot-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #app > .boot .ring {
+    animation: none;
+  }
+}

@@ -8,10 +8,16 @@
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#1f7a4c" />
+    <link rel="stylesheet" href="/splash.css" />
     <script src="/theme-init.js"></script>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <div class="boot" role="status" aria-label="Loading Katib">
+        <img src="/brand/logo.svg" alt="" width="72" height="72" />
+        <div class="ring"></div>
+      </div>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

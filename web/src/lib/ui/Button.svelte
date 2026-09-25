@@ -1,20 +1,25 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
+  import Spinner from './Spinner.svelte';
 
   let {
     variant = 'secondary',
     disabled = false,
+    loading = false,
     onclick,
     children,
   }: {
     variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'danger-quiet';
     disabled?: boolean;
+    /** Shows a spinner and ignores clicks while something is happening. */
+    loading?: boolean;
     onclick?: () => void;
     children: Snippet;
   } = $props();
 </script>
 
-<button class="button {variant}" type="button" {disabled} {onclick}>
+<button class="button {variant}" type="button" disabled={disabled || loading} aria-busy={loading || undefined} {onclick}>
+  {#if loading}<Spinner size={14} />{/if}
   {@render children()}
 </button>
 
@@ -38,6 +43,10 @@
   .button:disabled {
     opacity: 0.4;
     pointer-events: none;
+  }
+
+  .button[aria-busy='true'] {
+    opacity: 0.85;
   }
 
   .primary {
