@@ -65,9 +65,22 @@ for (const scheme of ['light', 'dark'] as const) {
         await page.getByRole('button', { name: 'Pre-label with a model' }).click();
         await expectNoViolations(page, 'the pre-label window');
         await page.keyboard.press('Escape');
+        await page.getByRole('button', { name: 'Train, validation and test split' }).click();
+        await expectNoViolations(page, 'the split window');
+        await page.keyboard.press('Escape');
+        await page.getByRole('button', { name: 'Export' }).click();
+        await expectNoViolations(page, 'the export window');
+        await page.keyboard.press('Escape');
         await page.getByRole('button', { name: 'Class gallery' }).click();
         await expect(page).toHaveURL(/gallery$/);
         await expectNoViolations(page, 'the class gallery');
+
+        await page.goto('/settings');
+        await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();
+        for (const section of ['Sharing', 'Storage', 'Limits', 'Model help', 'Backup', 'Appearance', 'About']) {
+          await page.getByRole('button', { name: section, exact: true }).click();
+          await expectNoViolations(page, `the ${section} settings`);
+        }
       }
     });
   });
