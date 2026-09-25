@@ -142,6 +142,13 @@ class JobOut(BaseModel):
     error: str | None
 
 
+class ShareOut(BaseModel):
+    reachable: bool
+    accounts: bool
+    urls: list[str]
+    secure: bool
+
+
 class ConnectResultOut(BaseModel):
     folder: ConnectedFolderOut
     job: JobOut

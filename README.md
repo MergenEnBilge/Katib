@@ -71,10 +71,14 @@ mode = "local"
 Then start Katib so other computers on your network can reach it:
 
 ```bash
-uv run katib serve --host 0.0.0.0
+uv run katib share
 ```
 
-The first person to open the page creates the administrator account. From there, open a project, choose **Team**, and create an invite link for each person. A link works once and expires after seven days.
+That turns accounts on, listens on your network and prints the address to open, with a QR code you can scan with a phone. You can see the same address and code inside Katib: click your name at the bottom of the sidebar. Everyone must be on the same network. The address uses plain HTTP, so use it on a network you trust, or put HTTPS in front with the Docker setup below.
+
+If you prefer to set it up yourself, use `uv run katib serve --host 0.0.0.0` with `mode = "local"` as above.
+
+The first person to open the page creates the administrator account. From there, open a project, choose **Team**, and create an invite link for each person. A link works once and expires after seven days. The same window has a list of other Katib servers you use, so you can jump between a colleague's server and your own.
 
 If you run Katib without accounts (`mode = "none"`), it only listens on your own computer, and it will refuse to start on a network address. This keeps an open instance from being exposed by accident.
 
