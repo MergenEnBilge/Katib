@@ -98,11 +98,11 @@ def test_dotdot_cannot_escape_the_root(
         images.import_folder(session, pid, sneaky, ctx)
 
 
-def test_no_roots_means_folder_import_is_off(
+def test_no_allowed_folders_means_no_folder_import(
     session: Session, pid: uuid.UUID, ctx: StorageContext
 ) -> None:
     off = StorageContext(ctx.uploads, ctx.thumbs, [], ctx.max_upload_bytes, ctx.exports)
-    with pytest.raises(ImportNotAllowed, match="off"):
+    with pytest.raises(ImportNotAllowed, match="No folder is connected"):
         images.import_folder(session, pid, ".", off)
 
 

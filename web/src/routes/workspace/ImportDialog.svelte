@@ -1,11 +1,13 @@
 <script lang="ts">
+  import { FolderOpen, RefreshCw, X } from '@lucide/svelte';
   import { api, ApiError, waitForJob } from '../../lib/api/client';
-  import type { FormatInfo } from '../../lib/api/types';
+  import type { ConnectedFolder, FormatInfo, Job } from '../../lib/api/types';
   import { plural } from '../../lib/format';
   import Button from '../../lib/ui/Button.svelte';
   import Callout from '../../lib/ui/Callout.svelte';
   import Modal from '../../lib/ui/Modal.svelte';
   import TextField from '../../lib/ui/TextField.svelte';
+  import FolderPicker from './FolderPicker.svelte';
 
   let {
     projectId,
@@ -26,7 +28,9 @@
 
   // svelte-ignore state_referenced_locally
   let tab = $state<'images' | 'labels'>(initialTab);
-  let folder = $state('');
+  let typedFolder = $state('');
+  let connected = $state<ConnectedFolder[]>([]);
+  let picking = $state(false);
   let labelPath = $state('');
   let format = $state('');
   let formats = $state<FormatInfo[]>([]);
@@ -40,35 +44,76 @@
 
   $effect(() => {
     api.formats().then((f) => (formats = f)).catch(() => undefined);
+    void loadConnected();
   });
+
+  async function loadConnected(): Promise<void> {
+    try {
+      connected = await api.folders.connected(projectId);
+    } catch {
+      connected = [];
+    }
+  }
 
   function fail(err: unknown, fallback: string): void {
     error = err instanceof ApiError ? err.message : fallback;
   }
 
-  async function importFolder(): Promise<void> {
+  function startOver(): void {
     busy = true;
     error = '';
     summary = [];
     notes = [];
     progress = 0;
+  }
+
+  /** Follow an image import until it ends, then show what happened. */
+  async function finishImport(job: Job): Promise<void> {
+    const done = await waitForJob(job.id, (p) => (progress = p));
+    if (done.status === 'failed') {
+      error = done.error ?? 'The import failed.';
+      return;
+    }
+    const result = done.result as { added: number; skipped_count: number; skipped: { name: string; reason: string }[] };
+    changed = true;
+    summary = [
+      `${plural(result.added, 'image')} added.`,
+      result.skipped_count ? `${plural(result.skipped_count, 'file')} skipped.` : '',
+    ].filter(Boolean);
+    notes = result.skipped.map((s) => ({ subject: s.name, reason: s.reason }));
+  }
+
+  async function connectFolder(path: string): Promise<void> {
+    picking = false;
+    startOver();
     try {
-      const job = await waitForJob((await api.images.importFolder(projectId, folder.trim())).id, (p) => (progress = p));
-      if (job.status === 'failed') {
-        error = job.error ?? 'The import failed.';
-        return;
-      }
-      const result = job.result as { added: number; skipped_count: number; skipped: { name: string; reason: string }[] };
-      changed = true;
-      summary = [
-        `${plural(result.added, 'image')} added.`,
-        result.skipped_count ? `${plural(result.skipped_count, 'file')} skipped.` : '',
-      ].filter(Boolean);
-      notes = result.skipped.map((s) => ({ subject: s.name, reason: s.reason }));
+      const made = await api.folders.connect(projectId, path);
+      await loadConnected();
+      await finishImport(made.job);
     } catch (err) {
-      fail(err, 'Could not start the import.');
+      fail(err, 'Could not connect that folder.');
     } finally {
       busy = false;
+    }
+  }
+
+  async function rescan(folder: ConnectedFolder): Promise<void> {
+    startOver();
+    try {
+      await finishImport(await api.folders.rescan(projectId, folder.id));
+    } catch (err) {
+      fail(err, 'Could not scan that folder.');
+    } finally {
+      busy = false;
+    }
+  }
+
+  async function disconnect(folder: ConnectedFolder): Promise<void> {
+    try {
+      await api.folders.disconnect(projectId, folder.id);
+      await loadConnected();
+    } catch (err) {
+      fail(err, 'Could not disconnect that folder.');
     }
   }
 
@@ -156,13 +201,28 @@
 
   {#if tab === 'images'}
     <div class="section">
-      <TextField
-        label="Folder on the Katib computer"
-        placeholder="/data/photos"
-        bind:value={folder}
-        hint="Images are indexed where they are. Nothing is copied or changed. The folder must be inside an allowed import folder."
-      />
-      <div><Button variant="primary" disabled={busy || !folder.trim()} onclick={importFolder}>Import folder</Button></div>
+      {#if connected.length > 0}
+        <ul class="connected" aria-label="Connected folders">
+          {#each connected as f (f.id)}
+            <li>
+              <span class="path" title={f.path}>{f.path}</span>
+              <button type="button" class="tool" disabled={busy} aria-label="Look for new images in {f.path}" title="Look for new images" onclick={() => rescan(f)}><RefreshCw size={14} /></button>
+              <button type="button" class="tool" disabled={busy} aria-label="Disconnect {f.path}" title="Disconnect. Images stay in the project." onclick={() => disconnect(f)}><X size={14} /></button>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+      {#if picking}
+        <FolderPicker onpick={connectFolder} oncancel={() => (picking = false)} />
+      {:else}
+        <div><Button variant="primary" disabled={busy} onclick={() => (picking = true)}><FolderOpen size={16} />Connect a folder</Button></div>
+        <p class="note">Katib reads the images where they are. Nothing is copied or changed. Connect a folder once, then use the refresh button to pick up new photos.</p>
+      {/if}
+      <details class="typed">
+        <summary>Type a folder path instead</summary>
+        <TextField label="Folder on the Katib computer" placeholder="/data/photos" bind:value={typedFolder} />
+        <div><Button disabled={busy || !typedFolder.trim()} onclick={() => connectFolder(typedFolder.trim())}>Connect</Button></div>
+      </details>
     </div>
     <div class="section">
       <label class="upload">
@@ -270,6 +330,52 @@
     margin: 0;
     font-size: var(--text-small);
     color: var(--text-2);
+  }
+
+  .connected {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-control);
+  }
+
+  .connected li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-2);
+    border-block-end: 1px solid var(--border);
+  }
+
+  .connected li:last-child {
+    border-block-end: 0;
+  }
+
+  .path {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    font-family: var(--font-mono);
+    font-size: var(--text-small);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .tool {
+    display: grid;
+    place-items: center;
+    width: var(--h-icon-sm);
+    height: var(--h-icon-sm);
+    color: var(--text-2);
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+  }
+
+  .typed {
+    color: var(--text-2);
+    font-size: var(--text-small);
   }
 
   .bar {
