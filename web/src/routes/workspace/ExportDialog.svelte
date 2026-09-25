@@ -3,6 +3,7 @@
   import { api, ApiError, waitForJob } from '../../lib/api/client';
   import type { FormatInfo } from '../../lib/api/types';
   import { plural } from '../../lib/format';
+  import { onboarding } from '../../lib/state/onboarding.svelte';
   import type { Workspace } from '../../lib/state/workspace.svelte';
   import Button from '../../lib/ui/Button.svelte';
   import Callout from '../../lib/ui/Callout.svelte';
@@ -77,6 +78,7 @@
         return;
       }
       result = job.result as typeof result;
+      onboarding.mark('export');
       downloadUrl = api.jobs.downloadUrl(job.id);
     } catch (err) {
       error = err instanceof ApiError ? err.message : 'Could not export.';

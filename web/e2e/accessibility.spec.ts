@@ -32,6 +32,10 @@ for (const scheme of ['light', 'dark'] as const) {
       await expectNoViolations(page, 'the new project dialog');
       await page.keyboard.press('Escape');
 
+      await page.getByRole('button', { name: 'Help', exact: true }).click();
+      await expectNoViolations(page, 'the help window');
+      await page.keyboard.press('Escape');
+
       await page.getByRole('button', { name: 'Local workspace' }).click();
       await expectNoViolations(page, 'the workspaces dialog');
       await page.keyboard.press('Escape');
@@ -71,6 +75,11 @@ for (const scheme of ['light', 'dark'] as const) {
         await page.getByRole('button', { name: 'Export' }).click();
         await expectNoViolations(page, 'the export window');
         await page.keyboard.press('Escape');
+        await page.getByRole('button', { name: 'Help and tour' }).click();
+        await page.getByRole('button', { name: /Take the tour/ }).click();
+        await expect(page.getByRole('dialog', { name: 'Welcome to your workspace' })).toBeVisible();
+        await expectNoViolations(page, 'the tour');
+        await page.getByRole('button', { name: 'Skip the tour' }).click();
         await page.getByRole('button', { name: 'Class gallery' }).click();
         await expect(page).toHaveURL(/gallery$/);
         await expectNoViolations(page, 'the class gallery');
