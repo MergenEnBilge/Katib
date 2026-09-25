@@ -1,0 +1,11 @@
+.git
+.venv
+**/__pycache__
+**/node_modules
+web/test-results
+web/.e2e
+web/playwright-report
+src/katib/static
+*.db
+katib.toml
+.env
