@@ -139,3 +139,22 @@ def test_a_bad_import_path_is_refused_even_with_dots(tmp_path: Path) -> None:
         sneaky = str(library / ".." / "data")
         res = client.post(f"{API}/projects/{project}/images:import-folder", json={"folder": sneaky})
     assert res.status_code == 403
+
+
+def test_responses_switch_off_browser_features_katib_does_not_use(client: TestClient) -> None:
+    headers = client.get("/api/v1/health").headers
+    assert "camera=()" in headers["permissions-policy"]
+    assert headers["cross-origin-opener-policy"] == "same-origin"
+    assert "strict-transport-security" not in headers  # plain HTTP: HSTS would be ignored
+
+
+def test_hsts_is_sent_only_over_https(client: TestClient) -> None:
+    secure = client.get("/api/v1/health", headers={"x-forwarded-proto": "https"})
+    assert "strict-transport-security" not in secure.headers  # a proxy header alone is not trusted
+
+
+def test_hsts_is_sent_when_a_trusted_proxy_says_https(tmp_path: Path) -> None:
+    settings = Settings(storage={"data_dir": str(tmp_path)}, server={"behind_proxy": True})
+    with TestClient(create_app(settings)) as api:
+        secure = api.get("/api/v1/health", headers={"x-forwarded-proto": "https"})
+        assert "max-age=" in secure.headers["strict-transport-security"]

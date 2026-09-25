@@ -6,7 +6,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, Response
 from starlette.middleware.base import RequestResponseEndpoint
 
-from katib.api.deps import SESSION_COOKIE
+from katib.api.deps import SESSION_COOKIE, is_https
 
 UNSAFE = {"POST", "PUT", "PATCH", "DELETE"}
 
@@ -22,6 +22,10 @@ CSP = "; ".join(
         "form-action 'self'",
     ]
 )
+
+
+# Katib needs none of these, so no page may ask for them, even one that was injected.
+PERMISSIONS = "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()"
 
 
 def install(app: FastAPI) -> None:
@@ -43,4 +47,8 @@ def install(app: FastAPI) -> None:
         response.headers.setdefault("Referrer-Policy", "same-origin")
         response.headers.setdefault("Content-Security-Policy", CSP)
         response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
+        response.headers.setdefault("Permissions-Policy", PERMISSIONS)
+        if is_https(request):
+            response.headers.setdefault("Strict-Transport-Security", "max-age=31536000")
         return response

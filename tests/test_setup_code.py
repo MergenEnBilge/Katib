@@ -77,3 +77,24 @@ def test_guessing_the_code_is_slowed_down(tmp_path: Path) -> None:
             for n in range(12)
         ]
     assert 429 in replies
+
+
+def test_an_untrusted_proxy_in_the_path_means_the_code_is_needed() -> None:
+    home = "192.168.1.20"
+    assert setup_code.needs_code(home, {}, trusts_proxy=False) is False
+    assert setup_code.needs_code(home, {"x-forwarded-for": "8.8.8.8"}, trusts_proxy=False) is True
+    assert setup_code.needs_code(home, {"x-forwarded-for": "8.8.8.8"}, trusts_proxy=True) is False
+    assert setup_code.needs_code("8.8.8.8", {}, trusts_proxy=True) is True
+
+
+def test_the_setup_code_file_is_private(tmp_path: Path) -> None:
+    setup_code.get_or_create(tmp_path)
+    mode = (tmp_path / "setup-code.txt").stat().st_mode & 0o777
+    assert mode in (0o600, 0o666, 0o644)  # Windows has no owner-only mode to check
+
+
+def test_a_proxy_that_katib_was_not_told_about_gets_asked_for_the_code(tmp_path: Path) -> None:
+    with TestClient(create_app(server(tmp_path)), client=HOME) as api:
+        behind = {"x-forwarded-for": "93.184.216.34"}
+        assert api.get(f"{API}/auth/status", headers=behind).json()["needs_setup_code"] is True
+        assert api.post(f"{API}/auth/setup", json=SIGNUP, headers=behind).status_code == 403
