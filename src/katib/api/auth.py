@@ -12,7 +12,9 @@ from katib.api.deps import (
     LimiterDep,
     SessionDep,
     UserDep,
+    client_address,
     find_user,
+    is_https,
     need,
 )
 from katib.config import Settings
@@ -104,7 +106,7 @@ def _set_cookie(request: Request, response: Response, token: str) -> None:
         max_age=auth.SESSION_DAYS * 24 * 3600,
         httponly=True,
         samesite="lax",
-        secure=request.url.scheme == "https",
+        secure=is_https(request),
         path="/",
     )
 
@@ -145,7 +147,7 @@ def login(
 ) -> UserOut:
     keys = [
         f"email:{body.email.strip().lower()}",
-        f"ip:{request.client.host if request.client else '?'}",
+        f"ip:{client_address(request)}",
     ]
     wait = max(limiter.retry_after(k) for k in keys)
     if wait:

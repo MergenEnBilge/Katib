@@ -62,6 +62,25 @@ def find_user(request: HTTPConnection, session: Session) -> User | None:
     return auth.user_for_session(session, cookie) if cookie else None
 
 
+def client_address(request: HTTPConnection) -> str:
+    """Who is asking. Behind a trusted proxy that is the last address it recorded."""
+    settings: Settings = request.app.state.settings
+    if settings.server.behind_proxy:
+        forwarded = request.headers.get("x-forwarded-for", "")
+        last = forwarded.split(",")[-1].strip()
+        if last:
+            return last
+    return request.client.host if request.client else "?"
+
+
+def is_https(request: HTTPConnection) -> bool:
+    """Whether the visitor used HTTPS, even when a proxy handled it and passed on plain HTTP."""
+    settings: Settings = request.app.state.settings
+    if settings.server.behind_proxy:
+        return request.headers.get("x-forwarded-proto", "").split(",")[-1].strip() == "https"
+    return request.url.scheme in ("https", "wss")
+
+
 def get_current_user(request: Request, session: SessionDep) -> User:
     user = find_user(request, session)
     if user is None:

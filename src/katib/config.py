@@ -27,6 +27,9 @@ class ServerSettings(BaseModel):
     port: int = 8420
     # The address people type when Katib sits behind a proxy, for example https://katib.example.com.
     public_url: str = ""
+    # Set when a proxy you control, such as Caddy, is the only way to reach Katib. Katib then
+    # believes the proxy about the visitor's address and whether they used HTTPS.
+    behind_proxy: bool = False
 
 
 class AuthSettings(BaseModel):
