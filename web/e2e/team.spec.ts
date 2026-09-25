@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { LIBRARY } from './fixtures';
+import { connectLibrary } from './fixtures';
 
 const PASSWORD = 'correct horse battery';
 
@@ -23,8 +23,7 @@ test('two people work on one project: invite, presence and a read-only image', a
   const projectUrl = page.url();
 
   await page.getByRole('button', { name: 'Import images' }).last().click();
-  await page.getByLabel('Folder on the Katib computer').fill(LIBRARY);
-  await page.getByRole('button', { name: 'Import folder' }).click();
+  await connectLibrary(page);
   await expect(page.getByText('3 images added.')).toBeVisible();
   await page.getByRole('dialog').getByRole('button', { name: 'Done' }).click();
   await page.getByLabel('New class name').fill('car');
