@@ -6,6 +6,7 @@ from pathlib import Path
 from katib.core.dataset import Format
 from katib.formats.coco import Coco
 from katib.formats.common import FormatError
+from katib.formats.jsonl import TextLines
 from katib.formats.labelme import LabelMe
 from katib.formats.voc import PascalVoc
 from katib.formats.yolo import YoloDetect, YoloObb, YoloSegment
@@ -19,6 +20,7 @@ def _load() -> dict[str, Format]:
         Coco(),
         PascalVoc(),
         LabelMe(),
+        TextLines(),
     )
     found: dict[str, Format] = {f.id: f for f in builtin}
     for entry in entry_points(group="katib.formats"):
