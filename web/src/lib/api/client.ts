@@ -18,6 +18,7 @@ import type {
   Job,
   Lock,
   Member,
+  MlStatus,
   OperationInfo,
   OpResult,
   Person,
@@ -220,6 +221,20 @@ export const api = {
       'GET',
       `/projects/${projectId}/export-info`,
     ),
+
+  ml: {
+    status: () => request<MlStatus>('GET', '/ml'),
+    prelabel: (
+      projectId: string,
+      body: {
+        model: string;
+        threshold: number;
+        only_unlabeled: boolean;
+        create_missing_classes: boolean;
+        class_names?: string[];
+      },
+    ) => request<Job>('POST', `/projects/${projectId}/prelabel`, body),
+  },
 
   share: {
     get: () => request<ShareInfo>('GET', '/share'),
