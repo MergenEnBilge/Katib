@@ -12,9 +12,10 @@ from katib.api.hub import emit
 from katib.api.jobs import job_out
 from katib.api.schemas import FolderImportIn, ImageOut, ImagePageOut, ImagePatch, JobOut, LockOut
 from katib.db.models import User
+from katib.jobs.runner import JobRunner
 from katib.services import access, discussion, images, projects, tasks
 from katib.services.errors import NotFound
-from katib.services.images import ImageRow
+from katib.services.images import ImageRow, StorageContext
 
 router = APIRouter(tags=["images"])
 
@@ -76,6 +77,30 @@ def upload_image(
     return _out(session, ImageRow(image, 0), user)
 
 
+def start_import(
+    runner: JobRunner, storage: StorageContext, project_id: uuid.UUID, folder: str
+) -> JobOut:
+    """Index a folder in the background and return the job that tracks it."""
+    # Fail fast on a bad folder so the person sees the reason now, not in a failed job.
+    images.resolve_folder(folder, storage.allowed_roots)
+    factory = runner.session_factory
+
+    def work(progress: images.Progress) -> dict[str, object]:
+        with factory() as s:
+            report = images.import_folder(s, project_id, folder, storage, progress)
+        return {
+            "added": report.added,
+            "skipped": [{"name": k.name, "reason": k.reason} for k in report.skipped[:200]],
+            "skipped_count": len(report.skipped),
+        }
+
+    job_id = runner.submit("import_images", project_id, {"folder": folder}, work)
+    job = runner.get(job_id)
+    if job is None:
+        raise NotFound("The import job could not be started.")
+    return job_out(job)
+
+
 @router.post("/projects/{project_id}/images:import-folder", response_model=JobOut, status_code=202)
 def import_folder(
     project_id: uuid.UUID,
@@ -87,24 +112,7 @@ def import_folder(
 ) -> JobOut:
     need(session, user, project_id, "manage")
     projects.get_project(session, project_id)
-    # Fail fast on a bad folder so the person sees the reason now, not in a failed job.
-    images.resolve_folder(body.folder, storage.allowed_roots)
-    factory = runner.session_factory
-
-    def work(progress: images.Progress) -> dict[str, object]:
-        with factory() as s:
-            report = images.import_folder(s, project_id, body.folder, storage, progress)
-        return {
-            "added": report.added,
-            "skipped": [{"name": k.name, "reason": k.reason} for k in report.skipped[:200]],
-            "skipped_count": len(report.skipped),
-        }
-
-    job_id = runner.submit("import_images", project_id, {"folder": body.folder}, work)
-    job = runner.get(job_id)
-    if job is None:
-        raise NotFound("The import job could not be started.")
-    return job_out(job)
+    return start_import(runner, storage, project_id, body.folder)
 
 
 @router.get("/images/{image_id}", response_model=ImageOut)
