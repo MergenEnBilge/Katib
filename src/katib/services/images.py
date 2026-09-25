@@ -290,6 +290,7 @@ def list_images(
     q: str | None = None,
     has_annotations: bool | None = None,
     class_id: uuid.UUID | None = None,
+    split: str | None = None,
     after: uuid.UUID | None = None,
     limit: int = 100,
 ) -> ImagePage:
@@ -310,6 +311,10 @@ def list_images(
         stmt = stmt.where(count > 0)
     elif has_annotations is False:
         stmt = stmt.where(count == 0)
+    if split == "none":
+        stmt = stmt.where(Image.split.is_(None))
+    elif split:
+        stmt = stmt.where(Image.split == split)
     if class_id is not None:
         stmt = stmt.where(
             select(Annotation.id)
