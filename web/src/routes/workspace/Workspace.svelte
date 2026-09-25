@@ -239,11 +239,11 @@
 <div class="workspace">
   <header class="bar">
     <div class="group">
-      <IconButton label="Back to projects" onclick={leave}><ArrowLeft size={16} /></IconButton>
+      <IconButton label="Back to projects" onclick={leave}><ArrowLeft size={16} class="mirror" /></IconButton>
       <span class="crumb" title={ws.project?.name}>{ws.project?.name ?? 'Loading'}</span>
       <span class="only-narrow">
         <IconButton label="Show images" onclick={() => ((railOpen = !railOpen), (panelOpen = false))}>
-          <PanelLeft size={16} />
+          <PanelLeft size={16} class="mirror" />
         </IconButton>
       </span>
     </div>
@@ -313,7 +313,7 @@
       </span>
       <span class="only-narrow">
         <IconButton label="Show classes and details" onclick={() => ((panelOpen = !panelOpen), (railOpen = false))}>
-          <PanelRight size={16} />
+          <PanelRight size={16} class="mirror" />
         </IconButton>
       </span>
     </div>
@@ -378,12 +378,12 @@
         </div>
 
         <div class="nav">
-          <IconButton label="Previous image" shortcut="A" onclick={() => ws.step(-1)}><ChevronLeft size={16} /></IconButton>
+          <IconButton label="Previous image" shortcut="A" onclick={() => ws.step(-1)}><ChevronLeft size={16} class="mirror" /></IconButton>
           <div class="where">
             <span class="mono pos">{ws.currentIndex >= 0 ? (ws.currentIndex + 1).toLocaleString() : 0} of {(ws.project?.image_count ?? 0).toLocaleString()}</span>
             <span class="file mono" title={ws.current?.filename}>{ws.current?.filename ?? ''}</span>
           </div>
-          <IconButton label="Next image" shortcut="D" onclick={() => ws.step(1)}><ChevronRight size={16} /></IconButton>
+          <IconButton label="Next image" shortcut="D" onclick={() => ws.step(1)}><ChevronRight size={16} class="mirror" /></IconButton>
         </div>
         <div class="done">
           {#if ws.current?.status === 'done'}
@@ -716,8 +716,19 @@
       transform: translateX(110%);
     }
 
+    /* In a right-to-left language the side panels swap sides, so they slide in from the other edge. */
+    :global([dir='rtl']) .rail-wrap {
+      transform: translateX(110%);
+    }
+
+    :global([dir='rtl']) .panel-wrap {
+      transform: translateX(-110%);
+    }
+
     .rail-wrap.open,
-    .panel-wrap.open {
+    .panel-wrap.open,
+    :global([dir='rtl']) .rail-wrap.open,
+    :global([dir='rtl']) .panel-wrap.open {
       transform: none;
       visibility: visible;
     }

@@ -74,7 +74,7 @@
       <span class="count mono">{plural(ws.project?.image_count ?? 0, 'image')}</span>
     {/if}
     <IconButton label={collapsed ? 'Expand image list' : 'Collapse image list'} shortcut="[" onclick={ontoggle}>
-      <PanelLeft size={16} />
+      <PanelLeft size={16} class="mirror" />
     </IconButton>
   </header>
 
