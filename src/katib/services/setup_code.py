@@ -11,7 +11,7 @@ import secrets
 from pathlib import Path
 
 FILE = "setup-code.txt"
-ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # no 0, O, 1, I or L to mix up
+ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"  # no 0, O, 1, I or L to mix up
 LENGTH = 10
 
 
