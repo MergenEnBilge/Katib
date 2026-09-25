@@ -10,11 +10,13 @@
     Maximize,
     Moon,
     Brush,
+    WandSparkles,
     Diamond,
     MousePointer2,
     Pentagon,
     Waypoints,
     Redo2,
+    Sparkles,
     Square,
     Sun,
     Tags,
@@ -51,6 +53,7 @@
   import HistoryDialog from './HistoryDialog.svelte';
   import ImageRail from './ImageRail.svelte';
   import ImportDialog from './ImportDialog.svelte';
+  import PrelabelDialog from './PrelabelDialog.svelte';
   import ReviewPanel from './ReviewPanel.svelte';
   import ShortcutsDialog from './ShortcutsDialog.svelte';
   import TeamDialog from './TeamDialog.svelte';
@@ -71,6 +74,7 @@
     | 'health'
     | 'shortcuts'
     | 'picker'
+    | 'prelabel'
     | null;
 
   let tool = $state<ToolName>('select');
@@ -85,6 +89,7 @@
     { id: 'select', type: null, label: 'Select', key: 'V' },
     { id: 'box', type: 'box', label: 'Box', key: 'B' },
     { id: 'polygon', type: 'polygon', label: 'Polygon', key: 'P' },
+    { id: 'wand', type: 'polygon', label: 'Magic wand', key: 'W' },
     { id: 'obb', type: 'obb', label: 'Rotated box', key: 'O' },
     { id: 'keypoints', type: 'keypoints', label: 'Keypoints', key: 'K' },
     { id: 'brush', type: 'mask', label: 'Brush mask', key: 'R' },
@@ -146,6 +151,7 @@
       case 'tool:obb':
       case 'tool:keypoints':
       case 'tool:brush':
+      case 'tool:wand':
         if (tools.some((t) => t.id === action.slice(5))) tool = action.slice(5) as ToolName;
         break;
       case 'class-picker':
@@ -246,7 +252,7 @@
       {#each tools as t (t.id)}
         <IconButton label={t.label} shortcut={t.key} onclick={() => (tool = t.id)}>
           <span class="tool" class:active={tool === t.id}>
-            {#if t.id === 'select'}<MousePointer2 size={16} />{:else if t.id === 'box'}<Square size={16} />{:else if t.id === 'polygon'}<Pentagon size={16} />{:else if t.id === 'obb'}<Diamond size={16} />{:else if t.id === 'keypoints'}<Waypoints size={16} />{:else}<Brush size={16} />{/if}
+            {#if t.id === 'select'}<MousePointer2 size={16} />{:else if t.id === 'box'}<Square size={16} />{:else if t.id === 'polygon'}<Pentagon size={16} />{:else if t.id === 'wand'}<WandSparkles size={16} />{:else if t.id === 'obb'}<Diamond size={16} />{:else if t.id === 'keypoints'}<Waypoints size={16} />{:else}<Brush size={16} />{/if}
           </span>
         </IconButton>
       {/each}
@@ -282,6 +288,11 @@
       {#if shared}
         <span class="hide-narrow">
           <IconButton label="Team" onclick={() => (dialog = 'team')}><Users size={16} /></IconButton>
+        </span>
+      {/if}
+      {#if ws.canManage && ws.types.includes('box')}
+        <span class="hide-narrow">
+          <IconButton label="Pre-label with a model" onclick={() => (dialog = 'prelabel')}><Sparkles size={16} /></IconButton>
         </span>
       {/if}
       <span class="hide-narrow">
@@ -417,6 +428,8 @@
   <HealthDialog {ws} onclose={() => (dialog = null)} />
 {:else if dialog === 'shortcuts'}
   <ShortcutsDialog onclose={() => (dialog = null)} />
+{:else if dialog === 'prelabel'}
+  <PrelabelDialog {ws} onclose={() => (dialog = null)} />
 {:else if dialog === 'picker'}
   <ClassPicker {ws} onclose={() => (dialog = null)} />
 {/if}
