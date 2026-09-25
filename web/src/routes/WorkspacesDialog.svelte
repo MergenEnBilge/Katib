@@ -145,7 +145,7 @@
   }
 
   .tabs button.active {
-    color: var(--accent);
+    color: var(--accent-text);
     background: var(--accent-muted);
   }
 
@@ -224,7 +224,7 @@
     display: inline-flex;
     align-items: center;
     gap: var(--space-1);
-    color: var(--accent);
+    color: var(--accent-text);
   }
 
   .x {

@@ -372,7 +372,7 @@
   }
 
   .tile.on {
-    border-color: var(--accent);
+    border-color: var(--accent-text);
     background: var(--accent-muted);
   }
 

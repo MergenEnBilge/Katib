@@ -29,13 +29,13 @@
   }
 
   .in_progress {
-    border-color: var(--accent);
+    border-color: var(--accent-text);
   }
 
   .done,
   .approved {
     background: var(--accent);
-    border-color: var(--accent);
+    border-color: var(--accent-text);
     color: var(--on-accent);
   }
 

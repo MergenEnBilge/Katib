@@ -184,7 +184,7 @@
 
   .link {
     padding: 0;
-    color: var(--accent);
+    color: var(--accent-text);
     background: none;
     border: 0;
     font-size: var(--text-small);
