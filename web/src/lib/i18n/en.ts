@@ -8,6 +8,7 @@
 const en = {
   'nav.projects': 'Projects',
   'nav.inbox': 'Inbox',
+  'nav.settings': 'Settings',
   'nav.main': 'Main',
   'nav.signOut': 'Sign out',
   'nav.localWorkspace': 'Local workspace',

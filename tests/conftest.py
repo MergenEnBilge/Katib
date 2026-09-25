@@ -49,6 +49,14 @@ def database_url(request: pytest.FixtureRequest, tmp_path: Path) -> Iterator[str
 
 
 @pytest.fixture(autouse=True)
+def _private_config_folder(
+    tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Keep tests away from the real folder where the app remembers its data location."""
+    monkeypatch.setenv("KATIB_CONFIG_DIR", str(tmp_path_factory.mktemp("config")))
+
+
+@pytest.fixture(autouse=True)
 def _database_for_the_app(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> None:
     """In Postgres mode every app the tests build uses the per-test schema."""
     if is_postgres(request.config):
