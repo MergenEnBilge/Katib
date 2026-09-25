@@ -9,6 +9,7 @@ services:
       db:
         condition: service_healthy
     environment:
+      KATIB_SERVER__BEHIND_PROXY: "true"
       KATIB_DATABASE__URL: postgresql://katib:${KATIB_DB_PASSWORD:?Set KATIB_DB_PASSWORD in .env}@db/katib
     volumes:
       - katib-data:/data

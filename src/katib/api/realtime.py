@@ -1,6 +1,7 @@
 """The WebSocket endpoint at /api/v1/ws?project=<id>."""
 
 import uuid
+from urllib.parse import urlsplit
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from starlette.concurrency import run_in_threadpool
@@ -32,6 +33,12 @@ def _identify(websocket: WebSocket, project_id: uuid.UUID) -> tuple[uuid.UUID, s
 
 @router.websocket("/ws")
 async def events(websocket: WebSocket, project: uuid.UUID) -> None:
+    # Browsers do not apply the same-site rules to WebSockets the way they do to requests, so
+    # check where the page came from ourselves.
+    origin = websocket.headers.get("origin")
+    if origin and urlsplit(origin).netloc != websocket.headers.get("host", ""):
+        await websocket.close(code=4403)
+        return
     who = await run_in_threadpool(_identify, websocket, project)
     if who is None:
         await websocket.close(code=4401)
