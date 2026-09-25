@@ -32,6 +32,14 @@ uv sync --extra desktop
 uv run katib app
 ```
 
+## Try it first
+
+New to labeling? On the home page, choose **Try it with practice pictures**. Katib makes a small project called *Try Katib* with six pictures, two classes, and one picture already labeled so you can see what finished work looks like. A guided tour opens right away. It points at each part of the workspace and asks you to draw your first box. It takes about two minutes, and you can leave at any point with **Skip the tour**.
+
+The welcome card on the home page keeps a short checklist: create a project, add pictures, add a class, draw a shape, mark a picture done, export your labels. Each item ticks itself off as you do it. Hide the card when you no longer need it.
+
+You can replay the tour or make another practice project whenever you like. Choose **Help** in the sidebar on the home page, or the help button (a question mark) at the top of a workspace.
+
 ## Your first project
 
 1. Choose **New project** and give it a name. Pick the kinds of shapes you will draw. You can only save the kinds you pick.
