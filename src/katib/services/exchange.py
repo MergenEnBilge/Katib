@@ -37,6 +37,7 @@ MAX_NOTES = 200
 class ImportSummary:
     format_id: str
     images_matched: int = 0
+    splits_set: int = 0
     shapes_added: int = 0
     classes_created: list[str] = field(default_factory=list[str])
     unmatched_images: int = 0
@@ -102,6 +103,9 @@ def import_dataset(
         if image is None:
             summary.unmatched_images += 1
             continue
+        if labels.split and image.split is None:
+            image.split = labels.split
+            summary.splits_set += 1
         if image.id in has_shapes:
             summary.notes.append(Note(labels.filename, "Already has shapes, so it was skipped."))
             continue

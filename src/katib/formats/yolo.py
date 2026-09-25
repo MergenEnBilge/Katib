@@ -31,6 +31,7 @@ from katib.core.geometry import (
     polygon_to_box,
     yolo_to_box,
 )
+from katib.core.split import SPLITS, split_from_names
 from katib.core.types import Box, GeometryError, Obb, Polygon, validate_geometry
 from katib.formats.common import FormatError, copy_image, unique_names
 
@@ -57,6 +58,32 @@ def _class_names(root: Path) -> list[str]:
     if classes.is_file():
         return [ln.strip() for ln in classes.read_text(encoding="utf-8").splitlines() if ln.strip()]
     raise FormatError("No class names found. Add a data.yaml with a names list or a classes.txt.")
+
+
+def _yaml_data(root: Path) -> dict[str, Any]:
+    for name in YAML_NAMES:
+        path = root / name
+        if path.is_file():
+            data: Any = yaml.safe_load(path.read_text(encoding="utf-8"))
+            return data if isinstance(data, dict) else {}
+    return {}
+
+
+def _listed_splits(root: Path) -> dict[str, str]:
+    """Splits named by list files, when data.yaml says `train: train.txt`. Keys are image stems."""
+    data = _yaml_data(root)
+    base = root / str(data["path"]) if data.get("path") else root
+    listed: dict[str, str] = {}
+    for split in SPLITS:
+        entry = data.get("valid" if split == "val" and "val" not in data else split)
+        if not isinstance(entry, str) or not entry.endswith(".txt"):
+            continue
+        file = base / entry
+        if file.is_file():
+            for line in file.read_text(encoding="utf-8").splitlines():
+                if line.strip():
+                    listed[Path(line.strip()).stem.lower()] = split
+    return listed
 
 
 def _label_files(root: Path) -> list[Path]:
@@ -102,8 +129,13 @@ class _YoloFamily:
             raise FormatError("Choose the folder that holds data.yaml and the labels.")
         names = _class_names(path)
         result = ParsedDataset(class_names=names, images=[])
+        listed = _listed_splits(path)
         for file in _label_files(path):
-            labels = ImageLabels(filename=file.stem)
+            folders = file.relative_to(path).parts[:-1]
+            labels = ImageLabels(
+                filename=file.stem,
+                split=listed.get(file.stem.lower()) or split_from_names(folders),
+            )
             size = (sizes or {}).get(file.stem.lower())
             lines = file.read_text(encoding="utf-8").splitlines()
             for number, line in enumerate(lines, start=1):
