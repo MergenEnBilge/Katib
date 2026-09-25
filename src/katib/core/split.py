@@ -2,10 +2,42 @@
 
 import hashlib
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
 SPLITS = ("train", "val", "test")
+
+# Folder names datasets commonly use for each split.
+_SPLIT_WORDS = {
+    "train": "train",
+    "training": "train",
+    "val": "val",
+    "valid": "val",
+    "validation": "val",
+    "dev": "val",
+    "test": "test",
+    "testing": "test",
+}
+
+# Starting ratios by the kind of dataset. Small sets of tags can spare fewer images for training.
+PRESETS: dict[str, dict[str, float]] = {
+    "detect": {"train": 0.8, "val": 0.1, "test": 0.1},
+    "segment": {"train": 0.8, "val": 0.1, "test": 0.1},
+    "obb": {"train": 0.8, "val": 0.1, "test": 0.1},
+    "keypoints": {"train": 0.8, "val": 0.2, "test": 0.0},
+    "tags": {"train": 0.7, "val": 0.15, "test": 0.15},
+    "text": {"train": 0.9, "val": 0.05, "test": 0.05},
+}
+
+
+def split_from_names(names: Iterable[str]) -> str | None:
+    """The split a path belongs to, from its folder names. The innermost folder wins."""
+    found = None
+    for name in names:
+        word = _SPLIT_WORDS.get(name.lower())
+        if word:
+            found = word
+    return found
 
 
 @dataclass(frozen=True)
