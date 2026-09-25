@@ -1,0 +1,13 @@
+{
+  "appId": "io.github.mergenenbilge.katib",
+  "appName": "Katib",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true,
+    "allowNavigation": ["*"]
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}

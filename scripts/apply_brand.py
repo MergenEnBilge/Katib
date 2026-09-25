@@ -95,7 +95,8 @@ def main() -> int:
             (web / "brand").mkdir(parents=True, exist_ok=True)
             shutil.copyfile(BRAND / name, web / "brand" / name)
             shutil.copyfile(BRAND / name, web / "icon.svg")
-            print("wrote web/public/brand/logo.svg and web/public/icon.svg")
+            shutil.copyfile(BRAND / name, ROOT / "android-app" / "www" / name)
+            print("wrote web/public/brand/logo.svg, web/public/icon.svg and android-app/www/logo.svg")
     return 0
 
 
