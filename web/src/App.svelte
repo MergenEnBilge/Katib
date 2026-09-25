@@ -11,16 +11,15 @@
   import Callout from './lib/ui/Callout.svelte';
   import EmptyState from './lib/ui/EmptyState.svelte';
   import IconButton from './lib/ui/IconButton.svelte';
+  import Splash from './lib/ui/Splash.svelte';
   import Toast from './lib/ui/Toast.svelte';
   import AuthScreen from './routes/auth/AuthScreen.svelte';
   import InviteScreen from './routes/auth/InviteScreen.svelte';
-  import Gallery from './routes/gallery/Gallery.svelte';
   import Inbox from './routes/Inbox.svelte';
+  import Logo from './lib/ui/Logo.svelte';
   import HelpDialog from './routes/HelpDialog.svelte';
   import Projects from './routes/Projects.svelte';
-  import Settings from './routes/settings/Settings.svelte';
   import WorkspacesDialog from './routes/WorkspacesDialog.svelte';
-  import Workspace from './routes/workspace/Workspace.svelte';
 
   $effect(applyTheme);
   i18n.init(undefined, navigator.languages);
@@ -47,7 +46,7 @@
 </script>
 
 {#if session.phase === 'loading'}
-  <div class="splash" role="status" aria-label={t('loading')}></div>
+  <Splash message={t('loading')} />
 {:else if session.phase === 'error'}
   <main class="center">
     <Callout tone="danger">
@@ -63,18 +62,25 @@
   <AuthScreen kind="signin" />
 {:else if route.name === 'gallery'}
   {#key route.projectId}
-    <Gallery projectId={route.projectId} />
+    {#await import('./routes/gallery/Gallery.svelte')}
+      <Splash message="Opening the class gallery" />
+    {:then { default: Gallery }}
+      <Gallery projectId={route.projectId} />
+    {/await}
   {/key}
 {:else if route.name === 'workspace'}
   {#key route.projectId}
-    <Workspace projectId={route.projectId} />
+    {#await import('./routes/workspace/Workspace.svelte')}
+      <Splash message="Opening your project" />
+    {:then { default: Workspace }}
+      <Workspace projectId={route.projectId} />
+    {/await}
   {/key}
 {:else}
   <div class="home">
     <aside class="sidebar">
       <div class="brand">
-        <span class="logo">Katib</span>
-        <span class="version mono">dev</span>
+        <Logo size={26} wordmark />
       </div>
 
       <nav aria-label={t('nav.main')}>
@@ -130,7 +136,11 @@
       {:else if route.name === 'inbox'}
         <Inbox />
       {:else if route.name === 'settings'}
-        <Settings />
+        {#await import('./routes/settings/Settings.svelte')}
+          <Splash message="Opening settings" />
+        {:then { default: Settings }}
+          <Settings />
+        {/await}
       {:else}
         <EmptyState
           title={t('notFound.title')}
@@ -155,7 +165,6 @@
 {/if}
 
 <style>
-  .splash,
   .center {
     display: grid;
     place-items: center;
@@ -183,16 +192,6 @@
     height: var(--header-h);
     padding-inline: var(--space-4);
     border-block-end: 1px solid var(--border);
-  }
-
-  .logo {
-    font-weight: 700;
-    font-size: var(--text-heading);
-  }
-
-  .version {
-    font-size: var(--text-overline);
-    color: var(--text-3);
   }
 
   nav {

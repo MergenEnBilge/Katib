@@ -130,7 +130,7 @@
         Some saved settings apply after Katib restarts.
         {#snippet action()}
           {#if data?.info.can_restart}
-            <Button variant="primary" disabled={restarting} onclick={restart}>{restarting ? 'Restarting...' : 'Restart Katib now'}</Button>
+            <Button variant="primary" loading={restarting} onclick={restart}>{restarting ? 'Restarting...' : 'Restart Katib now'}</Button>
           {:else}
             <span class="quiet">Close Katib and open it again.</span>
           {/if}
@@ -175,7 +175,7 @@
         <div class="save">
           <span class="count">{changed.length ? plural(changed.length, 'change') + ' not saved' : 'No changes'}</span>
           <Button disabled={changed.length === 0 || busy} onclick={() => (draft = {})}>Discard</Button>
-          <Button variant="primary" disabled={changed.length === 0 || busy} onclick={save}>{busy ? 'Saving...' : 'Save changes'}</Button>
+          <Button variant="primary" loading={busy} disabled={changed.length === 0} onclick={save}>{busy ? 'Saving...' : 'Save changes'}</Button>
         </div>
       {:else if tab === 'backup'}
         <BackupPanel database={data.info.database} />

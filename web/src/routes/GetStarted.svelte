@@ -18,8 +18,8 @@
       the practice project. It comes with pictures, classes and a guided tour, and takes about two minutes.
     </p>
     <div class="buttons">
-      <Button variant="primary" disabled={busy} onclick={onsample}>
-        <Sparkles size={16} />{busy ? 'Making it...' : 'Try it with practice pictures'}
+      <Button variant="primary" loading={busy} onclick={onsample}>
+        {#if !busy}<Sparkles size={16} />{/if}{busy ? 'Making it...' : 'Try it with practice pictures'}
       </Button>
       <Button onclick={onnew}>Start my own project</Button>
     </div>

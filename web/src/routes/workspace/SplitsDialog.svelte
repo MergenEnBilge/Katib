@@ -182,7 +182,7 @@
   {#snippet footer()}
     <Button onclick={onclose}>Close</Button>
     {#if canEdit && total > 0}
-      <Button variant="primary" disabled={busy || !preview || preview.moved === 0} onclick={apply}>
+      <Button variant="primary" loading={busy} disabled={!preview || preview.moved === 0} onclick={apply}>
         {confirming ? 'Yes, shuffle' : hasSplit && !onlyNew ? 'Reshuffle' : 'Split images'}
       </Button>
     {/if}
