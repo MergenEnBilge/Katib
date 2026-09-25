@@ -1,5 +1,6 @@
 import { api, ApiError, setUnauthorizedHandler } from '../api/client';
 import type { Person } from '../api/types';
+import { forgetCachedImages } from '../sync/offline';
 
 export type Phase = 'loading' | 'error' | 'setup' | 'signed-out' | 'ready';
 
@@ -26,6 +27,7 @@ setUnauthorizedHandler(() => {
   if (phase === 'ready' && mode === 'local') {
     user = null;
     phase = 'signed-out';
+    void forgetCachedImages();
   }
 });
 
@@ -58,6 +60,7 @@ export const session = {
   },
   async signOut(): Promise<void> {
     await api.auth.logout().catch(() => undefined);
+    await forgetCachedImages();
     user = null;
     phase = 'signed-out';
   },
