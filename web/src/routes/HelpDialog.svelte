@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { BookOpen, Compass, Keyboard, Lightbulb, MessageCircleQuestion } from '@lucide/svelte';
+  import { BookOpen, Compass, Keyboard, Lightbulb, MessageCircleQuestion, Route } from '@lucide/svelte';
   import type { Component } from 'svelte';
+  import { tips } from '../lib/state/tips.svelte';
   import Modal from '../lib/ui/Modal.svelte';
 
   const GUIDE = 'https://github.com/MergenEnBilge/Katib/tree/main/docs';
@@ -9,11 +10,14 @@
   let {
     onclose,
     ontour,
+    tours = [],
     onsample,
     onshortcuts,
   }: {
     onclose: () => void;
     ontour?: () => void;
+    /** Tours of other screens, so someone can learn a part before they get there. */
+    tours?: { label: string; note: string; run: () => void }[];
     onsample?: () => void;
     onshortcuts?: () => void;
   } = $props();
@@ -29,6 +33,7 @@
   const items = $derived<Item[]>(
     [
       ontour && { icon: Compass, title: 'Take the tour', note: 'A one-minute walk around this workspace.', run: ontour },
+      ...tours.map((t) => ({ icon: Route, title: t.label, note: t.note, run: t.run })),
       onsample && {
         icon: Lightbulb,
         title: 'Practice with sample pictures',
@@ -60,6 +65,14 @@
       </li>
     {/each}
   </ul>
+
+  <div class="tips">
+    <label class="switch">
+      <input type="checkbox" checked={tips.on} onchange={(e) => tips.setOn(e.currentTarget.checked)} />
+      Show a short tip the first time I use a tool or window
+    </label>
+    <button type="button" class="again" onclick={() => tips.reset()}>Show every tip again</button>
+  </div>
 </Modal>
 
 <style>
@@ -92,6 +105,33 @@
   button:hover {
     background: var(--accent-muted);
     border-color: var(--accent);
+  }
+
+  .tips {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-block-start: var(--space-4);
+    padding-block-start: var(--space-3);
+    border-block-start: 1px solid var(--border);
+    font-size: var(--text-small);
+    color: var(--text-2);
+  }
+
+  .switch {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .again {
+    align-self: flex-start;
+    padding: 0;
+    color: var(--text-2);
+    text-decoration: underline;
+    background: none;
+    border: 0;
+    cursor: pointer;
   }
 
   span {

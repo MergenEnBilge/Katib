@@ -1,4 +1,5 @@
 <script lang="ts">
+  import TipCard from '../../lib/ui/TipCard.svelte';
   import { ArrowLeft, Check, Trash } from '@lucide/svelte';
   import { onMount, untrack } from 'svelte';
   import { SvelteSet } from 'svelte/reactivity';
@@ -155,6 +156,8 @@
     <h1>{project?.name ?? 'Loading'} <span class="sub">Class gallery</span></h1>
   </header>
 
+  <div class="tipwrap"><TipCard id="page:gallery" /></div>
+
   <div class="filters">
     <label>
       <span>Class</span>
@@ -273,6 +276,11 @@
 <Toast />
 
 <style>
+  .tipwrap {
+    padding-inline: var(--space-4);
+    padding-block-start: var(--space-3);
+  }
+
   .page {
     display: flex;
     flex-direction: column;

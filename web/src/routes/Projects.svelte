@@ -66,13 +66,15 @@
 <header class="page-header">
   <h1>{t('projects.title')}</h1>
   <div class="actions">
-    <label class="search">
+    <label class="search" data-tour="search">
       <Search size={16} aria-hidden="true" />
       <input type="search" placeholder={t('projects.search')} aria-label={t('projects.search')} bind:value={search} />
     </label>
-    <Button variant="primary" onclick={() => (creating = true)}>
-      <Plus size={16} />{t('projects.new')}
-    </Button>
+    <span data-tour="new-project">
+      <Button variant="primary" onclick={() => (creating = true)}>
+        <Plus size={16} />{t('projects.new')}
+      </Button>
+    </span>
   </div>
 </header>
 
