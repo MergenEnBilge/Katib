@@ -155,6 +155,7 @@
       }
       const r = job.result as {
         images_matched: number;
+        splits_set: number;
         unmatched_images: number;
         shapes_added: number;
         classes_created: string[];
@@ -164,6 +165,7 @@
       summary = [
         `${plural(r.shapes_added, 'shape')} added to ${plural(r.images_matched, 'image')}.`,
         r.unmatched_images ? `${plural(r.unmatched_images, 'label file')} had no matching image.` : '',
+        r.splits_set ? `${plural(r.splits_set, 'image')} put in the train, validation or test split the dataset used.` : '',
         r.classes_created.length ? `New classes: ${r.classes_created.join(', ')}.` : '',
       ].filter(Boolean);
       notes = r.notes;

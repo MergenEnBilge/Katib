@@ -2,6 +2,7 @@
   import { ImageIcon, PanelLeft, Upload } from '@lucide/svelte';
   import { api } from '../../lib/api/client';
   import { plural } from '../../lib/format';
+  import { SPLIT_LABELS } from '../../lib/splits';
   import type { StatusFilter, Workspace } from '../../lib/state/workspace.svelte';
   import Button from '../../lib/ui/Button.svelte';
   import Callout from '../../lib/ui/Callout.svelte';
@@ -86,6 +87,16 @@
         aria-label="Filter by filename"
         bind:value={search}
       />
+      <select
+        aria-label="Filter by split"
+        value={ws.splitFilter}
+        onchange={(e) => ws.setSplitFilter(e.currentTarget.value)}
+      >
+        <option value="all">Any split</option>
+        {#each ['train', 'val', 'test', 'none'] as name (name)}
+          <option value={name}>{SPLIT_LABELS[name as keyof typeof SPLIT_LABELS]}</option>
+        {/each}
+      </select>
       <div class="chips" role="group" aria-label="Filter by status">
         {#each chips as chip (chip.id)}
           <button
@@ -117,7 +128,7 @@
     </div>
   {:else if ws.images.length === 0 && !collapsed}
     <div class="pad">
-      {#if ws.search || ws.statusFilter !== 'all'}
+      {#if ws.search || ws.statusFilter !== 'all' || ws.splitFilter !== 'all'}
         <p class="none">No images match this filter.</p>
       {:else}
         <EmptyState
@@ -151,6 +162,9 @@
                     <span class="name mono">{image.filename}</span>
                     <span class="meta">{plural(image.annotation_count, 'shape')}</span>
                   </span>
+                  {#if image.split}
+                    <span class="split {image.split}" title={SPLIT_LABELS[image.split as keyof typeof SPLIT_LABELS]}>{image.split[0]}</span>
+                  {/if}
                   <StatusDot status={image.status} />
                 {/if}
               </button>
@@ -200,6 +214,35 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
+  }
+
+  select {
+    height: var(--h-button-sm);
+    padding-inline: var(--space-2);
+    background: var(--bg);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-control);
+  }
+
+  .split {
+    display: inline-grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    font: 600 10px var(--font-mono);
+    text-transform: uppercase;
+    color: var(--on-accent);
+    background: var(--accent);
+    border-radius: var(--radius-swatch);
+  }
+
+  .split.val {
+    background: var(--warning);
+  }
+
+  .split.test {
+    color: var(--bg);
+    background: var(--text-2);
   }
 
   input {

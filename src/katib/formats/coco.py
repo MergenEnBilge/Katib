@@ -4,6 +4,7 @@ Boxes, polygons and keypoints. Rotated boxes are written as polygons.
 """
 
 import json
+import re
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -19,6 +20,7 @@ from katib.core.dataset import (
     SkeletonSpec,
 )
 from katib.core.geometry import obb_to_polygon, pixels_to_box, pixels_to_polygon, polygon_area
+from katib.core.split import split_from_names
 from katib.core.types import (
     Box,
     GeometryError,
@@ -33,13 +35,7 @@ from katib.formats.common import FormatError, copy_image, unique_names
 OUTPUT = "annotations.json"
 
 
-def _load(path: Path) -> dict[str, Any]:
-    file = path
-    if path.is_dir():
-        candidates = sorted(path.glob("*.json")) + sorted((path / "annotations").glob("*.json"))
-        if not candidates:
-            raise FormatError("No .json annotation file found in that folder.")
-        file = candidates[0]
+def _read_file(file: Path) -> dict[str, Any]:
     try:
         raw: Any = json.loads(file.read_text(encoding="utf-8"))
     except (OSError, ValueError) as err:
@@ -49,6 +45,25 @@ def _load(path: Path) -> dict[str, Any]:
         raise FormatError(f"{file.name} needs images, annotations and categories to be COCO.")
     data: dict[str, Any] = raw  # type: ignore[assignment]
     return data
+
+
+def _load(path: Path) -> list[tuple[Path, dict[str, Any]]]:
+    """Every COCO file at `path`. A folder may hold one per split, as our own export writes."""
+    if not path.is_dir():
+        return [(path, _read_file(path))]
+    candidates = sorted(path.glob("*.json")) + sorted((path / "annotations").glob("*.json"))
+    if not candidates:
+        raise FormatError("No .json annotation file found in that folder.")
+    found: list[tuple[Path, dict[str, Any]]] = []
+    for file in candidates:
+        try:
+            found.append((file, _read_file(file)))
+        except FormatError:
+            if len(candidates) == 1:
+                raise
+    if not found:
+        raise FormatError("None of the .json files in that folder are COCO annotations.")
+    return found
 
 
 def _unit(value: float) -> float:
@@ -68,9 +83,16 @@ class Coco:
         return True
 
     def read(self, path: Path, sizes: Mapping[str, tuple[int, int]] | None = None) -> ParsedDataset:
-        data = _load(path)
+        result = ParsedDataset(class_names=[], images=[])
+        for file, data in _load(path):
+            self._read_file(file, data, result)
+        return result
+
+    def _read_file(self, file: Path, data: dict[str, Any], result: ParsedDataset) -> None:
+        # instances_train2017.json and val.json say which split they hold.
+        split = split_from_names(re.findall(r"[a-z]+", file.stem.lower()))
         categories: dict[int, str] = {int(c["id"]): str(c["name"]) for c in data["categories"]}
-        result = ParsedDataset(class_names=list(categories.values()), images=[])
+        result.class_names.extend(n for n in categories.values() if n not in result.class_names)
         for category in data["categories"]:
             names = category.get("keypoints")
             if isinstance(names, list) and names:
@@ -84,12 +106,12 @@ class Coco:
                 filename=Path(str(img["file_name"])).name,
                 width=img.get("width"),
                 height=img.get("height"),
+                split=split,
             )
             by_id[int(img["id"])] = labels
             result.images.append(labels)
         for ann in data["annotations"]:
             self._read_annotation(ann, categories, by_id, result)
-        return result
 
     def _read_annotation(
         self,

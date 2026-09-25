@@ -16,6 +16,7 @@
     Pentagon,
     Waypoints,
     Redo2,
+    Shuffle,
     Sparkles,
     Square,
     Sun,
@@ -56,6 +57,7 @@
   import PrelabelDialog from './PrelabelDialog.svelte';
   import ReviewPanel from './ReviewPanel.svelte';
   import ShortcutsDialog from './ShortcutsDialog.svelte';
+  import SplitsDialog from './SplitsDialog.svelte';
   import TeamDialog from './TeamDialog.svelte';
 
   let { projectId }: { projectId: string } = $props();
@@ -75,6 +77,7 @@
     | 'shortcuts'
     | 'picker'
     | 'prelabel'
+    | 'splits'
     | null;
 
   let tool = $state<ToolName>('select');
@@ -285,6 +288,11 @@
       </button>
       <span class="hide-narrow"><Button onclick={() => (dialog = 'import-images')}><Upload size={16} />Import</Button></span>
       <span class="hide-narrow"><Button onclick={() => (dialog = 'export')}><Download size={16} />Export</Button></span>
+      {#if ws.canManage}
+        <span class="hide-narrow">
+          <IconButton label="Train, validation and test split" onclick={() => (dialog = 'splits')}><Shuffle size={16} /></IconButton>
+        </span>
+      {/if}
       {#if shared}
         <span class="hide-narrow">
           <IconButton label="Team" onclick={() => (dialog = 'team')}><Users size={16} /></IconButton>
@@ -394,6 +402,20 @@
             </Button>
           {/if}
         </div>
+        {#if ws.currentId && ws.canManage}
+          <label class="split-pick">
+            <span>Split</span>
+            <select
+              value={ws.current?.split ?? ''}
+              onchange={(e) => ws.setImageSplit(e.currentTarget.value || null)}
+            >
+              <option value="">None</option>
+              <option value="train">Train</option>
+              <option value="val">Validation</option>
+              <option value="test">Test</option>
+            </select>
+          </label>
+        {/if}
 
         <div class="tab-body">
           {#if tab === 'classes'}
@@ -430,6 +452,8 @@
   <ShortcutsDialog onclose={() => (dialog = null)} />
 {:else if dialog === 'prelabel'}
   <PrelabelDialog {ws} onclose={() => (dialog = null)} />
+{:else if dialog === 'splits'}
+  <SplitsDialog {ws} onclose={() => (dialog = null)} />
 {:else if dialog === 'picker'}
   <ClassPicker {ws} onclose={() => (dialog = null)} />
 {/if}
@@ -676,6 +700,25 @@
   .done :global(.button) {
     width: 100%;
     justify-content: center;
+  }
+
+  .split-pick {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    border-block-end: 1px solid var(--border);
+    color: var(--text-2);
+  }
+
+  .split-pick select {
+    height: var(--h-button-sm);
+    padding-inline: var(--space-2);
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-control);
   }
 
   .tab-body {
