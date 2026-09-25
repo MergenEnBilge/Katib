@@ -414,6 +414,7 @@
           <label class="split-pick">
             <span>Split</span>
             <select
+              aria-label="Split for this image"
               value={ws.current?.split ?? ''}
               onchange={(e) => ws.setImageSplit(e.currentTarget.value || null)}
             >
