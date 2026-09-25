@@ -4,6 +4,7 @@
   import { router } from '../../lib/state/router.svelte';
   import { session } from '../../lib/state/session.svelte';
   import Button from '../../lib/ui/Button.svelte';
+  import Logo from '../../lib/ui/Logo.svelte';
   import TextField from '../../lib/ui/TextField.svelte';
 
   /** `setup` creates the first administrator. `signin` asks for credentials. `invite` joins a project. */
@@ -61,7 +62,7 @@
       void submit();
     }}
   >
-    <p class="logo">Katib</p>
+    <div class="logo"><Logo size={40} wordmark /></div>
     <h1>{title}</h1>
     {#if lead}<p class="lead">{lead}</p>{/if}
 
@@ -84,7 +85,7 @@
     </label>
     {#if error}<p class="error" role="alert">{error}</p>{/if}
 
-    <Button variant="primary" disabled={busy || !email.trim() || !password} onclick={submit}
+    <Button variant="primary" loading={busy} disabled={!email.trim() || !password} onclick={submit}
       >{kind === 'signin' ? t('auth.signin.submit') : kind === 'setup' ? t('auth.setup.submit') : t('auth.invite.submit')}</Button
     >
     <button type="submit" class="hidden" tabindex="-1" aria-hidden="true">Submit</button>

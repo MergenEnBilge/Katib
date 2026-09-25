@@ -160,7 +160,7 @@
 
   {#snippet footer()}
     <Button onclick={onclose}>Close</Button>
-    <Button variant="primary" disabled={busy || ws.classes.length === 0} onclick={run}>
+    <Button variant="primary" loading={busy} disabled={ws.classes.length === 0} onclick={run}>
       {busy ? 'Exporting...' : 'Export'}
     </Button>
   {/snippet}

@@ -217,7 +217,7 @@
       {#if picking}
         <FolderPicker onpick={connectFolder} oncancel={() => (picking = false)} />
       {:else}
-        <div><Button variant="primary" disabled={busy} onclick={() => (picking = true)}><FolderOpen size={16} />Connect a folder</Button></div>
+        <div><Button variant="primary" loading={busy} onclick={() => (picking = true)}><FolderOpen size={16} />Connect a folder</Button></div>
         <p class="note">Katib reads the images where they are. Nothing is copied or changed. Connect a folder once, then use the refresh button to pick up new photos.</p>
       {/if}
       <details class="typed">
@@ -231,7 +231,7 @@
         <span>Or upload from this device</span>
         <input type="file" multiple accept="image/jpeg,image/png,image/webp,image/bmp,image/tiff" bind:files />
       </label>
-      <div><Button disabled={busy || !files || files.length === 0} onclick={upload}>Upload {files && files.length ? plural(files.length, 'file') : ''}</Button></div>
+      <div><Button loading={busy} disabled={!files || files.length === 0} onclick={upload}>Upload {files && files.length ? plural(files.length, 'file') : ''}</Button></div>
     </div>
   {:else}
     <div class="section">
@@ -249,7 +249,7 @@
         </select>
       </label>
       <p class="note">Images that already have shapes are skipped, so importing the same file twice does not duplicate anything.</p>
-      <div><Button variant="primary" disabled={busy || !labelPath.trim()} onclick={importLabels}>Import labels</Button></div>
+      <div><Button variant="primary" loading={busy} disabled={!labelPath.trim()} onclick={importLabels}>Import labels</Button></div>
     </div>
   {/if}
 
