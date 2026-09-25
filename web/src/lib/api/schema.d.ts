@@ -522,6 +522,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{project_id}/splits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Splits */
+        get: operations["get_splits_api_v1_projects__project_id__splits_get"];
+        /** Save Split Settings */
+        put: operations["save_split_settings_api_v1_projects__project_id__splits_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/splits:shuffle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Shuffle Splits */
+        post: operations["shuffle_splits_api_v1_projects__project_id__splits_shuffle_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/images:assign-split": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Assign Split */
+        post: operations["assign_split_api_v1_projects__project_id__images_assign_split_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/images/{image_id}/annotations": {
         parameters: {
             query?: never;
@@ -1069,18 +1121,6 @@ export interface components {
             /** Version */
             version: number;
         };
-        /** AssignIn */
-        AssignIn: {
-            /** Image Ids */
-            image_ids: string[];
-            /** Assignee Id */
-            assignee_id?: string | null;
-        };
-        /** AssignOut */
-        AssignOut: {
-            /** Assigned */
-            assigned: number;
-        };
         /** AttrDef */
         AttrDef: {
             /** Name */
@@ -1266,6 +1306,11 @@ export interface components {
             /** Format */
             format: string;
             split?: components["schemas"]["SplitIn"] | null;
+            /**
+             * Use Saved Splits
+             * @default true
+             */
+            use_saved_splits: boolean;
             /** Statuses */
             statuses?: ("todo" | "in_progress" | "done")[] | null;
             /**
@@ -1362,6 +1407,8 @@ export interface components {
             height: number;
             /** Status */
             status: string;
+            /** Split */
+            split?: string | null;
             /** Position */
             position: number;
             /** Version */
@@ -1785,6 +1832,45 @@ export interface components {
             /** Secure */
             secure: boolean;
         };
+        /** ShuffleIn */
+        ShuffleIn: {
+            /** Ratios */
+            ratios?: {
+                [key: string]: number;
+            };
+            /**
+             * Seed
+             * @default 0
+             */
+            seed: number;
+            /**
+             * Stratify
+             * @default false
+             */
+            stratify: boolean;
+            /**
+             * Only Unassigned
+             * @default false
+             */
+            only_unassigned: boolean;
+            /**
+             * Dry Run
+             * @default false
+             */
+            dry_run: boolean;
+        };
+        /** ShuffleOut */
+        ShuffleOut: {
+            /** Dry Run */
+            dry_run: boolean;
+            /** Counts */
+            counts: {
+                [key: string]: number;
+            };
+            /** Moved */
+            moved: number;
+            operation?: components["schemas"]["OperationOut"] | null;
+        };
         /**
          * Skeleton
          * @description Landmark names in drawing order, and pairs of positions that are joined by a line.
@@ -1797,6 +1883,23 @@ export interface components {
                 number,
                 number
             ][];
+        };
+        /** SplitConfigIn */
+        SplitConfigIn: {
+            /** Ratios */
+            ratios?: {
+                [key: string]: number;
+            };
+            /**
+             * Seed
+             * @default 0
+             */
+            seed: number;
+            /**
+             * Stratify
+             * @default false
+             */
+            stratify: boolean;
         };
         /** SplitIn */
         SplitIn: {
@@ -1825,6 +1928,29 @@ export interface components {
              * @default false
              */
             stratify: boolean;
+        };
+        /** SplitOut */
+        SplitOut: {
+            /** Counts */
+            counts: {
+                [key: string]: number;
+            };
+            /** Ratios */
+            ratios: {
+                [key: string]: number;
+            };
+            /** Seed */
+            seed: number;
+            /** Stratify */
+            stratify: boolean;
+            /** Kind */
+            kind: string;
+            /** Presets */
+            presets: {
+                [key: string]: {
+                    [key: string]: number;
+                };
+            };
         };
         /** StatusOut */
         StatusOut: {
@@ -1892,6 +2018,30 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** AssignIn */
+        katib__api__splits__AssignIn: {
+            /** Image Ids */
+            image_ids: string[];
+            /** Split */
+            split?: string | null;
+        };
+        /** AssignOut */
+        katib__api__splits__AssignOut: {
+            /** Changed */
+            changed: number;
+        };
+        /** AssignIn */
+        katib__api__tasks__AssignIn: {
+            /** Image Ids */
+            image_ids: string[];
+            /** Assignee Id */
+            assignee_id?: string | null;
+        };
+        /** AssignOut */
+        katib__api__tasks__AssignOut: {
+            /** Assigned */
+            assigned: number;
         };
     };
     responses: never;
@@ -2853,6 +3003,7 @@ export interface operations {
                 q?: string | null;
                 has_annotations?: boolean | null;
                 class_id?: string | null;
+                split?: string | null;
                 after?: string | null;
                 limit?: number;
             };
@@ -3082,6 +3233,142 @@ export interface operations {
             };
         };
     };
+    get_splits_api_v1_projects__project_id__splits_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_split_settings_api_v1_projects__project_id__splits_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SplitConfigIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SplitOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    shuffle_splits_api_v1_projects__project_id__splits_shuffle_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShuffleIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShuffleOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assign_split_api_v1_projects__project_id__images_assign_split_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["katib__api__splits__AssignIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["katib__api__splits__AssignOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_annotations_api_v1_images__image_id__annotations_get: {
         parameters: {
             query?: never;
@@ -3291,7 +3578,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AssignIn"];
+                "application/json": components["schemas"]["katib__api__tasks__AssignIn"];
             };
         };
         responses: {
@@ -3301,7 +3588,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AssignOut"];
+                    "application/json": components["schemas"]["katib__api__tasks__AssignOut"];
                 };
             };
             /** @description Validation Error */
