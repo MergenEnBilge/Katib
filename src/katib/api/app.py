@@ -6,8 +6,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi import FastAPI
 
 from katib.api import (
     annotations,
@@ -31,6 +30,7 @@ from katib.api import (
     tasks,
 )
 from katib.api.hub import Hub
+from katib.api.serving import CompressApi, mount_ui
 from katib.auth.ratelimit import LoginLimiter
 from katib.config import Settings
 from katib.db.migrate import upgrade_to_head
@@ -116,21 +116,6 @@ def create_app(settings: Settings) -> FastAPI:
         share,
     ):
         app.include_router(module.router, prefix="/api/v1")
-    _mount_ui(app)
+    mount_ui(app, STATIC_DIR)
+    app.add_middleware(CompressApi)
     return app
-
-
-def _mount_ui(app: FastAPI) -> None:
-    """Serve the built frontend, with index.html as the fallback for client-side routes."""
-    index = STATIC_DIR / "index.html"
-    if not index.is_file():
-        return
-
-    @app.get("/{path:path}", include_in_schema=False)
-    def ui(path: str) -> FileResponse:
-        if path.startswith("api/"):
-            raise HTTPException(status_code=404)
-        target = (STATIC_DIR / path).resolve()
-        if path and target.is_file() and STATIC_DIR.resolve() in target.parents:
-            return FileResponse(target)
-        return FileResponse(index)
