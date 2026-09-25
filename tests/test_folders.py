@@ -153,3 +153,28 @@ def test_on_a_shared_server_only_the_administrator_connects_new_folders(
         assert inside.status_code == 200
         assert inside.json()["parent"] is None
         assert manager.get(f"{API}/folders", params={"path": str(tmp_path)}).status_code == 403
+
+
+def test_folder_names_become_splits(tmp_path: Path) -> None:
+    lib = tmp_path / "dataset"
+    photo(lib / "images" / "train" / "a.png", "red")
+    photo(lib / "images" / "val" / "b.png", "blue")
+    photo(lib / "images" / "other" / "c.png", "green")
+    with TestClient(
+        create_app(
+            Settings(
+                storage={"data_dir": str(tmp_path / "data"), "allowed_import_roots": [str(lib)]}
+            )
+        )
+    ) as api:
+        pid = new_project(api)
+        job = api.post(
+            f"{API}/projects/{pid}/images:import-folder", json={"folder": str(lib)}
+        ).json()
+        assert wait_job(api, job["id"])["status"] == "done"
+        items = api.get(f"{API}/projects/{pid}/images").json()["items"]
+    assert {i["filename"]: i["split"] for i in items} == {
+        "a.png": "train",
+        "b.png": "val",
+        "c.png": None,
+    }
