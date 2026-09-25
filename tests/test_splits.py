@@ -140,3 +140,11 @@ def test_export_uses_the_saved_split(api: TestClient, project: str, tmp_path: Pa
     assert any(n.startswith("labels/train/") for n in names)
     assert any(n.startswith("labels/test/") for n in names)
     assert not any(n.startswith("labels/val/") for n in names)
+
+
+def test_ratios_are_saved_as_shares_of_one(api: TestClient, project: str) -> None:
+    body = {"ratios": {"train": 70, "val": 20, "test": 10}, "dry_run": True}
+    api.post(f"{API}/projects/{project}/splits:shuffle", json=body)
+    body["dry_run"] = False
+    api.post(f"{API}/projects/{project}/splits:shuffle", json=body)
+    assert state(api, project)["ratios"] == {"train": 0.7, "val": 0.2, "test": 0.1}
