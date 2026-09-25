@@ -34,3 +34,5 @@ site/
 
 dist/
 build/
+android-app/node_modules/
+android-app/android/
