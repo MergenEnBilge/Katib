@@ -81,7 +81,9 @@ def export_dataset(
     if body.split:
         ratios = {"train": body.split.train, "val": body.split.val, "test": body.split.test}
         split = SplitSpec(ratios, body.split.seed, body.split.stratify)
-    opts = ExportOptions(copy_images=body.copy_images, split=split)
+    opts = ExportOptions(
+        copy_images=body.copy_images, split=split, use_saved_splits=body.use_saved_splits
+    )
 
     def work(progress: Progress) -> dict[str, object]:
         name = f"{body.format}-{uuid.uuid4().hex[:12]}"
