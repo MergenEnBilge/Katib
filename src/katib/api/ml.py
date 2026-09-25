@@ -7,7 +7,7 @@ from pathlib import Path
 from fastapi import APIRouter, Request
 
 from katib.api.class_ops import OpsStorage
-from katib.api.deps import RunnerDep, SessionDep, StorageDep, UserDep, need
+from katib.api.deps import AnywhereDep, RunnerDep, SessionDep, StorageDep, UserDep, need
 from katib.api.jobs import job_out
 from katib.api.schemas import JobOut, MlModelOut, MlStatusOut, PrelabelIn
 from katib.config import Settings
@@ -33,7 +33,7 @@ def _settings(request: Request) -> Settings:
 
 
 @router.get("/ml", response_model=MlStatusOut)
-def status(request: Request, user: UserDep) -> MlStatusOut:
+def status(request: Request, user: UserDep, anywhere: AnywhereDep) -> MlStatusOut:
     settings = _settings(request)
     folder = settings.models_dir
     installed = onnx.is_available()
@@ -45,7 +45,11 @@ def status(request: Request, user: UserDep) -> MlStatusOut:
                 MlModelOut(name=name, classes=_class_names(str(path), path.stat().st_mtime))
             )
     return MlStatusOut(
-        enabled=settings.ml.enabled, installed=installed, models_dir=str(folder), models=models
+        enabled=settings.ml.enabled,
+        installed=installed,
+        # Where files live on the server is only for the people who can put files there.
+        models_dir=str(folder) if anywhere else "",
+        models=models,
     )
 
 
