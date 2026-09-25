@@ -56,7 +56,7 @@
     background: none;
     border: 0;
     padding: 0;
-    color: var(--accent);
+    color: var(--accent-text);
     font-weight: 500;
     cursor: pointer;
   }

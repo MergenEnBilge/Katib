@@ -210,7 +210,7 @@
   }
 
   .tabs button.active {
-    color: var(--accent);
+    color: var(--accent-text);
     background: var(--accent-muted);
   }
 

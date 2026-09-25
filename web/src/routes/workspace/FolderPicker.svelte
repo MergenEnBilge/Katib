@@ -129,7 +129,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     direction: rtl;
-    text-align: left;
+    text-align: start;
   }
 
   .list {
@@ -150,7 +150,7 @@
     width: 100%;
     padding: var(--space-2) var(--space-3);
     color: var(--text);
-    text-align: left;
+    text-align: start;
     background: transparent;
     border: 0;
     cursor: pointer;

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { ApiError } from '../../lib/api/client';
+  import { t } from '../../lib/i18n/index.svelte';
   import { router } from '../../lib/state/router.svelte';
   import { session } from '../../lib/state/session.svelte';
   import Button from '../../lib/ui/Button.svelte';
@@ -19,14 +20,18 @@
   let busy = $state(false);
 
   const title = $derived(
-    kind === 'setup' ? 'Set up Katib' : kind === 'invite' ? 'Create your account' : 'Sign in',
+    kind === 'setup'
+      ? t('auth.setup.title')
+      : kind === 'invite'
+        ? t('auth.invite.title')
+        : t('auth.signin.title'),
   );
   const lead = $derived(
     kind === 'setup'
-      ? 'Create the administrator account. This screen only appears while no account exists.'
+      ? t('auth.setup.lead')
       : kind === 'invite'
         ? inviteText
-        : 'Use the account you were given.',
+        : t('auth.signin.lead'),
   );
 
   async function submit(): Promise<void> {
@@ -40,7 +45,7 @@
         router.navigate('/');
       } else await session.signIn(email, password);
     } catch (err) {
-      error = err instanceof ApiError ? err.message : 'Something went wrong. Try again.';
+      error = err instanceof ApiError ? err.message : t('auth.failed');
     } finally {
       busy = false;
     }
@@ -59,24 +64,24 @@
     <h1>{title}</h1>
     {#if lead}<p class="lead">{lead}</p>{/if}
 
-    <TextField label="Email" bind:value={email} placeholder="you@example.com" />
+    <TextField label={t('auth.email')} bind:value={email} placeholder="you@example.com" />
     {#if kind !== 'signin'}
-      <TextField label="Your name" bind:value={name} />
+      <TextField label={t('auth.name')} bind:value={name} />
     {/if}
     <label class="pw">
-      <span>Password</span>
+      <span>{t('auth.password')}</span>
       <input
         type="password"
         bind:value={password}
         autocomplete={kind === 'signin' ? 'current-password' : 'new-password'}
         aria-invalid={error ? 'true' : undefined}
       />
-      {#if kind !== 'signin'}<small>At least 10 characters.</small>{/if}
+      {#if kind !== 'signin'}<small>{t('auth.passwordHint')}</small>{/if}
     </label>
     {#if error}<p class="error" role="alert">{error}</p>{/if}
 
     <Button variant="primary" disabled={busy || !email.trim() || !password} onclick={submit}
-      >{kind === 'signin' ? 'Sign in' : kind === 'setup' ? 'Create administrator' : 'Create account'}</Button
+      >{kind === 'signin' ? t('auth.signin.submit') : kind === 'setup' ? t('auth.setup.submit') : t('auth.invite.submit')}</Button
     >
     <button type="submit" class="hidden" tabindex="-1" aria-hidden="true">Submit</button>
   </form>
