@@ -95,6 +95,17 @@ def create(
     return BackupReport(len(files) + 1, written)
 
 
+def remove_old_backups(exports: Path, older_than_hours: int = 24) -> int:
+    """Delete backup zips made a while ago. They hold every password hash, so none should linger."""
+    cutoff = datetime.now(UTC).timestamp() - older_than_hours * 3600
+    removed = 0
+    for file in exports.glob("katib-backup-*.zip"):
+        if file.stat().st_mtime < cutoff:
+            file.unlink(missing_ok=True)
+            removed += 1
+    return removed
+
+
 def restore(archive_path: Path, data_dir: Path, replace: bool = False) -> BackupReport:
     """Unpack a backup into the data folder. Refuses to overwrite a database unless told to."""
     if not zipfile.is_zipfile(archive_path):

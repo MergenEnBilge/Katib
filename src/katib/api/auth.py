@@ -119,6 +119,12 @@ def _settings(request: Request) -> Settings:
     return settings
 
 
+def _needs_code(request: Request) -> bool:
+    return setup_code.needs_code(
+        client_address(request), request.headers, _settings(request).server.behind_proxy
+    )
+
+
 @router.get("/auth/status", response_model=StatusOut)
 def status(request: Request, session: SessionDep) -> StatusOut:
     settings = _settings(request)
@@ -127,7 +133,7 @@ def status(request: Request, session: SessionDep) -> StatusOut:
     return StatusOut(
         mode=settings.auth.mode,
         needs_setup=needs_setup,
-        needs_setup_code=needs_setup and not setup_code.is_local_address(client_address(request)),
+        needs_setup_code=needs_setup and _needs_code(request),
         user=_user(user) if user else None,
     )
 
@@ -144,7 +150,7 @@ def setup(
     if settings.auth.mode != "local":
         raise Forbidden('Accounts are off. Turn on auth.mode = "local" to create them.')
     address = client_address(request)
-    if not setup_code.is_local_address(address):
+    if _needs_code(request):
         key = f"setup:{address}"
         wait = limiter.retry_after(key)
         if wait:
