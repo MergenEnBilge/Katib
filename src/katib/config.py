@@ -8,6 +8,7 @@ file at all.
 
 from __future__ import annotations
 
+import contextlib
 import ipaddress
 import json
 import os
@@ -150,6 +151,8 @@ def _write_json(path: Path, data: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     scratch = path.with_suffix(".tmp")
     scratch.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    with contextlib.suppress(OSError):  # not every file system has permissions
+        scratch.chmod(0o600)
     scratch.replace(path)
 
 
