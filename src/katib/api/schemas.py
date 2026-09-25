@@ -252,5 +252,6 @@ class SplitIn(BaseModel):
 class ExportIn(BaseModel):
     format: str
     split: SplitIn | None = None
+    use_saved_splits: bool = True
     statuses: list[Literal["todo", "in_progress", "done"]] | None = None
     copy_images: bool = False

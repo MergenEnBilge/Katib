@@ -20,12 +20,11 @@ from katib.core.dataset import (
     Shape,
     SkeletonSpec,
 )
-from katib.core.split import SplitError, SplitItem, assign_splits
 from katib.core.types import GeometryError, validate_geometry
 from katib.db.ids import new_id
 from katib.db.models import Annotation, Class, Image, Project
 from katib.formats import FormatError, detect_format, get_format
-from katib.services import classes
+from katib.services import classes, splits
 from katib.services.errors import InvalidInput, NotFound
 from katib.services.images import StorageContext, image_path
 
@@ -222,28 +221,21 @@ def _class_order(session: Session, project_id: uuid.UUID) -> list[str]:
 def _assign_splits(
     session: Session, project_id: uuid.UUID, opts: ExportOptions, statuses: list[str] | None
 ) -> dict[uuid.UUID, str]:
+    """The split for each exported image: a fresh one when asked for, else the saved one."""
     spec = opts.split
-    if spec is None:
+    if spec is not None:
+        config = splits.SplitConfig(spec.ratios, spec.seed, spec.stratify)
+        return splits.plan(session, project_id, config, statuses=statuses).assignments
+    if not opts.use_saved_splits:
         return {}
-    stmt = select(Image.id).where(Image.project_id == project_id)
+    stmt = select(Image.id, Image.split).where(Image.project_id == project_id)
     if statuses:
         stmt = stmt.where(Image.status.in_(statuses))
-    ids = list(session.scalars(stmt))
-    classes_by_image: dict[uuid.UUID, set[str]] = {i: set() for i in ids}
-    if spec.stratify:
-        rows = session.execute(
-            select(Annotation.image_id, Annotation.class_id)
-            .where(Annotation.image_id.in_(ids), Annotation.class_id.is_not(None))
-            .distinct()
-        )
-        for image_id, class_id in rows:
-            classes_by_image[image_id].add(str(class_id))
-    items = [SplitItem(str(i), frozenset(c)) for i, c in classes_by_image.items()]
-    try:
-        chosen = assign_splits(items, spec.ratios, spec.seed, spec.stratify)
-    except SplitError as err:
-        raise InvalidInput(str(err)) from err
-    return {uuid.UUID(k): v for k, v in chosen.items()}
+    saved = {image_id: name for image_id, name in session.execute(stmt)}
+    if not any(saved.values()):
+        return {}
+    # Images with no split yet go with the training images.
+    return {image_id: name or "train" for image_id, name in saved.items()}
 
 
 def export_info(session: Session, project_id: uuid.UUID) -> dict[str, object]:
