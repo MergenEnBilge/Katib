@@ -77,10 +77,11 @@ def get_config(session: Session, project_id: uuid.UUID) -> tuple[SplitConfig, st
 def save_config(session: Session, project_id: uuid.UUID, config: SplitConfig) -> None:
     _check_ratios(config.ratios)
     project = _project(session, project_id)
+    total = sum(config.ratios.values())
     project.settings = {
         **project.settings,
         "split": {
-            "ratios": {name: config.ratios.get(name, 0.0) for name in SPLITS},
+            "ratios": {name: round(config.ratios.get(name, 0.0) / total, 4) for name in SPLITS},
             "seed": config.seed,
             "stratify": config.stratify,
         },
