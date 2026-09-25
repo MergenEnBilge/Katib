@@ -38,7 +38,7 @@ Your browser opens on Katib. Nothing else is needed: the data lives in a small l
 ### Your first project
 
 1. Choose **New project** and give it a name.
-2. Choose **Import images**. You can upload files from your computer, or point Katib at a folder (see [Using a folder of images](#using-a-folder-of-images)).
+2. Choose **Import images**. You can upload files from your computer, or connect a folder (see [Using a folder of images](#using-a-folder-of-images)).
 3. In the **Classes** tab on the right, add a class such as `car`.
 4. Press **B** for the box tool, drag on the image, and release. Press **P** for polygons: click to add points, then press **Enter** or click the first point to close the shape.
 5. Press **Shift+Enter** to mark the image as done and move to the next one.
@@ -48,14 +48,16 @@ Press **?** at any time to see every shortcut.
 
 ### Using a folder of images
 
-Katib reads images where they are. It never copies, moves or changes your originals. For safety, it only reads folders you allow. Create a file named `katib.toml` next to this README:
+Choose **Import images**, then **Connect a folder**. Katib shows the folders on your computer, starting from your home folder and drives. Click your way to the photos and press **Use this folder**. Katib reads the images where they are. It never copies, moves or changes your originals.
+
+The folder stays connected to the project. When you add more photos to it later, open **Import images** and press the refresh button next to the folder. Only the new images are added. Disconnecting a folder keeps the images already in the project.
+
+On a shared server, only the administrator can connect a new folder. Everyone else can import from folders that are already connected. You can also allow folders ahead of time in `katib.toml`:
 
 ```toml
 [storage]
 allowed_import_roots = ["/data/photos"]
 ```
-
-On Windows, use forward slashes, for example `"C:/Users/you/Pictures"`. Restart Katib, then paste that folder path into **Import images**.
 
 ## Working with a team
 
@@ -108,7 +110,7 @@ Katib runs without any settings. To change something, create `katib.toml` in the
 | `auth.mode` | `none` | `none` for one person on one computer, `local` for accounts |
 | `database.url` | SQLite in your data folder | Where projects are stored |
 | `storage.data_dir` | Your user data folder | Where Katib keeps its database, thumbnails and uploads |
-| `storage.allowed_import_roots` | none | Folders Katib may read images from |
+| `storage.allowed_import_roots` | none | Folders that everyone on a shared server may import from |
 | `limits.max_upload_mb` | `50` | Largest file the browser may upload |
 | `limits.operation_retention_days` | `30` | How long bulk changes stay undoable |
 

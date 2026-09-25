@@ -7,6 +7,9 @@ import type {
   BatchOp,
   ClassOp,
   Comment,
+  ConnectedFolder,
+  ConnectResult,
+  FolderListing,
   FormatInfo,
   Health,
   ImageItem,
@@ -207,6 +210,18 @@ export const api = {
       'GET',
       `/projects/${projectId}/export-info`,
     ),
+
+  folders: {
+    browse: (path?: string) => request<FolderListing>('GET', `/folders${query({ path })}`),
+    connected: (projectId: string) =>
+      request<ConnectedFolder[]>('GET', `/projects/${projectId}/folders`),
+    connect: (projectId: string, path: string) =>
+      request<ConnectResult>('POST', `/projects/${projectId}/folders`, { path }),
+    rescan: (projectId: string, folderId: string) =>
+      request<Job>('POST', `/projects/${projectId}/folders/${folderId}:rescan`),
+    disconnect: (projectId: string, folderId: string) =>
+      request<void>('DELETE', `/projects/${projectId}/folders/${folderId}`),
+  },
 
   images: {
     list: (projectId: string, filter: ImageFilter = {}) =>
