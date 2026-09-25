@@ -27,6 +27,9 @@ ml = []
 postgres = [
     "psycopg[binary]>=3.2",
 ]
+desktop = [
+    "pywebview>=5",
+]
 
 [project.scripts]
 katib = "katib.cli:app"
