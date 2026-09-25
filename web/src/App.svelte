@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Inbox as InboxIcon, Layers, LogOut, Moon, Sun } from '@lucide/svelte';
   import { onMount } from 'svelte';
+  import { sendWaitingEdits } from './lib/sync/offline';
   import { router } from './lib/state/router.svelte';
   import { session } from './lib/state/session.svelte';
   import { applyTheme, theme } from './lib/state/theme.svelte';
@@ -19,6 +20,15 @@
 
   $effect(applyTheme);
   onMount(() => void session.load());
+
+  // Edits made offline in an earlier visit go out as soon as someone is signed in.
+  let sentWaiting = false;
+  $effect(() => {
+    if (session.phase === 'ready' && !sentWaiting) {
+      sentWaiting = true;
+      void sendWaitingEdits();
+    }
+  });
 
   let showWorkspaces = $state(false);
 
