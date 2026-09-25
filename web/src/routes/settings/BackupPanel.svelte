@@ -65,7 +65,7 @@
     </Callout>
   {/if}
   <div class="actions">
-    <Button variant="primary" disabled={busy} onclick={run}>
+    <Button variant="primary" loading={busy} onclick={run}>
       {busy ? `Backing up ${Math.round(progress * 100)}%` : 'Make a backup'}
     </Button>
   </div>

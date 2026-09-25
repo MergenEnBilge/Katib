@@ -156,7 +156,7 @@ enabled = true</pre>
   {#snippet footer()}
     <Button onclick={onclose}>Close</Button>
     {#if ready}
-      <Button variant="primary" disabled={busy || !model || (needsNames && !names.trim())} onclick={run}>
+      <Button variant="primary" loading={busy} disabled={!model || (needsNames && !names.trim())} onclick={run}>
         <Sparkles size={16} />Run the model
       </Button>
     {/if}
