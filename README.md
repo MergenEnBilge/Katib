@@ -202,6 +202,10 @@ Katib runs without any settings. To change something, create `katib.toml` in the
 - Passwords are stored with argon2id. Session and invite tokens are stored only as hashes.
 - Your original images are only ever read.
 
+## Documentation
+
+The full guide is in the `docs` folder: drawing and shortcuts, formats, teams, running a server, the API and security. To read it as a website, run `uv run --group docs mkdocs serve`.
+
 ## For developers
 
 The backend is Python with FastAPI and SQLAlchemy. The frontend is Svelte 5 with TypeScript, and the drawing canvas is a small engine that does not depend on Svelte. `ARCHITECTURE.md` explains how the pieces fit together and `DESIGN.md` describes the interface.
