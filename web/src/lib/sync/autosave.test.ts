@@ -93,6 +93,20 @@ describe('Autosave', () => {
     expect(model.get('a')?.version).toBe(1);
   });
 
+  it('sends no class for text that has none', async () => {
+    const { model, api, autosave } = setup();
+    model.commit([
+      {
+        kind: 'create',
+        shape: { id: 't', type: 'text', classId: '', geometry: { text: 'A red door.' }, attrs: {}, version: 0 },
+      },
+    ]);
+    await autosave.flush();
+    const [op] = api.calls[0] as BatchOp[];
+    expect(op?.class_id).toBeNull();
+    expect(op?.geometry).toEqual({ text: 'A red door.' });
+  });
+
   it('collapses create then delete into nothing', async () => {
     const { model, api, autosave, states } = setup();
     const s = shape('a');

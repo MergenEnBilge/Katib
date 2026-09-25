@@ -132,13 +132,13 @@ export class Autosave {
           op: 'create',
           id,
           type: shape.type,
-          class_id: shape.classId,
+          class_id: shape.classId || null,
           geometry: shape.geometry as unknown as Record<string, unknown>,
           attrs: shape.attrs,
         });
       } else if (shape && known) {
         const patch: Record<string, unknown> = {};
-        if (fields.has('class')) patch.class_id = shape.classId;
+        if (fields.has('class')) patch.class_id = shape.classId || null;
         if (fields.has('geometry')) patch.geometry = shape.geometry;
         if (fields.has('attrs')) patch.attrs = shape.attrs;
         ops.push({ op: 'update', id, if_version: this.versions.get(id) ?? null, patch });
