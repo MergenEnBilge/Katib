@@ -74,7 +74,7 @@ def _preview(p: class_ops.Preview) -> PreviewOut:
     )
 
 
-def _operation(op: Operation) -> OperationOut:
+def operation_out(op: Operation) -> OperationOut:
     return OperationOut(
         id=op.id,
         kind=op.kind,
@@ -89,7 +89,7 @@ def _done(result: class_ops.OperationResult, session: Session | None = None) -> 
     if session is not None:
         emit(session.info, result.operation.project_id, {"type": "class.changed"})
     return ClassOpOut(
-        dry_run=False, preview=_preview(result.preview), operation=_operation(result.operation)
+        dry_run=False, preview=_preview(result.preview), operation=operation_out(result.operation)
     )
 
 
@@ -141,7 +141,7 @@ def list_operations(
 ) -> list[OperationOut]:
     need(session, user, project_id, "view")
     projects.get_project(session, project_id)
-    return [_operation(o) for o in class_ops.list_operations(session, project_id)]
+    return [operation_out(o) for o in class_ops.list_operations(session, project_id)]
 
 
 @router.post("/operations/{operation_id}:revert", response_model=RevertOut)

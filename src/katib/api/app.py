@@ -26,6 +26,7 @@ from katib.api import (
     realtime,
     security,
     share,
+    splits,
     tasks,
 )
 from katib.api.hub import Hub
@@ -90,6 +91,7 @@ def create_app(settings: Settings) -> FastAPI:
         classes,
         class_ops,
         images,
+        splits,
         annotations,
         quality,
         tasks,
