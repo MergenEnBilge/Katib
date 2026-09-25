@@ -29,6 +29,7 @@ nav:
       - Model help: assist.md
   - Teams and servers:
       - Working together: teams.md
+      - Put Katib online: deploy.md
       - Running a server: server.md
   - Automating:
       - REST API and Python client: automation.md

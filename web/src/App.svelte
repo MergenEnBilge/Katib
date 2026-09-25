@@ -1,9 +1,10 @@
 <script lang="ts">
-  import { Inbox as InboxIcon, Layers, LogOut, Moon, Settings as SettingsIcon, Sun } from '@lucide/svelte';
+  import { CircleHelp, Inbox as InboxIcon, Layers, LogOut, Moon, Settings as SettingsIcon, Sun } from '@lucide/svelte';
   import { onMount } from 'svelte';
   import { i18n, t } from './lib/i18n/index.svelte';
   import { sendWaitingEdits } from './lib/sync/offline';
   import { router } from './lib/state/router.svelte';
+  import { startPractice } from './lib/state/practice';
   import { session } from './lib/state/session.svelte';
   import { applyTheme, theme } from './lib/state/theme.svelte';
   import Button from './lib/ui/Button.svelte';
@@ -15,6 +16,7 @@
   import InviteScreen from './routes/auth/InviteScreen.svelte';
   import Gallery from './routes/gallery/Gallery.svelte';
   import Inbox from './routes/Inbox.svelte';
+  import HelpDialog from './routes/HelpDialog.svelte';
   import Projects from './routes/Projects.svelte';
   import Settings from './routes/settings/Settings.svelte';
   import WorkspacesDialog from './routes/WorkspacesDialog.svelte';
@@ -34,6 +36,7 @@
   });
 
   let showWorkspaces = $state(false);
+  let showHelp = $state(false);
 
   const route = $derived(router.route);
 
@@ -93,6 +96,9 @@
           aria-current={route.name === 'settings' ? 'page' : undefined}
           onclick={(e) => go(e, '/settings')}><SettingsIcon size={16} />{t('nav.settings')}</a
         >
+        <button type="button" class="nav-item" onclick={() => (showHelp = true)}
+          ><CircleHelp size={16} />{t('nav.help')}</button
+        >
       </nav>
 
       <div class="sidebar-footer">
@@ -139,6 +145,12 @@
     </main>
   </div>
   {#if showWorkspaces}<WorkspacesDialog onclose={() => (showWorkspaces = false)} />{/if}
+  {#if showHelp}
+    <HelpDialog
+      onclose={() => (showHelp = false)}
+      onsample={() => ((showHelp = false), startPractice())}
+    />
+  {/if}
   <Toast />
 {/if}
 
@@ -197,6 +209,19 @@
     color: var(--text-2);
     text-decoration: none;
     border-radius: var(--radius-control);
+  }
+
+  button.nav-item {
+    width: 100%;
+    font: inherit;
+    text-align: start;
+    background: none;
+    border: 0;
+    cursor: pointer;
+  }
+
+  .nav-item:hover:not([aria-current='page']) {
+    background: var(--surface-2);
   }
 
   .nav-item[aria-current='page'] {

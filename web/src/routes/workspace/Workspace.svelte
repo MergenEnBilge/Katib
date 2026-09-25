@@ -3,6 +3,7 @@
     ArrowLeft,
     Check,
     Download,
+    CircleHelp,
     Keyboard,
     LayoutGrid,
     Stethoscope,
@@ -36,6 +37,8 @@
   import { router } from '../../lib/state/router.svelte';
   import { applyTheme, theme } from '../../lib/state/theme.svelte';
   import { session } from '../../lib/state/session.svelte';
+  import { onboarding } from '../../lib/state/onboarding.svelte';
+  import { startPractice } from '../../lib/state/practice';
   import { toasts } from '../../lib/state/toast.svelte';
   import { Workspace } from '../../lib/state/workspace.svelte';
   import Avatar from '../../lib/ui/Avatar.svelte';
@@ -48,6 +51,7 @@
   import ClassManagerDialog from './ClassManagerDialog.svelte';
   import ClassPicker from './ClassPicker.svelte';
   import ClassesPanel from './ClassesPanel.svelte';
+  import HelpDialog from '../HelpDialog.svelte';
   import DetailsPanel from './DetailsPanel.svelte';
   import ExportDialog from './ExportDialog.svelte';
   import HealthDialog from './HealthDialog.svelte';
@@ -60,6 +64,7 @@
   import SplitsDialog from './SplitsDialog.svelte';
   import TeamDialog from './TeamDialog.svelte';
   import TextPanel from './TextPanel.svelte';
+  import Tour from './Tour.svelte';
 
   let { projectId }: { projectId: string } = $props();
 
@@ -79,6 +84,7 @@
     | 'picker'
     | 'prelabel'
     | 'splits'
+    | 'help'
     | null;
 
   let tool = $state<ToolName>('select');
@@ -88,6 +94,7 @@
   let railOpen = $state(false);
   let panelOpen = $state(false);
   let zoom = $state(100);
+  let touring = $state(false);
 
   const allTools: { id: ToolName; type: string | null; label: string; key: string }[] = [
     { id: 'select', type: null, label: 'Select', key: 'V' },
@@ -123,6 +130,11 @@
 
   onMount(() => {
     void ws.init();
+    // The practice project opens with the tour already running.
+    if (new URLSearchParams(location.search).get('tour') === '1') {
+      history.replaceState(null, '', location.pathname);
+      touring = true;
+    }
     const beforeUnload = (e: BeforeUnloadEvent): void => {
       if (ws.pending > 0) {
         void ws.flushNow();
@@ -259,7 +271,7 @@
       </span>
     </div>
 
-    <div class="group tools" role="group" aria-label="Tools">
+    <div class="group tools" role="group" aria-label="Tools" data-tour="tools">
       {#each tools as t (t.id)}
         <IconButton label={t.label} shortcut={t.key} onclick={() => (tool = t.id)}>
           <span class="tool" class:active={tool === t.id}>
@@ -295,9 +307,9 @@
         <span class="pip"></span><span class="save-text">{saveLabel}</span>
       </button>
       <span class="hide-narrow"><Button onclick={() => (dialog = 'import-images')}><Upload size={16} />Import</Button></span>
-      <span class="hide-narrow"><Button onclick={() => (dialog = 'export')}><Download size={16} />Export</Button></span>
+      <span class="hide-narrow" data-tour="export"><Button onclick={() => (dialog = 'export')}><Download size={16} />Export</Button></span>
       {#if ws.canManage}
-        <span class="hide-narrow">
+        <span class="hide-narrow" data-tour="split">
           <IconButton label="Train, validation and test split" onclick={() => (dialog = 'splits')}><Shuffle size={16} /></IconButton>
         </span>
       {/if}
@@ -319,6 +331,7 @@
       </span>
       <span class="hide-narrow"><IconButton label="Class manager" shortcut="M" onclick={() => (dialog = 'classes')}><Tags size={16} /></IconButton></span>
       <span class="hide-narrow"><IconButton label="Keyboard shortcuts" shortcut="?" onclick={() => (dialog = 'shortcuts')}><Keyboard size={16} /></IconButton></span>
+      <span class="hide-narrow" data-tour="help"><IconButton label="Help and tour" onclick={() => (dialog = 'help')}><CircleHelp size={16} /></IconButton></span>
       <span class="hide-narrow">
         <IconButton
           label={theme.current === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
@@ -347,7 +360,7 @@
     </div>
   {:else}
     <div class="body">
-      <div class="rail-wrap" class:open={railOpen}>
+      <div class="rail-wrap" class:open={railOpen} data-tour="images">
         <ImageRail
           {ws}
           collapsed={railCollapsed}
@@ -356,7 +369,7 @@
         />
       </div>
 
-      <main class="canvas">
+      <main class="canvas" data-tour="canvas">
         <CanvasView {ws} {tool} onzoom={(p) => (zoom = p)} />
         {#if ws.currentId && ws.readOnly}
           <div class="banner" role="status">
@@ -383,10 +396,10 @@
         {/if}
       </main>
 
-      <aside class="panel-wrap" class:open={panelOpen} aria-label="Classes and details">
+      <aside class="panel-wrap" class:open={panelOpen} aria-label="Classes and details" data-tour="classes">
         <div class="tabs" role="tablist">
           {#each panelTabs as [id, label] (id)}
-            <button type="button" role="tab" aria-selected={tab === id} class:active={tab === id} onclick={() => (tab = id as typeof tab)}>
+            <button type="button" role="tab" aria-selected={tab === id} class:active={tab === id} data-tour={id === 'text' ? 'text' : undefined} onclick={() => (tab = id as typeof tab)}>
               {label}
               {#if id === 'details' && ws.selectionCount > 0}<span class="badge mono">{ws.selectionCount}</span>{/if}
             </button>
@@ -401,7 +414,7 @@
           </div>
           <IconButton label="Next image" shortcut="D" onclick={() => ws.step(1)}><ChevronRight size={16} class="mirror" /></IconButton>
         </div>
-        <div class="done">
+        <div class="done" data-tour="done">
           {#if ws.current?.status === 'done'}
             <Button onclick={() => ws.reopen()}><Check size={16} />Done. Reopen</Button>
           {:else}
@@ -446,7 +459,10 @@
   <ImportDialog
     projectId={ws.projectId}
     initialTab={dialog === 'import-labels' ? 'labels' : 'images'}
-    ondone={() => ws.refresh()}
+    ondone={() => {
+      onboarding.mark('images');
+      void ws.refresh();
+    }}
     onclose={() => (dialog = null)}
   />
 {:else if dialog === 'export'}
@@ -465,8 +481,19 @@
   <PrelabelDialog {ws} onclose={() => (dialog = null)} />
 {:else if dialog === 'splits'}
   <SplitsDialog {ws} onclose={() => (dialog = null)} />
+{:else if dialog === 'help'}
+  <HelpDialog
+    onclose={() => (dialog = null)}
+    ontour={() => ((dialog = null), (touring = true))}
+    onsample={() => ((dialog = null), startPractice())}
+    onshortcuts={() => (dialog = 'shortcuts')}
+  />
 {:else if dialog === 'picker'}
   <ClassPicker {ws} onclose={() => (dialog = null)} />
+{/if}
+
+{#if touring && ws.project}
+  <Tour {ws} onclose={() => (touring = false)} />
 {/if}
 
 <Toast />

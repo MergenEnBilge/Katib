@@ -112,8 +112,8 @@ export function setUnauthorizedHandler(handler: UnauthorizedHandler | null): voi
 export const api = {
   auth: {
     status: () => request<AuthStatus>('GET', '/auth/status'),
-    setup: (email: string, name: string, password: string) =>
-      request<Person>('POST', '/auth/setup', { email, name, password }),
+    setup: (email: string, name: string, password: string, setupCode = '') =>
+      request<Person>('POST', '/auth/setup', { email, name, password, setup_code: setupCode }),
     login: (email: string, password: string) =>
       request<Person>('POST', '/auth/login', { email, password }),
     logout: () => request<void>('POST', '/auth/logout'),
@@ -173,6 +173,7 @@ export const api = {
       request<Project>('POST', '/projects', { name, annotation_types: annotationTypes }),
     rename: (id: string, name: string) => request<Project>('PATCH', `/projects/${id}`, { name }),
     remove: (id: string) => request<void>('DELETE', `/projects/${id}`),
+    createSample: () => request<Project>('POST', '/samples'),
   },
 
   classes: {

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { api, ApiError } from '../lib/api/client';
   import type { Project } from '../lib/api/types';
+  import { onboarding } from '../lib/state/onboarding.svelte';
   import Button from '../lib/ui/Button.svelte';
   import Modal from '../lib/ui/Modal.svelte';
   import TextField from '../lib/ui/TextField.svelte';
@@ -28,7 +29,9 @@
     error = '';
     busy = true;
     try {
-      oncreated(await api.projects.create(name, chosen));
+      const created = await api.projects.create(name, chosen);
+      onboarding.mark('project');
+      oncreated(created);
     } catch (err) {
       error = err instanceof ApiError ? err.message : 'Could not create the project.';
     } finally {

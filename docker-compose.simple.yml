@@ -1,0 +1,20 @@
+# Katib on one machine, with nothing else to set up. Your projects live in a Docker volume.
+#
+#   docker compose -f docker-compose.simple.yml up -d
+#
+# Then open http://localhost:8420. For a team with HTTPS, use docker-compose.yml instead.
+
+services:
+  katib:
+    image: ghcr.io/mergenenbilge/katib:latest
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8420:8420"
+    volumes:
+      - katib-data:/data
+      # Photos you want to label. Connect /photos from the Import window.
+      - ${KATIB_PHOTOS:-./photos}:/photos:ro
+
+volumes:
+  katib-data:

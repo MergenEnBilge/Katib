@@ -37,8 +37,10 @@ from katib.db.migrate import upgrade_to_head
 from katib.db.session import make_engine, make_session_factory
 from katib.jobs.runner import JobRunner
 from katib.services import app_settings as settings_service
+from katib.services import auth as auth_service
 from katib.services import class_ops as class_ops_service
 from katib.services import folders as folders_service
+from katib.services import setup_code
 from katib.services.images import StorageContext
 from katib.storage.imaging import set_pixel_limit
 from katib.storage.local import LocalStorage
@@ -70,6 +72,12 @@ def create_app(settings: Settings) -> FastAPI:
                 s, app.state.operations, settings.limits.operation_retention_days
             )
             s.commit()
+            if settings.auth.mode == "local" and not auth_service.has_users(s):
+                log.warning(
+                    "Katib is waiting for its first administrator. If you open it from outside "
+                    "your own network you will be asked for the setup code: %s",
+                    setup_code.get_or_create(settings.data_dir),
+                )
         app.state.hub.bind(asyncio.get_running_loop())
         app.state.runner = JobRunner(app.state.session_factory)
         app.state.runner.fail_interrupted()
