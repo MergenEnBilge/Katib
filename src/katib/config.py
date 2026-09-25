@@ -52,6 +52,8 @@ class LimitSettings(BaseModel):
 
 class MlSettings(BaseModel):
     enabled: bool = False
+    # Where the .onnx models for pre-labeling live. Empty means "models" in the data folder.
+    models_dir: str = ""
 
 
 class Settings(BaseSettings):
@@ -98,6 +100,12 @@ class Settings(BaseSettings):
         if self.storage.data_dir:
             return Path(self.storage.data_dir).expanduser()
         return user_data_path("katib", appauthor=False)
+
+    @property
+    def models_dir(self) -> Path:
+        if self.ml.models_dir:
+            return Path(self.ml.models_dir).expanduser()
+        return self.data_dir / "models"
 
     @property
     def database_url(self) -> str:

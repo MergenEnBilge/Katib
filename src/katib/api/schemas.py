@@ -161,6 +161,29 @@ class ShareOut(BaseModel):
     secure: bool
 
 
+class MlModelOut(BaseModel):
+    name: str
+    classes: list[str] | None
+
+
+class MlStatusOut(BaseModel):
+    """Whether pre-labeling can run, and what is needed if it cannot."""
+
+    enabled: bool
+    installed: bool
+    models_dir: str
+    models: list[MlModelOut]
+
+
+class PrelabelIn(BaseModel):
+    model: str
+    threshold: float = 0.25
+    only_unlabeled: bool = True
+    create_missing_classes: bool = True
+    # For models that do not carry their class names. One name per class, in the model's order.
+    class_names: list[str] | None = None
+
+
 class ConnectResultOut(BaseModel):
     folder: ConnectedFolderOut
     job: JobOut
