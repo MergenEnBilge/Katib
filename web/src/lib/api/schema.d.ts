@@ -928,6 +928,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ml": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Status */
+        get: operations["status_api_v1_ml_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/prelabel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start */
+        post: operations["start_api_v1_projects__project_id__prelabel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/share": {
         parameters: {
             query?: never;
@@ -1493,6 +1527,27 @@ export interface components {
              */
             dry_run: boolean;
         };
+        /** MlModelOut */
+        MlModelOut: {
+            /** Name */
+            name: string;
+            /** Classes */
+            classes: string[] | null;
+        };
+        /**
+         * MlStatusOut
+         * @description Whether pre-labeling can run, and what is needed if it cannot.
+         */
+        MlStatusOut: {
+            /** Enabled */
+            enabled: boolean;
+            /** Installed */
+            installed: boolean;
+            /** Models Dir */
+            models_dir: string;
+            /** Models */
+            models: components["schemas"]["MlModelOut"][];
+        };
         /** NextOut */
         NextOut: {
             image: components["schemas"]["ImageOut"] | null;
@@ -1568,6 +1623,28 @@ export interface components {
             name: string;
             /** Path */
             path: string;
+        };
+        /** PrelabelIn */
+        PrelabelIn: {
+            /** Model */
+            model: string;
+            /**
+             * Threshold
+             * @default 0.25
+             */
+            threshold: number;
+            /**
+             * Only Unlabeled
+             * @default true
+             */
+            only_unlabeled: boolean;
+            /**
+             * Create Missing Classes
+             * @default true
+             */
+            create_missing_classes: boolean;
+            /** Class Names */
+            class_names?: string[] | null;
         };
         /** PreviewOut */
         PreviewOut: {
@@ -3807,6 +3884,61 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    status_api_v1_ml_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MlStatusOut"];
+                };
+            };
+        };
+    };
+    start_api_v1_projects__project_id__prelabel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrelabelIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
