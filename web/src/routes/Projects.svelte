@@ -4,10 +4,13 @@
   import type { Project } from '../lib/api/types';
   import { relativeTime } from '../lib/format';
   import { t, tp } from '../lib/i18n/index.svelte';
+  import { onboarding } from '../lib/state/onboarding.svelte';
   import { router } from '../lib/state/router.svelte';
+  import { startPractice } from '../lib/state/practice';
   import Button from '../lib/ui/Button.svelte';
   import Callout from '../lib/ui/Callout.svelte';
   import EmptyState from '../lib/ui/EmptyState.svelte';
+  import GetStarted from './GetStarted.svelte';
   import NewProjectDialog from './NewProjectDialog.svelte';
 
   let projects = $state<Project[] | null>(null);
@@ -45,6 +48,14 @@
     return () => window.removeEventListener('keydown', keydown);
   });
 
+  let makingSample = $state(false);
+
+  async function practice(): Promise<void> {
+    makingSample = true;
+    await startPractice();
+    makingSample = false;
+  }
+
   function open(event: MouseEvent, project: Project): void {
     if (event.metaKey || event.ctrlKey || event.shiftKey) return;
     event.preventDefault();
@@ -65,6 +76,10 @@
   </div>
 </header>
 
+{#if onboarding.visible && projects !== null && !error}
+  <GetStarted onsample={practice} onnew={() => (creating = true)} busy={makingSample} />
+{/if}
+
 {#if error}
   <Callout tone="danger">
     {error}
@@ -74,6 +89,8 @@
   <div class="grid" aria-busy="true">
     {#each [1, 2, 3] as n (n)}<div class="skeleton"></div>{/each}
   </div>
+{:else if projects.length === 0 && !search.trim() && onboarding.visible}
+  <!-- The welcome card above already says what to do. -->
 {:else if projects.length === 0 && !search.trim()}
   <EmptyState
     title={t('projects.empty.title')}
