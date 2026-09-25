@@ -8,6 +8,9 @@ from pathlib import Path
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 ALLOWED_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff"}
+# Pillow identifies pictures by their content, not their name. Naming the formats keeps a file
+# called photo.jpg from being opened as something else.
+FORMATS = ["JPEG", "PNG", "WEBP", "BMP", "TIFF"]
 THUMB_SIZE = 256
 
 
@@ -49,7 +52,7 @@ def _dhash(img: Image.Image) -> str:
 def read_info(path: Path) -> ImageInfo:
     """Return display dimensions (after EXIF rotation), content hash and perceptual hash."""
     try:
-        with Image.open(path) as raw:
+        with Image.open(path, formats=FORMATS) as raw:
             img = ImageOps.exif_transpose(raw)
             width, height = img.size
             phash = _dhash(img)
@@ -61,7 +64,7 @@ def read_info(path: Path) -> ImageInfo:
 def make_thumbnail(src: Path, dest: Path, size: int = THUMB_SIZE) -> None:
     """Write a JPEG thumbnail, EXIF rotation applied. The source file is not modified."""
     dest.parent.mkdir(parents=True, exist_ok=True)
-    with Image.open(src) as raw:
+    with Image.open(src, formats=FORMATS) as raw:
         img = ImageOps.exif_transpose(raw)
         img.thumbnail((size, size), Image.Resampling.LANCZOS)
         img.convert("RGB").save(dest, "JPEG", quality=82)
@@ -71,7 +74,7 @@ def crop_jpeg(
     src: Path, x: float, y: float, w: float, h: float, size: int, pad: float = 0.1
 ) -> bytes:
     """JPEG of a normalized box plus some context, longest side at most `size` pixels."""
-    with Image.open(src) as raw:
+    with Image.open(src, formats=FORMATS) as raw:
         img = ImageOps.exif_transpose(raw)
         iw, ih = img.size
         px, py = w * pad, h * pad
