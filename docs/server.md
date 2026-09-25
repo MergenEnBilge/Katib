@@ -61,7 +61,16 @@ Katib creates its tables at startup.
 
 ## Settings
 
-Put settings in `katib.toml` in the folder you start Katib from, or set an environment variable in the form `KATIB_SECTION__KEY`, for example `KATIB_SERVER__PORT=9000`. Environment variables win over the file.
+Every setting below can be changed from inside Katib. Choose **Settings** in the sidebar. Each one has a short explanation, and Katib checks what you type before it saves. A setting either applies straight away or shows **Needs a restart**. When something is waiting, a **Restart Katib now** button appears at the top. Katib restarts itself and reconnects your browser.
+
+On a shared server, only administrators see the Settings page.
+
+Katib keeps what you save in `settings.json` inside its data folder. If you would rather manage settings outside the app, for example in a Docker file, two other places work too:
+
+- `katib.toml` in the folder you start Katib from.
+- An environment variable in the form `KATIB_SECTION__KEY`, for example `KATIB_SERVER__PORT=9000`.
+
+When the same setting appears in more than one place, the environment wins, then settings saved in the app, then `katib.toml`. A setting fixed by an environment variable shows a lock in the app, with the name of the variable, so nobody wonders why it will not change.
 
 | Setting | Default | What it does |
 |---------|---------|--------------|
@@ -80,6 +89,14 @@ Put settings in `katib.toml` in the folder you start Katib from, or set an envir
 | `ml.models_dir` | `models` in the data folder | Where `.onnx` models live |
 
 ## Backups
+
+The easy way: open **Settings**, then **Backup**, and choose **Make a backup**. You get one zip file with your projects, labels, settings and uploaded pictures. It works while people are using Katib. To put a backup back, close Katib and run:
+
+```bash
+katib restore your-backup.zip
+```
+
+Katib refuses to overwrite a database that is already there unless you add `--replace`, and then it keeps the old one beside it as `katib.db.before-restore`. Backups from the app cover the built-in database. For Postgres, use `pg_dump` as described below.
 
 Everything Katib stores is in its data folder, plus the database if you use Postgres.
 
