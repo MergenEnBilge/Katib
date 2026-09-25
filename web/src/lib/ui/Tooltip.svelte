@@ -13,7 +13,8 @@
     inset-block-start: calc(100% + var(--space-1));
     inset-inline-start: 50%;
     transform: translateX(-50%);
-    display: inline-flex;
+    /* Not laid out until needed, so a tooltip at the screen edge cannot widen the page. */
+    display: none;
     align-items: center;
     gap: var(--space-2);
     height: 26px;
@@ -34,8 +35,16 @@
   /* Shown by the parent's hover or keyboard focus, after a 400ms delay. */
   :global(.has-tooltip:hover) > .tooltip,
   :global(.has-tooltip:focus-visible) > .tooltip {
+    display: inline-flex;
+    /* Waits 400ms before appearing, so it does not flash as the pointer passes. */
+    animation: tip-in 1ms linear 400ms backwards;
     opacity: 1;
-    transition-delay: 400ms;
+  }
+
+  @keyframes tip-in {
+    from {
+      opacity: 0;
+    }
   }
 
   kbd {
