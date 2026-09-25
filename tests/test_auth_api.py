@@ -53,7 +53,12 @@ def join(admin: TestClient, project_id: str, role: str, email: str) -> TestClien
 def test_everything_needs_a_login_and_setup_happens_once(app_settings: Settings) -> None:
     with TestClient(create_app(app_settings)) as c:
         status = c.get(f"{API}/auth/status").json()
-        assert status == {"mode": "local", "needs_setup": True, "user": None}
+        assert status == {
+            "mode": "local",
+            "needs_setup": True,
+            "needs_setup_code": False,
+            "user": None,
+        }
         assert c.get(f"{API}/projects").status_code == 401
         assert c.get(f"{API}/projects").json()["code"] == "unauthorized"
         assert c.get(f"{API}/health").status_code == 200

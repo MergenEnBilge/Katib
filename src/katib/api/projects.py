@@ -5,10 +5,10 @@ import uuid
 from fastapi import APIRouter, Response
 from sqlalchemy.orm import Session
 
-from katib.api.deps import SessionDep, UserDep, need
+from katib.api.deps import SessionDep, StorageDep, UserDep, need
 from katib.api.schemas import ProjectIn, ProjectOut, ProjectPatch
 from katib.db.models import User
-from katib.services import access, projects, tasks
+from katib.services import access, projects, samples, tasks
 from katib.services.errors import NotFound
 from katib.services.projects import ProjectSummary
 
@@ -52,6 +52,13 @@ def create_project(body: ProjectIn, session: SessionDep, user: UserDep) -> Proje
     types: list[str] | None = [str(t) for t in body.annotation_types or []] or None
     p = projects.create_project(session, body.name, types, created_by=user.id)
     return _one(session, p.id, user)
+
+
+@router.post("/samples", response_model=ProjectOut, status_code=201)
+def create_sample_project(session: SessionDep, user: UserDep, storage: StorageDep) -> ProjectOut:
+    """A practice project with drawn pictures, for learning Katib."""
+    project = samples.create_sample(session, storage, user.id)
+    return _one(session, project.id, user)
 
 
 @router.get("/projects/{project_id}", response_model=ProjectOut)
