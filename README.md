@@ -241,7 +241,13 @@ After changing an API route, refresh the TypeScript types with `pnpm --dir web g
 
 ## Status
 
-Katib is under active development and has not had a stable release yet. Single-user labeling, class tools, dataset health, and team workflows with accounts, roles, review and live presence all work today. Docker packaging is done. Ready-made installers for Windows, macOS and Linux are not available yet.
+Katib is under active development and has not had a stable release yet. Everything described above works today: labeling with six kinds of shapes, class tools, dataset health, four dataset formats, teams with accounts, roles and review, sharing on a network, Docker with HTTPS, installing on a phone with offline edits, a desktop window, model pre-labeling and a Python client.
+
+Not available yet:
+
+- Ready-made installers for Windows, macOS and Linux. Use `katib app` for a window of its own.
+- Click-to-segment with a neural network. The magic wand covers simple cases.
+- Translations. The interface is English, and the groundwork for other languages and right-to-left layouts is in place. See `docs/contributing.md`.
 
 ## License
 
