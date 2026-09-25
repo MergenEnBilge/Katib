@@ -1,0 +1,50 @@
+# Katib for a team: the app, a Postgres database and Caddy in front for HTTPS.
+# Copy .env.example to .env, set the password, then run: docker compose up -d
+
+services:
+  katib:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      KATIB_DATABASE__URL: postgresql://katib:${KATIB_DB_PASSWORD:?Set KATIB_DB_PASSWORD in .env}@db/katib
+    volumes:
+      - katib-data:/data
+      # Photos you want to label. Connect /photos from the Import dialog.
+      - ${KATIB_PHOTOS:-./photos}:/photos:ro
+
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: katib
+      POSTGRES_PASSWORD: ${KATIB_DB_PASSWORD}
+      POSTGRES_DB: katib
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U katib"]
+      interval: 5s
+      retries: 10
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - katib
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      KATIB_HOST: ${KATIB_HOST:-localhost}
+      KATIB_TLS: ${KATIB_TLS:-internal}
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+
+volumes:
+  katib-data:
+  db-data:
+  caddy-data:
