@@ -11,6 +11,7 @@ from fastapi.responses import FileResponse
 
 from katib.api import (
     annotations,
+    app_settings,
     auth,
     class_ops,
     classes,
@@ -35,6 +36,7 @@ from katib.config import Settings
 from katib.db.migrate import upgrade_to_head
 from katib.db.session import make_engine, make_session_factory
 from katib.jobs.runner import JobRunner
+from katib.services import app_settings as settings_service
 from katib.services import class_ops as class_ops_service
 from katib.services import folders as folders_service
 from katib.services.images import StorageContext
@@ -80,6 +82,8 @@ def create_app(settings: Settings) -> FastAPI:
     # (and a machine with no internet) would block. /openapi.json is still served.
     app = FastAPI(title="Katib", lifespan=lifespan, docs_url=None, redoc_url=None)
     app.state.settings = settings
+    app.state.started = settings_service.snapshot(settings)
+    app.state.can_restart = True
     errors.install(app)
     security.install(app)
     app.state.limiter = LoginLimiter()
@@ -92,6 +96,7 @@ def create_app(settings: Settings) -> FastAPI:
         class_ops,
         images,
         splits,
+        app_settings,
         annotations,
         quality,
         tasks,
