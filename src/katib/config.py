@@ -25,6 +25,8 @@ from pydantic_settings import (
 class ServerSettings(BaseModel):
     host: str = "127.0.0.1"
     port: int = 8420
+    # The address people type when Katib sits behind a proxy, for example https://katib.example.com.
+    public_url: str = ""
 
 
 class AuthSettings(BaseModel):

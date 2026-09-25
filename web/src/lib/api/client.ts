@@ -26,6 +26,7 @@ import type {
   RevertResult,
   Role,
   ShapeItem,
+  ShareInfo,
 } from './types';
 
 const BASE = '/api/v1';
@@ -210,6 +211,11 @@ export const api = {
       'GET',
       `/projects/${projectId}/export-info`,
     ),
+
+  share: {
+    get: () => request<ShareInfo>('GET', '/share'),
+    qrUrl: (text: string) => `${BASE}/share/qr.svg${query({ text })}`,
+  },
 
   folders: {
     browse: (path?: string) => request<FolderListing>('GET', `/folders${query({ path })}`),

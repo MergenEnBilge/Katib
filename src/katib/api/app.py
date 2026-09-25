@@ -24,6 +24,7 @@ from katib.api import (
     quality,
     realtime,
     security,
+    share,
     tasks,
 )
 from katib.api.hub import Hub
@@ -93,6 +94,7 @@ def create_app(settings: Settings) -> FastAPI:
         folders,
         jobs,
         realtime,
+        share,
     ):
         app.include_router(module.router, prefix="/api/v1")
     _mount_ui(app)
