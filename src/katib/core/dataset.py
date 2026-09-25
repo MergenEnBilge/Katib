@@ -13,8 +13,9 @@ from typing import Any, Protocol
 @dataclass(frozen=True)
 class Shape:
     class_name: str
-    type: str  # "box", "polygon", "obb" or "keypoints"
+    type: str  # "box", "polygon", "obb", "keypoints", "mask", "tag" or "text"
     geometry: dict[str, Any]
+    attrs: dict[str, Any] = field(default_factory=dict[str, Any], hash=False)
 
 
 @dataclass(frozen=True)

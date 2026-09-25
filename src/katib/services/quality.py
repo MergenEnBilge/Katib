@@ -14,7 +14,7 @@ from katib.core.quality import (
     is_tiny,
     near_duplicates,
 )
-from katib.core.types import geometry_bounds
+from katib.core.types import WHOLE_IMAGE, geometry_bounds
 from katib.db.models import Annotation, Class, Image
 from katib.services.projects import get_project
 
@@ -45,7 +45,7 @@ class HealthReport:
 
 def bounds_of(type_name: str, geometry: dict[str, Any]) -> tuple[float, float, float, float] | None:
     """The rectangle around a shape, or None for shapes that do not sit anywhere, like tags."""
-    if type_name == "tag":
+    if type_name in WHOLE_IMAGE:
         return None
     return geometry_bounds(type_name, geometry)
 

@@ -107,6 +107,19 @@
       {/each}
     </div>
 
+    {#if ws.types.includes('text') && (isBox(shape.geometry) || isPolygon(shape.geometry) || isObb(shape.geometry))}
+      <label class="words">
+        <span class="label">Text in this shape</span>
+        <textarea
+          rows="2"
+          maxlength="5000"
+          value={ws.transcriptionOf(shape)}
+          disabled={ws.readOnly}
+          onchange={(e) => ws.setTranscription(shape.id, e.currentTarget.value)}
+        ></textarea>
+      </label>
+    {/if}
+
     <p class="label">Geometry</p>
     {#if box}
       <div class="grid">
@@ -207,6 +220,21 @@
     color: var(--text-3);
     text-transform: uppercase;
     letter-spacing: 0.06em;
+  }
+
+  .words {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  textarea {
+    padding: var(--space-2) 10px;
+    font: inherit;
+    resize: vertical;
+    background: var(--bg);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-control);
   }
 
   .chips {

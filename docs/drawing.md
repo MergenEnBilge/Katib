@@ -11,6 +11,7 @@
 | Brush masks | **R** | Paint. **E** switches to the eraser. **[** and **]** change the brush size. |
 | Magic wand | **W** | Click inside an object to outline the area of similar color. **[** and **]** change how alike the colors must be. |
 | Image tags | | Switch a class on under "Tags on this image". |
+| Text | | Open the **Text** tab and write. See below. |
 
 The toolbar shows only the tools your project can save. To change which kinds a project uses, ask an owner to create a new project with the kinds you need.
 
@@ -19,6 +20,15 @@ The toolbar shows only the tools your project can save. To change which kinds a 
 Open **Manage classes**, choose a class, and write its landmarks one per line, for example `nose`, `left eye`, `right eye`. To draw lines between landmarks, list pairs of numbers such as `1-2, 1-3`. Landmarks are placed in this order with the keypoints tool.
 
 While a shape is selected, hover a landmark and press **V** to mark it hidden, or **Delete** to mark it as not labeled.
+
+## Writing text
+
+Choose **Text** when you create a project to label pictures with words. Two things become possible:
+
+- **Captions.** Open the **Text** tab on the right and choose **Add text**. Write a caption, a description or any note about the whole picture. Add as many entries as you need. Each one can carry an optional label, such as `caption` or `question`, chosen from your classes. Text saves as you leave the box, like everything else.
+- **Words inside a shape.** With the Text kind on, selecting a box, polygon or rotated box shows a **Text in this shape** field in the Details tab. Use it to write down the word on a sign or a line from a document. The words appear next to the class name on the picture.
+
+Export both with **Tags and text (JSON Lines)**. See [Images, folders and formats](data.md#tags-and-text).
 
 ## Selecting and editing
 
