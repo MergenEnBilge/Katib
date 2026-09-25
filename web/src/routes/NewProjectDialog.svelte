@@ -15,6 +15,7 @@
     { id: 'keypoints', label: 'Keypoints', note: 'Landmarks such as joints, in a set order.' },
     { id: 'mask', label: 'Brush masks', note: 'Paint over an area with a brush.' },
     { id: 'tag', label: 'Image tags', note: 'A label for the whole picture.' },
+    { id: 'text', label: 'Text', note: 'Captions, and the words inside shapes.' },
   ];
 
   let name = $state('');

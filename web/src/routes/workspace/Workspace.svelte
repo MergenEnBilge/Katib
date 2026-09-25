@@ -59,6 +59,7 @@
   import ShortcutsDialog from './ShortcutsDialog.svelte';
   import SplitsDialog from './SplitsDialog.svelte';
   import TeamDialog from './TeamDialog.svelte';
+  import TextPanel from './TextPanel.svelte';
 
   let { projectId }: { projectId: string } = $props();
 
@@ -81,7 +82,7 @@
     | null;
 
   let tool = $state<ToolName>('select');
-  let tab = $state<'classes' | 'details' | 'review'>('classes');
+  let tab = $state<'classes' | 'details' | 'review' | 'text'>('classes');
   let dialog = $state<Dialog>(null);
   let railCollapsed = $state(false);
   let railOpen = $state(false);
@@ -102,6 +103,13 @@
   const tools = $derived(allTools.filter((t) => t.type === null || ws.types.includes(t.type)));
 
   const shared = $derived(session.mode === 'local');
+
+  const panelTabs = $derived([
+    ['classes', 'Classes'],
+    ['details', 'Details'],
+    ...(ws.types.includes('text') ? [['text', 'Text']] : []),
+    ...(shared ? [['review', 'Review']] : []),
+  ] as [string, string][]);
 
   const saveLabel = $derived(
     ws.saveState === 'error'
@@ -377,7 +385,7 @@
 
       <aside class="panel-wrap" class:open={panelOpen} aria-label="Classes and details">
         <div class="tabs" role="tablist">
-          {#each (shared ? [['classes', 'Classes'], ['details', 'Details'], ['review', 'Review']] : [['classes', 'Classes'], ['details', 'Details']]) as [id, label] (id)}
+          {#each panelTabs as [id, label] (id)}
             <button type="button" role="tab" aria-selected={tab === id} class:active={tab === id} onclick={() => (tab = id as typeof tab)}>
               {label}
               {#if id === 'details' && ws.selectionCount > 0}<span class="badge mono">{ws.selectionCount}</span>{/if}
@@ -422,6 +430,8 @@
             <ClassesPanel {ws} onmanage={() => (dialog = 'classes')} />
           {:else if tab === 'review'}
             <ReviewPanel {ws} />
+          {:else if tab === 'text'}
+            <TextPanel {ws} />
           {:else}
             <DetailsPanel {ws} />
           {/if}
