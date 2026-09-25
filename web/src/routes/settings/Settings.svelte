@@ -11,6 +11,7 @@
   import BackupPanel from './BackupPanel.svelte';
   import SettingRow from './SettingRow.svelte';
   import SharePanel from './SharePanel.svelte';
+  import TipCard from '../../lib/ui/TipCard.svelte';
 
   let data = $state<AppSettings | null>(null);
   let error = $state('');
@@ -140,7 +141,7 @@
   {/if}
 
   <div class="layout">
-    <nav class="tabs" aria-label="Settings sections">
+    <nav class="tabs" aria-label="Settings sections" data-tour="settings-tabs">
       {#each tabs as item (item.id)}
         <button type="button" class:active={tab === item.id} aria-current={tab === item.id ? 'page' : undefined} onclick={() => (tab = item.id)}>
           {item.label}
@@ -148,10 +149,11 @@
       {/each}
     </nav>
 
-    <section class="panel" aria-labelledby="section-title">
+    <section class="panel" aria-labelledby="section-title" data-tour="settings-body">
       {#if group}
         <h2 id="section-title">{group.label}</h2>
         <p class="lead">{group.help}</p>
+        <TipCard id="settings:{tab}" />
         {#each fields as field (field.key)}
           <SettingRow
             {field}
@@ -172,7 +174,7 @@
         {#if tab === 'sharing'}<SharePanel />{/if}
 
         {#if error}<Callout tone="danger">{error}</Callout>{/if}
-        <div class="save">
+        <div class="save" data-tour="settings-save">
           <span class="count">{changed.length ? plural(changed.length, 'change') + ' not saved' : 'No changes'}</span>
           <Button disabled={changed.length === 0 || busy} onclick={() => (draft = {})}>Discard</Button>
           <Button variant="primary" loading={busy} disabled={changed.length === 0} onclick={save}>{busy ? 'Saving...' : 'Save changes'}</Button>

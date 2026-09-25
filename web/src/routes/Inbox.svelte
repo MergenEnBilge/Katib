@@ -1,4 +1,5 @@
 <script lang="ts">
+  import TipCard from '../lib/ui/TipCard.svelte';
   import { Inbox as InboxIcon } from '@lucide/svelte';
   import { onMount } from 'svelte';
   import { api, ApiError } from '../lib/api/client';
@@ -32,6 +33,7 @@
 </script>
 
 <header class="head"><h1>Inbox</h1></header>
+<TipCard id="page:inbox" />
 
 {#if error}
   <Callout tone="danger">

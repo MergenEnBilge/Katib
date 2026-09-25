@@ -1,4 +1,5 @@
 <script lang="ts">
+  import TipCard from '../../lib/ui/TipCard.svelte';
   import { Dices } from '@lucide/svelte';
   import { api, ApiError } from '../../lib/api/client';
   import type { SplitState } from '../../lib/api/types';
@@ -119,6 +120,7 @@
   width={560}
   {onclose}
 >
+  <TipCard id="dialog:splits" />
   {#if info}
     <div class="bar" role="img" aria-label="Images in each split">
       {#each [...SPLIT_NAMES, 'none' as const] as name (name)}

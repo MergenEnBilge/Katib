@@ -1,4 +1,5 @@
 <script lang="ts">
+  import TipCard from '../../lib/ui/TipCard.svelte';
   import { api, ApiError } from '../../lib/api/client';
   import type { OperationInfo } from '../../lib/api/types';
   import { relativeTime } from '../../lib/format';
@@ -40,6 +41,7 @@
   width={560}
   {onclose}
 >
+  <TipCard id="dialog:history" />
   {#if error}
     <Callout tone="danger">
       {error}

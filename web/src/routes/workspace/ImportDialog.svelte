@@ -1,4 +1,5 @@
 <script lang="ts">
+  import TipCard from '../../lib/ui/TipCard.svelte';
   import { FolderOpen, RefreshCw, X } from '@lucide/svelte';
   import { api, ApiError, waitForJob } from '../../lib/api/client';
   import type { ConnectedFolder, FormatInfo, Job } from '../../lib/api/types';
@@ -188,6 +189,7 @@
   width={560}
   onclose={close}
 >
+  <TipCard id="dialog:import" />
   <div class="tabs" role="tablist">
     {#each [['images', 'Images'], ['labels', 'Labels']] as const as [id, label] (id)}
       <button
