@@ -1,4 +1,4 @@
-import type { BoxGeometry, PolygonGeometry, Shape, ShapePatch } from './types';
+import type { Geometry, Shape, ShapePatch } from './types';
 
 export type Change =
   | { kind: 'create'; shape: Shape }
@@ -69,7 +69,7 @@ export class AnnotationModel {
   shapes: Shape[] = [];
   readonly selection = new Set<string>();
   /** Geometry shown while a drag is in progress. Not part of history until committed. */
-  private preview = new Map<string, BoxGeometry | PolygonGeometry>();
+  private preview = new Map<string, Geometry>();
   private readonly history = new History();
   private readonly listeners = new Set<ChangeListener>();
   private readonly viewListeners = new Set<() => void>();
@@ -95,7 +95,7 @@ export class AnnotationModel {
     });
   }
 
-  setPreview(id: string, geometry: BoxGeometry | PolygonGeometry | null): void {
+  setPreview(id: string, geometry: Geometry | null): void {
     if (geometry) this.preview.set(id, geometry);
     else this.preview.delete(id);
     this.notifyView();
