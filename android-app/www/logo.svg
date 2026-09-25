@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Katib">
+  <rect width="64" height="64" rx="14" fill="#1f7a4c"/>
+  <g fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" opacity="0.55">
+    <path d="M10 20v-6a4 4 0 0 1 4-4h6M44 10h6a4 4 0 0 1 4 4v6M54 44v6a4 4 0 0 1-4 4h-6M20 54h-6a4 4 0 0 1-4-4v-6"/>
+  </g>
+  <path d="M22 16h6v32h-6zM28 33l12-17h8L34 34l14 14h-8z" fill="#ffffff"/>
+</svg>

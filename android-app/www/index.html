@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#1f7a4c" />
+    <title>Katib</title>
+    <link rel="stylesheet" href="connect.css" />
+  </head>
+  <body>
+    <main>
+      <img class="logo" src="logo.svg" alt="" width="72" height="72" />
+      <h1>Katib</h1>
+      <p class="lead">Label images with your team. Enter the address of your Katib server to begin.</p>
+
+      <form id="form" novalidate>
+        <label for="address">Server address</label>
+        <input id="address" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false"
+               placeholder="katib.example.com or 192.168.1.20:8420" autocomplete="url" />
+        <p id="note" class="note" role="status"></p>
+        <button id="go" type="submit"><span class="ring" hidden></span><span id="label">Connect</span></button>
+      </form>
+
+      <section id="recent" hidden>
+        <h2>Recent</h2>
+        <ul id="list"></ul>
+      </section>
+
+      <p class="help">
+        Katib runs on a computer or server you control. Ask whoever set it up for the address, or see
+        &ldquo;Put Katib where your team can reach it&rdquo; in the guide.
+      </p>
+    </main>
+    <script src="connect.js"></script>
+  </body>
+</html>
