@@ -283,3 +283,30 @@ def test_a_yolo_export_reads_back_with_its_splits(tmp_path: Path) -> None:
     get_format("yolo-detect").write(view, tmp_path, ExportOptions())
     got = {i.filename: i.split for i in get_format("yolo-detect").read(tmp_path).images}
     assert got == {"a": "train", "b": "test"}
+
+
+def test_coco_reads_one_file_per_split(tmp_path: Path) -> None:
+    box = Shape("car", "box", {"x": 0.1, "y": 0.1, "w": 0.2, "h": 0.2})
+    view = View(ParsedDataset(["car"], []))
+    view.images = lambda: [  # type: ignore[method-assign]
+        ExportImage("a.jpg", 10, 10, [box], split="train"),
+        ExportImage("b.jpg", 10, 10, [box], split="val"),
+    ]
+    get_format("coco").write(view, tmp_path, ExportOptions())
+    data = get_format("coco").read(tmp_path)
+    assert data.class_names == ["car"]
+    assert {i.filename: i.split for i in data.images} == {"a.jpg": "train", "b.jpg": "val"}
+
+
+def test_voc_reads_splits_from_image_sets(tmp_path: Path) -> None:
+    (tmp_path / "Annotations").mkdir()
+    (tmp_path / "ImageSets" / "Main").mkdir(parents=True)
+    for name in ("a", "b"):
+        (tmp_path / "Annotations" / f"{name}.xml").write_text(
+            f"<annotation><filename>{name}.jpg</filename>"
+            "<size><width>10</width><height>10</height></size></annotation>"
+        )
+    (tmp_path / "ImageSets" / "Main" / "train.txt").write_text("a\n")
+    (tmp_path / "ImageSets" / "Main" / "val.txt").write_text("b -1\n")
+    got = {i.filename: i.split for i in get_format("voc").read(tmp_path).images}
+    assert got == {"a.jpg": "train", "b.jpg": "val"}
