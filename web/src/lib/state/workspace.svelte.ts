@@ -40,6 +40,7 @@ export class Workspace {
   loadError = $state('');
   statusFilter = $state<StatusFilter>('all');
   search = $state('');
+  splitFilter = $state('all');
   currentId = $state<string | null>(null);
   imageLoading = $state(false);
   activeClassId = $state<string | null>(null);
@@ -344,6 +345,7 @@ export class Workspace {
       const page = await api.images.list(this.projectId, {
         status: this.statusFilter === 'all' ? undefined : this.statusFilter,
         q: this.search.trim() || undefined,
+        split: this.splitFilter === 'all' ? undefined : this.splitFilter,
         after: reset ? undefined : this.imagesNext,
         limit: PAGE,
       });
@@ -371,6 +373,23 @@ export class Workspace {
     this.statusFilter = status;
     this.search = search;
     await this.loadImages(true);
+  }
+
+  async setSplitFilter(split: string): Promise<void> {
+    this.splitFilter = split;
+    await this.loadImages(true);
+  }
+
+  /** Move the open image to a split, or out of all of them with null. */
+  async setImageSplit(split: string | null): Promise<void> {
+    const id = this.currentId;
+    if (!id) return;
+    try {
+      await api.splits.assign(this.projectId, [id], split);
+      this.images = this.images.map((i) => (i.id === id ? { ...i, split } : i));
+    } catch (err) {
+      toasts.show(err instanceof ApiError ? err.message : 'Could not change the split.');
+    }
   }
 
   async open(imageId: string): Promise<void> {
