@@ -3,25 +3,53 @@ import { placeCard, tourSteps } from './steps';
 
 const screen = { w: 1200, h: 800 };
 const card = { w: 320, h: 180 };
+const ctx = { types: ['box', 'text'], hasImages: true, hasClasses: true, canManage: true, shared: false };
+const ids = (name: 'workspace' | 'home' | 'settings', c = ctx) => tourSteps(name, c).map((s) => s.id);
 
 describe('tourSteps', () => {
   it('leaves out steps for shapes the project does not use', () => {
-    const ids = tourSteps(['polygon']).map((s) => s.id);
-    expect(ids).not.toContain('draw');
-    expect(ids).not.toContain('text');
-    expect(ids).toContain('export');
+    const list = ids('workspace', { ...ctx, types: ['polygon'] });
+    expect(list).not.toContain('draw');
+    expect(list).not.toContain('text');
+    expect(list).toContain('done');
   });
 
   it('includes the drawing and text steps when they apply', () => {
-    const ids = tourSteps(['box', 'text']).map((s) => s.id);
-    expect(ids).toContain('draw');
-    expect(ids).toContain('text');
+    expect(ids('workspace')).toContain('draw');
+    expect(ids('workspace')).toContain('text');
+  });
+
+  it('points at what is missing first', () => {
+    const empty = ids('workspace', { ...ctx, hasImages: false, hasClasses: false });
+    expect(empty).toContain('add-pictures');
+    expect(empty).toContain('add-class');
+    expect(empty).not.toContain('images');
+    expect(empty).not.toContain('classes');
+    expect(ids('workspace')).toContain('images');
+    expect(ids('workspace')).not.toContain('add-pictures');
+  });
+
+  it('hides management steps from people who cannot manage', () => {
+    const list = ids('workspace', { ...ctx, canManage: false });
+    expect(list).not.toContain('export');
+    expect(list).not.toContain('split');
+  });
+
+  it('mentions the team only on a shared server', () => {
+    expect(ids('workspace')).not.toContain('team');
+    expect(ids('workspace', { ...ctx, shared: true })).toContain('team');
   });
 
   it('starts with a welcome and ends with help', () => {
-    const all = tourSteps(['box', 'text']);
-    expect(all[0]?.id).toBe('welcome');
-    expect(all.at(-1)?.id).toBe('help');
+    const all = ids('workspace');
+    expect(all[0]).toBe('welcome');
+    expect(all.at(-1)).toBe('help');
+  });
+
+  it('has short tours for the home page and settings', () => {
+    expect(ids('home')[0]).toBe('home-welcome');
+    expect(ids('settings')).toContain('settings-save');
+    expect(ids('home')).not.toContain('home-inbox');
   });
 });
 
