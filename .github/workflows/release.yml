@@ -1,0 +1,59 @@
+name: release
+
+# Builds installers when a version tag such as v0.1.0 is pushed, or when run by hand.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: web/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Linux window libraries
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libgirepository1.0-dev libcairo2-dev gir1.2-webkit2-4.1 pkg-config
+      - run: pnpm install --frozen-lockfile && pnpm build
+        working-directory: web
+      - run: uv sync --locked --extra desktop --extra postgres --group packaging
+      - run: uv run pyinstaller packaging/katib.spec --noconfirm --distpath dist --workpath build
+
+      - name: Windows installer
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"; [ "$VERSION" = "$GITHUB_REF_NAME" ] && VERSION=0.0.0
+          iscc "/DVersion=$VERSION" packaging/windows.iss
+      - name: macOS disk image
+        if: runner.os == 'macOS'
+        run: hdiutil create -volname Katib -srcfolder dist/Katib.app -ov -format UDZO dist/Katib-macos.dmg
+      - name: Linux archive
+        if: runner.os == 'Linux'
+        run: tar -C dist -czf dist/Katib-linux.tar.gz Katib
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: katib-${{ runner.os }}
+          path: |
+            dist/*-setup.exe
+            dist/*.dmg
+            dist/*.tar.gz
+      - uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          files: |
+            dist/*-setup.exe
+            dist/*.dmg
+            dist/*.tar.gz

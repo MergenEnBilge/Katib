@@ -31,3 +31,6 @@ web/.e2e/
 photos/
 
 site/
+
+dist/
+build/
