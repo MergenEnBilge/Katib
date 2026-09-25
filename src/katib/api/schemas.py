@@ -15,9 +15,9 @@ class ErrorBody(BaseModel):
 
 class ProjectIn(BaseModel):
     name: str
-    annotation_types: list[Literal["box", "polygon", "obb", "keypoints", "mask", "tag"]] | None = (
-        None
-    )
+    annotation_types: (
+        list[Literal["box", "polygon", "obb", "keypoints", "mask", "tag", "text"]] | None
+    ) = None
 
 
 class ProjectPatch(BaseModel):
