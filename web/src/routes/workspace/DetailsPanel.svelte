@@ -230,7 +230,7 @@
 
   .cls.selected {
     background: var(--accent-muted);
-    border-color: var(--accent);
+    border-color: var(--accent-text);
   }
 
   .grid {

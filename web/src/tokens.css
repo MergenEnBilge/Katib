@@ -14,9 +14,12 @@
   --accent: #2fa366;
   --accent-hover: #3abf79;
   --accent-muted: #173b27;
+  /* Accent as text on a muted accent background. The plain accent is too dim there. */
+  --accent-text: #4bcb8b;
   --on-accent: #06140c;
   --danger: #e0574b;
   --danger-muted: #2e1714;
+  --danger-text: #ee7166;
   --on-danger: #1a0806;
   --warning: #d9a441;
   --warning-text: #d9a441;
@@ -39,9 +42,11 @@
   --accent: #1f7a4c;
   --accent-hover: #186a40;
   --accent-muted: #e6f2ea;
+  --accent-text: #1f7a4c;
   --on-accent: #ffffff;
   --danger: #c7392e;
   --danger-muted: #fbeae8;
+  --danger-text: #c7392e;
   --on-danger: #ffffff;
   --warning: #b4832a;
   --warning-text: #8a6212;

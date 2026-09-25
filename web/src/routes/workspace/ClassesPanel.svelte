@@ -156,9 +156,9 @@
   }
 
   .tag.on {
-    color: var(--accent);
+    color: var(--accent-text);
     background: var(--accent-muted);
-    border-color: var(--accent);
+    border-color: var(--accent-text);
   }
 
   .tag:disabled {

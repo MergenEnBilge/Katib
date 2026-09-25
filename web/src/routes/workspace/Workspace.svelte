@@ -488,7 +488,7 @@
   }
 
   .tool.active {
-    color: var(--accent);
+    color: var(--accent-text);
     background: var(--accent-muted);
   }
 
@@ -630,7 +630,7 @@
   .tabs button.active {
     color: var(--text);
     background: var(--surface-2);
-    border-block-end-color: var(--accent);
+    border-block-end-color: var(--accent-text);
   }
 
   .badge {
