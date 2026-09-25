@@ -37,15 +37,15 @@ pip install ./sdk
 ```python
 from katib_client import Katib
 
-katib = Katib("http://127.0.0.1:8420")   # add token="..." when accounts are on
+katib = Katib("http://127.0.0.1:8420")  # add token="..." when accounts are on
 
 project = katib.projects.create("Street scenes")
 car = katib.classes.create(project.id, "car")
 
 image = katib.images.upload(project.id, "photos/one.jpg")
-katib.annotations.add_boxes(image.id, [(car.id, 0.2, 0.3, 0.4, 0.3)])   # class, x, y, w, h
+katib.annotations.add_boxes(image.id, [(car.id, 0.2, 0.3, 0.4, 0.3)])  # class, x, y, w, h
 
-katib.export(project.id, "yolo-detect", "exports/")                    # saves a zip
+katib.export(project.id, "yolo-detect", "exports/")  # saves a zip
 ```
 
 Box values are fractions of the image, from 0 to 1, measured from the top left corner. The client covers projects, classes, images, annotations, folder connection, label import and export. Errors raise `KatibError` with a `code` and a `message`.
