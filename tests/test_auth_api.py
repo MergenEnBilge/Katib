@@ -217,3 +217,59 @@ def test_admin_can_disable_an_account(admin: TestClient) -> None:
     assert person.get(f"{API}/users").status_code == 403
     assert admin.post(f"{API}/users/{target['id']}:disable").json()["disabled"] is True
     assert person.get(f"{API}/projects").status_code == 401
+
+
+def test_an_admin_creates_an_account_with_its_password(admin: TestClient) -> None:
+    made = admin.post(
+        f"{API}/users",
+        json={"email": "new@example.com", "name": "New", "password": PASSWORD},
+    )
+    assert made.status_code == 201, made.text
+    assert made.json()["is_admin"] is False
+    signed_in = client_for(admin).post(
+        f"{API}/auth/login", json={"email": "new@example.com", "password": PASSWORD}
+    )
+    assert signed_in.status_code == 200
+
+
+def test_only_an_admin_creates_accounts(admin: TestClient) -> None:
+    pid = admin.post(f"{API}/projects", json={"name": "P"}).json()["id"]
+    manager = join(admin, pid, "manager", "m@example.com")
+    refused = manager.post(f"{API}/users", json={"email": "x@example.com", "password": PASSWORD})
+    assert refused.status_code == 403
+
+
+def test_a_weak_password_is_refused_when_making_an_account(admin: TestClient) -> None:
+    refused = admin.post(f"{API}/users", json={"email": "w@example.com", "password": "abc"})
+    assert refused.status_code == 422
+
+
+def test_resetting_a_password_signs_that_person_out(admin: TestClient) -> None:
+    pid = admin.post(f"{API}/projects", json={"name": "P"}).json()["id"]
+    person = join(admin, pid, "annotator", "a@example.com")
+    target = next(u for u in admin.get(f"{API}/users").json() if u["email"] == "a@example.com")
+    assert person.get(f"{API}/projects").status_code == 200
+    reset = admin.post(f"{API}/users/{target['id']}:password", json={"password": "a new long one"})
+    assert reset.status_code == 200
+    assert person.get(f"{API}/projects").status_code == 401
+    again = client_for(admin).post(
+        f"{API}/auth/login", json={"email": "a@example.com", "password": "a new long one"}
+    )
+    assert again.status_code == 200
+
+
+def test_an_admin_cannot_demote_themselves(admin: TestClient) -> None:
+    me = next(u for u in admin.get(f"{API}/users").json() if u["email"] == "admin@example.com")
+    refused = admin.post(f"{API}/users/{me['id']}:admin", json={"is_admin": False})
+    assert refused.status_code == 422
+    assert "another administrator" in refused.json()["message"]
+
+
+def test_an_admin_can_promote_someone_else(admin: TestClient) -> None:
+    pid = admin.post(f"{API}/projects", json={"name": "P"}).json()["id"]
+    person = join(admin, pid, "viewer", "v@example.com")
+    target = next(u for u in admin.get(f"{API}/users").json() if u["email"] == "v@example.com")
+    assert admin.post(f"{API}/users/{target['id']}:admin", json={"is_admin": True}).json()[
+        "is_admin"
+    ]
+    assert person.get(f"{API}/users").status_code == 200

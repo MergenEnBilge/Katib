@@ -185,7 +185,45 @@ export interface paths {
         /** List Users */
         get: operations["list_users_api_v1_users_get"];
         put?: never;
-        post?: never;
+        /**
+         * Create Person
+         * @description Make an account outright, for a team that would rather hand out logins than send invites.
+         */
+        post: operations["create_person_api_v1_users_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{user_id}:password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set Password */
+        post: operations["set_password_api_v1_users__user_id__password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{user_id}:admin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set Admin */
+        post: operations["set_admin_api_v1_users__user_id__admin_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1210,6 +1248,11 @@ export interface components {
              */
             created_at: string;
         };
+        /** AdminIn */
+        AdminIn: {
+            /** Is Admin */
+            is_admin: boolean;
+        };
         /** AnnotationOut */
         AnnotationOut: {
             /**
@@ -1807,6 +1850,23 @@ export interface components {
             /** Models */
             models: components["schemas"]["MlModelOut"][];
         };
+        /** NewUserIn */
+        NewUserIn: {
+            /** Email */
+            email: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /** Password */
+            password: string;
+            /**
+             * Is Admin
+             * @default false
+             */
+            is_admin: boolean;
+        };
         /** NextOut */
         NextOut: {
             image: components["schemas"]["ImageOut"] | null;
@@ -1882,6 +1942,11 @@ export interface components {
             value: string;
             /** Label */
             label: string;
+        };
+        /** PasswordIn */
+        PasswordIn: {
+            /** Password */
+            password: string;
         };
         /** PlaceOut */
         PlaceOut: {
@@ -2637,6 +2702,109 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserOut"][];
+                };
+            };
+        };
+    };
+    create_person_api_v1_users_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewUserIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_password_api_v1_users__user_id__password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_admin_api_v1_users__user_id__admin_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

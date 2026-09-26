@@ -133,6 +133,18 @@ export const api = {
     revokeToken: (id: string) => request<void>('DELETE', `/auth/tokens/${id}`),
   },
 
+  users: {
+    list: () => request<Person[]>('GET', '/users'),
+    create: (email: string, name: string, password: string, isAdmin: boolean) =>
+      request<Person>('POST', '/users', { email, name, password, is_admin: isAdmin }),
+    setPassword: (userId: string, password: string) =>
+      request<Person>('POST', `/users/${userId}:password`, { password }),
+    setAdmin: (userId: string, isAdmin: boolean) =>
+      request<Person>('POST', `/users/${userId}:admin`, { is_admin: isAdmin }),
+    setDisabled: (userId: string, disabled: boolean) =>
+      request<Person>('POST', `/users/${userId}:${disabled ? 'disable' : 'enable'}`),
+  },
+
   members: {
     list: (projectId: string) => request<Member[]>('GET', `/projects/${projectId}/members`),
     set: (projectId: string, userId: string, role: Role) =>
