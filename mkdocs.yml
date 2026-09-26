@@ -34,13 +34,19 @@ nav:
   - Automating:
       - REST API and Python client: automation.md
   - Security: security.md
-  - Contributing: contributing.md
+  - Contributing:
+      - How Katib is built: internals.md
+      - Working on Katib: contributing.md
 
 markdown_extensions:
   - admonition
   - tables
   - toc:
       permalink: true
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tabbed:
       alternate_style: true
