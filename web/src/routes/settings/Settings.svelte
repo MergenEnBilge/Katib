@@ -10,6 +10,7 @@
   import AppearancePanel from './AppearancePanel.svelte';
   import BackupPanel from './BackupPanel.svelte';
   import ModePicker from './ModePicker.svelte';
+  import PeoplePanel from './PeoplePanel.svelte';
   import SettingRow from './SettingRow.svelte';
   import SharePanel from './SharePanel.svelte';
   import TipCard from '../../lib/ui/TipCard.svelte';
@@ -25,6 +26,7 @@
 
   const tabs = $derived([
     ...(data?.groups ?? []).map((g) => ({ id: g.id, label: g.label })),
+    ...(session.mode === 'local' ? [{ id: 'people', label: 'People' }] : []),
     { id: 'backup', label: 'Backup' },
     { id: 'appearance', label: 'Appearance' },
     { id: 'about', label: 'About' },
@@ -186,6 +188,8 @@
           <Button disabled={changed.length === 0 || busy} onclick={() => (draft = {})}>Discard</Button>
           <Button variant="primary" loading={busy} disabled={changed.length === 0} onclick={save}>{busy ? 'Saving...' : 'Save changes'}</Button>
         </div>
+      {:else if tab === 'people'}
+        <PeoplePanel />
       {:else if tab === 'backup'}
         <BackupPanel database={data.info.database} />
       {:else if tab === 'appearance'}
