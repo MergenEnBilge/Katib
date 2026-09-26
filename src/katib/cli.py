@@ -10,7 +10,7 @@ import typer
 import uvicorn
 
 from katib import net
-from katib.config import get_settings, load_settings
+from katib.config import Settings, get_settings, load_settings
 
 app = typer.Typer(add_completion=False, help="Katib annotation server.")
 
@@ -118,14 +118,14 @@ def _run(
     from katib.api.app import create_app
 
     if share:
-        _print_share_help(settings.server.port)
+        _print_share_help(settings)
     if open_browser:
         webbrowser.open(f"http://127.0.0.1:{settings.server.port}")
     uvicorn.run(create_app(settings), host=settings.server.host, port=settings.server.port)
 
 
-def _print_share_help(port: int) -> None:
-    urls = [f"http://{address}:{port}" for address in net.lan_addresses()]
+def _print_share_help(settings: Settings) -> None:
+    urls = [f"http://{address}:{settings.server.port}" for address in net.lan_addresses()]
     if not urls:
         typer.echo("Could not find this computer's address on your network.")
         return
@@ -136,3 +136,4 @@ def _print_share_help(port: int) -> None:
     # Some consoles cannot draw the code. The addresses above still work.
     with contextlib.suppress(UnicodeEncodeError):
         typer.echo(net.qr_terminal(urls[0]))
+    typer.echo("The first account needs the setup code, printed just below as Katib starts.")

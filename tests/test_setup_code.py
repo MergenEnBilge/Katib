@@ -14,7 +14,17 @@ SIGNUP = {"email": "boss@example.org", "name": "Boss", "password": "correct hors
 
 
 def server(tmp_path: Path) -> Settings:
+    """A Katib only this computer can reach."""
     return Settings(storage={"data_dir": str(tmp_path / "data")}, auth={"mode": "local"})
+
+
+def open_server(tmp_path: Path) -> Settings:
+    """A Katib anyone on the network can reach."""
+    return Settings(
+        storage={"data_dir": str(tmp_path / "data")},
+        auth={"mode": "local"},
+        server={"host": "0.0.0.0"},
+    )
 
 
 @pytest.mark.parametrize(
@@ -45,10 +55,27 @@ def test_the_code_is_made_once_and_easy_to_type(tmp_path: Path) -> None:
     assert not setup_code.matches(tmp_path, "WRONGCODE1")
 
 
-def test_someone_at_home_needs_no_code(tmp_path: Path) -> None:
+def test_a_server_only_this_computer_can_reach_needs_no_code(tmp_path: Path) -> None:
     with TestClient(create_app(server(tmp_path)), client=HOME) as api:
         assert api.get(f"{API}/auth/status").json()["needs_setup_code"] is False
         assert api.post(f"{API}/auth/setup", json=SIGNUP).status_code == 201
+
+
+def test_a_server_open_to_the_network_needs_the_code_even_from_next_door(tmp_path: Path) -> None:
+    """The wifi in an office is not a list of people you trust, and whoever signs up first owns
+    the server. Katib cannot tell a colleague from a stranger by address, so it asks everybody."""
+    settings = open_server(tmp_path)
+    with TestClient(create_app(settings), client=HOME) as api:
+        assert api.get(f"{API}/auth/status").json()["needs_setup_code"] is True
+        assert api.post(f"{API}/auth/setup", json=SIGNUP).status_code == 403
+
+        code = (settings.data_dir / "setup-code.txt").read_text().strip()
+        assert api.post(f"{API}/auth/setup", json={**SIGNUP, "setup_code": code}).status_code == 201
+
+
+def test_the_person_at_the_open_server_is_asked_too(tmp_path: Path) -> None:
+    with TestClient(create_app(open_server(tmp_path)), client=("127.0.0.1", 5000)) as api:
+        assert api.get(f"{API}/auth/status").json()["needs_setup_code"] is True
 
 
 def test_someone_on_the_internet_needs_the_code(tmp_path: Path) -> None:
@@ -81,10 +108,16 @@ def test_guessing_the_code_is_slowed_down(tmp_path: Path) -> None:
 
 def test_an_untrusted_proxy_in_the_path_means_the_code_is_needed() -> None:
     home = "192.168.1.20"
-    assert setup_code.needs_code(home, {}, trusts_proxy=False) is False
-    assert setup_code.needs_code(home, {"x-forwarded-for": "8.8.8.8"}, trusts_proxy=False) is True
-    assert setup_code.needs_code(home, {"x-forwarded-for": "8.8.8.8"}, trusts_proxy=True) is False
-    assert setup_code.needs_code("8.8.8.8", {}, trusts_proxy=True) is True
+    closed = {"on_a_network": False}
+    assert setup_code.needs_code(home, {}, trusts_proxy=False, **closed) is False
+    forwarded = {"x-forwarded-for": "8.8.8.8"}
+    assert setup_code.needs_code(home, forwarded, trusts_proxy=False, **closed) is True
+    assert setup_code.needs_code(home, forwarded, trusts_proxy=True, **closed) is False
+    assert setup_code.needs_code("8.8.8.8", {}, trusts_proxy=True, **closed) is True
+
+
+def test_being_open_to_a_network_settles_it_on_its_own() -> None:
+    assert setup_code.needs_code("127.0.0.1", {}, trusts_proxy=True, on_a_network=True) is True
 
 
 def test_the_setup_code_file_is_private(tmp_path: Path) -> None:

@@ -76,8 +76,10 @@ def create_app(settings: Settings) -> FastAPI:
             backup_service.remove_old_backups(settings.data_dir / "exports")
             if settings.auth.mode == "local" and not auth_service.has_users(s):
                 log.warning(
-                    "Katib is waiting for its first administrator. If you open it from outside "
-                    "your own network you will be asked for the setup code: %s",
+                    "Katib is waiting for its first administrator. Whoever makes that account "
+                    "runs this server, so it takes the setup code below. It is also in %s.\n"
+                    "    Setup code: %s",
+                    settings.data_dir / setup_code.FILE,
                     setup_code.get_or_create(settings.data_dir),
                 )
         app.state.hub.bind(asyncio.get_running_loop())

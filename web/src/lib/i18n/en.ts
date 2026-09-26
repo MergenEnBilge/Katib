@@ -44,7 +44,7 @@ const en = {
   'auth.setup.lead': 'Create the administrator account. This screen only appears while no account exists.',
   'auth.setup.submit': 'Create administrator',
   'auth.setup.code': 'Setup code',
-  'auth.setup.codeHint': 'This server can be reached from the internet. Find the code in the server log, or in setup-code.txt in its data folder.',
+  'auth.setup.codeHint': 'Other people can reach this server, and whoever makes this account runs it. Find the code in the server log, or in setup-code.txt in its data folder.',
   'auth.invite.title': 'Create your account',
   'auth.invite.submit': 'Create account',
   'auth.signin.title': 'Sign in',

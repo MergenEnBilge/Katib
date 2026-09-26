@@ -1,9 +1,13 @@
-"""A short code that guards the first administrator account on a server open to the internet.
+"""A short code that guards the first administrator account on a server other people can reach.
 
-Whoever creates the first account owns the server. On a home network that is fine, because only
-people at home can reach it. On a public address, anyone could get there first. So when the
-request does not come from the local network, the person must type a code that only someone with
-access to the server's files or logs can read.
+Whoever creates the first account owns the server. While Katib answers only on the computer it
+runs on, nobody else can get there, so there is nothing to guard. The moment it is opened to a
+network, anyone who can reach it could claim that account first — the wifi in an office or a cafe
+is not a list of people you trust, and Katib cannot tell a colleague from a stranger by address.
+
+So a server open to a network asks for a code that only someone who can read its files or its log
+can know. It is printed when Katib starts and kept in setup-code.txt, and it stops working as soon
+as the first account exists.
 """
 
 import contextlib
@@ -30,14 +34,20 @@ def is_local_address(host: str) -> bool:
 PROXY_HEADERS = ("x-forwarded-for", "x-real-ip", "forwarded")
 
 
-def needs_code(address: str, headers: Mapping[str, str], trusts_proxy: bool) -> bool:
+def needs_code(
+    address: str, headers: Mapping[str, str], trusts_proxy: bool, *, on_a_network: bool
+) -> bool:
     """Whether creating the first account from here calls for the setup code.
 
-    Anyone whose address is not on the local network does. So does anyone who arrives through a
-    proxy that Katib was not told to trust: the address Katib sees is then the proxy's, which is
-    usually private, and says nothing about who is really there.
+    Everyone does once Katib is listening on a network address, including whoever is sitting at
+    the server: telling them apart from the next person on the same wifi is not something an
+    address can do.
+
+    On a server closed to everything but itself, the code is only asked for when the request
+    cannot have come from that computer: an address that is not private, or a proxy Katib was not
+    told to trust, whose address says nothing about who is really behind it.
     """
-    if not is_local_address(address):
+    if on_a_network or not is_local_address(address):
         return True
     return not trusts_proxy and any(name in headers for name in PROXY_HEADERS)
 
