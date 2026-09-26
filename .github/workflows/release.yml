@@ -11,7 +11,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
+        # The Linux build runs on the oldest supported Ubuntu on purpose: a frozen app only runs on
+        # the C library it was built against or newer, and 22.04 covers Debian 12 and Raspberry Pi OS.
+        os: [windows-latest, macos-latest, ubuntu-22.04]
     runs-on: ${{ matrix.os }}
     permissions:
       contents: write
