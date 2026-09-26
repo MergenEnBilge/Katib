@@ -66,6 +66,7 @@ The result lands in `dist/installers`. See [installers/README.md](installers/REA
 - **Work together.** Invite people with a link and give them a role: owner, manager, annotator, reviewer or viewer. Katib hands each annotator the next image, shows who else is on the project, and keeps two people from editing the same image at once. Reviewers can approve images or send them back with a comment.
 - **Change everything in the app.** Every setting has a page in Settings with a plain explanation, and a backup is one button.
 - **Learn with it, not from a manual.** Short tips appear the first time you use a tool or window, and tours explain the workspace, the home screen and Settings based on what your project has.
+- **Set the window up your way.** Fold the sidebar, the image list or the details panel away with a button or a key, or give the picture the whole window with one press. Katib remembers how you left it.
 - **Use any device.** The interface adapts from a wide desktop screen to a phone. Install it on a phone and it keeps working when the signal drops.
 
 ## Using Katib
