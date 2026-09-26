@@ -9,6 +9,7 @@
   import AboutPanel from './AboutPanel.svelte';
   import AppearancePanel from './AppearancePanel.svelte';
   import BackupPanel from './BackupPanel.svelte';
+  import ModePicker from './ModePicker.svelte';
   import SettingRow from './SettingRow.svelte';
   import SharePanel from './SharePanel.svelte';
   import TipCard from '../../lib/ui/TipCard.svelte';
@@ -154,6 +155,12 @@
         <h2 id="section-title">{group.label}</h2>
         <p class="lead">{group.help}</p>
         <TipCard id="settings:{tab}" />
+        {#if tab === 'sharing'}
+          <ModePicker
+            current={(key) => shown(key, data?.fields.find((f) => f.key === key)?.value)}
+            onpick={(values) => (draft = { ...draft, ...values })}
+          />
+        {/if}
         {#each fields as field (field.key)}
           <SettingRow
             {field}
