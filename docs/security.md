@@ -71,6 +71,9 @@ development audit is not.
 - The Android app allows plain HTTP addresses, because home servers usually have no certificate. It warns before connecting to one that is not on a private network.
 - Compressed API replies are a known trade-off on encrypted connections. Katib's replies do not mix secret values with text an attacker can choose, which is what such attacks need.
 
+- Click to select runs a model for whoever clicks. A member of a project could use it to keep a
+  server's processor busy. It is not open to strangers, and the first click on a picture is the
+  only expensive one, but there is no quota on it.
 - Login attempts are counted in memory, so a restart resets them, and separate server processes do not share them.
 - Locks and presence are advisory. They prevent almost all edit conflicts, and version checks catch the rest.
 - There is no built-in single sign-on, two-factor sign-in, or audit log beyond project activity and the history of bulk changes.
