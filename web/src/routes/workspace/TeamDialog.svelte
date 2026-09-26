@@ -14,7 +14,9 @@
 
   let tab = $state<'members' | 'activity' | 'settings'>('members');
   let inviteRole = $state<Exclude<Role, 'owner'>>('annotator');
+  let inviteTo = $state<'computer' | 'phone'>('computer');
   let link = $state('');
+  let addressMissing = $state(false);
   let error = $state('');
   let activity = $state<Activity[] | null>(null);
   let busy = $state(false);
@@ -45,6 +47,7 @@
       const made = await api.auth.createInvite(ws.projectId, inviteRole);
       // The server knows an address other people can reach. Ours may just say localhost.
       link = made.url || `${location.origin}${made.path}`;
+      addressMissing = !made.url;
     } catch (err) {
       error = err instanceof ApiError ? err.message : 'Could not create the invite.';
     } finally {
@@ -147,9 +150,32 @@
             <option value="manager">Manager</option>
             <option value="viewer">Viewer</option>
           </select>
+          <select aria-label="What they will use" bind:value={inviteTo}>
+            <option value="computer">On a computer</option>
+            <option value="phone">On a phone</option>
+          </select>
           <Button disabled={busy} onclick={invite}>Create invite link</Button>
         </div>
         {#if link}
+          {#if addressMissing}
+            <p class="warn" role="alert">
+              This link carries the address in your own address bar, which nobody else can open.
+              Click your name at the bottom of the sidebar, tell Katib its address, and make the
+              link again.
+            </p>
+          {/if}
+          {#if inviteTo === 'phone'}
+            <div class="scan">
+              <img src={api.share.qrUrl(link)} alt="Code to join this project" width="160" height="160" />
+              <div>
+                <p>Have them point their phone camera at this code.</p>
+                <p class="note">
+                  Android offers to open the Katib app, or to download it first. On an iPhone the
+                  page works in Safari.
+                </p>
+              </div>
+            </div>
+          {/if}
           <div class="row">
             <input readonly value={link} aria-label="Invite link" onfocus={(e) => e.currentTarget.select()} />
             <Button onclick={copy}><Copy size={16} />Copy</Button>
@@ -296,6 +322,33 @@
     display: flex;
     gap: var(--space-2);
     margin-block-end: var(--space-2);
+  }
+
+  .warn {
+    margin: 0 0 var(--space-2);
+    color: var(--text-2);
+    font-size: var(--text-small);
+  }
+
+  .scan {
+    display: flex;
+    gap: var(--space-3);
+    align-items: flex-start;
+    padding: var(--space-3);
+    margin-block-end: var(--space-2);
+    background: var(--surface-2);
+    border-radius: var(--radius-card);
+  }
+
+  .scan img {
+    flex: none;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-control);
+  }
+
+  .scan p {
+    margin: 0;
   }
 
   .row input {
