@@ -90,6 +90,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         with:
           files: installers/mobile/Katib-android.apk
+          prerelease: ${{ contains(github.ref_name, '-') }}
 
   ios:
     # Apple will not let an app onto a phone without a signing certificate, so this only proves the
