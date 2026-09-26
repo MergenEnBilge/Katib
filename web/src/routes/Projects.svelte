@@ -109,7 +109,11 @@
   <div class="grid">
     {#each projects as project (project.id)}
       <a class="card" href="/p/{project.id}" onclick={(e) => open(e, project)}>
-        <div class="cover"></div>
+        <div class="cover">
+          {#if project.cover_image_id}
+            <img src={api.images.thumbUrl(project.cover_image_id)} alt="" loading="lazy" />
+          {/if}
+        </div>
         <div class="info">
           <h2 title={project.name}>{project.name}</h2>
           <p class="meta">{tp('projects.images', project.image_count)}</p>
@@ -212,10 +216,19 @@
     border-color: var(--border-strong);
   }
 
+  /* The first picture in the project, so a card is recognisable at a glance. An empty project
+     keeps the stripes. */
   .cover {
     height: 128px;
     background: repeating-linear-gradient(135deg, var(--stripe) 0 8px, transparent 8px 16px),
       var(--image-bg);
+  }
+
+  .cover img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
 
   .info {

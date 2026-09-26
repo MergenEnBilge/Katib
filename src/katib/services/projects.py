@@ -22,6 +22,8 @@ class ProjectSummary:
     image_count: int
     done_count: int
     last_edited: datetime | None
+    #: The first picture, shown on the project card. None while a project is empty.
+    cover_image_id: uuid.UUID | None = None
 
 
 def slugify(name: str) -> str:
@@ -87,12 +89,21 @@ def list_projects(
     session: Session, query: str | None = None, visible: set[uuid.UUID] | None = None
 ) -> list[ProjectSummary]:
     """Projects with counts. `visible` limits the list to those ids, None means all."""
+    cover = (
+        select(Image.id)
+        .where(Image.project_id == Project.id)
+        .order_by(Image.position)
+        .limit(1)
+        .correlate(Project)
+        .scalar_subquery()
+    )
     stmt = (
         select(
             Project,
             func.count(Image.id),
             func.count(Image.id).filter(Image.status.in_(("done", "approved"))),
             func.max(Image.updated_at),
+            cover,
         )
         .outerjoin(Image, Image.project_id == Project.id)
         .where(Project.archived_at.is_(None))
@@ -104,8 +115,8 @@ def list_projects(
     if query:
         stmt = stmt.where(func.lower(Project.name).contains(query.lower()))
     return [
-        ProjectSummary(p, images, done, last)
-        for p, images, done, last in session.execute(stmt).all()
+        ProjectSummary(p, images, done, last, cover_id)
+        for p, images, done, last, cover_id in session.execute(stmt).all()
     ]
 
 
