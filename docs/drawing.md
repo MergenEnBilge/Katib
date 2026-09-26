@@ -52,6 +52,12 @@ Locked classes cannot be edited, and hidden classes cannot be selected. Use the 
 | Hide all shapes | **H** |
 | Next and previous image | **D** and **A**, or the arrow keys |
 | Mark as done and continue | **Shift+Enter** |
+| Fold the image list away | **[** |
+| Fold the classes and details panel away | **]** |
+| Give the picture the whole window | **\** |
+
+Folding is remembered, so the workspace looks the way you left it next time. On the home screen, **[**
+folds the sidebar down to its icons.
 
 ## On a phone or tablet
 
