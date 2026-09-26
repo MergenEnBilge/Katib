@@ -33,17 +33,26 @@ your own network.
 
 ## Building it yourself
 
-Android needs Node 20 or newer, Java 17 and the Android SDK. iOS needs a Mac with Xcode.
+Android needs Node 20 or newer, Java 21 and the Android SDK with platform 35. iOS needs a Mac with
+Xcode.
 
 ```bash
 cd installers/mobile
 npm install
 npm run add:android      # creates the android/ project (once)
-npm run add:ios          # creates the ios/ project (once, macOS only)
 npm run assets           # icons and splash screens from resources/
 npm run sync
 
 cd android && ./gradlew assembleDebug     # the APK
+```
+
+On a Mac you can also build for iPhone:
+
+```bash
+npm run add:ios          # creates the ios/ project (once)
+npm run assets:ios
+npm run sync
+npm run ios              # opens Xcode
 ```
 
 The APK lands in `android/app/build/outputs/apk/debug/app-debug.apk`. For iOS, `npm run ios` opens

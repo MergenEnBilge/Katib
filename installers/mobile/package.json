@@ -6,7 +6,8 @@
   "scripts": {
     "add:android": "cap add android",
     "add:ios": "cap add ios && node configure-ios.mjs",
-    "assets": "capacitor-assets generate --assetPath resources",
+    "assets": "capacitor-assets generate --android --assetPath resources",
+    "assets:ios": "capacitor-assets generate --ios --assetPath resources",
     "sync": "cap sync",
     "apk": "cd android && ./gradlew assembleDebug",
     "ios": "cap open ios"

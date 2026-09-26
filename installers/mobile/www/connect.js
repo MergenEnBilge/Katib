@@ -1,4 +1,4 @@
-// The first screen of the Android app: pick a Katib server, then open it.
+// The first screen of the phone app: pick a Katib server, then open it.
 // Everything after that is the server's own web app, so the phone always gets the newest version.
 
 const SERVERS_KEY = 'katib.servers';
