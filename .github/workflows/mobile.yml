@@ -24,7 +24,7 @@ jobs:
           distribution: temurin
           # Capacitor 7 compiles against Java 21. An older one fails with "invalid source release".
           java-version: 21
-      - run: npm install
+      - run: npm ci
       - run: npm run add:android
       - run: npm run assets
       - run: npm run sync
@@ -103,7 +103,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install
+      - run: npm ci
       - run: npm run add:ios
       - run: npm run assets:ios
       - run: npm run sync
