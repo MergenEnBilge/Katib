@@ -16,6 +16,7 @@ import type {
   ImageItem,
   ImagePage,
   Inbox,
+  Invite,
   Job,
   Lock,
   Member,
@@ -122,7 +123,7 @@ export const api = {
     accept: (token: string, email: string, name: string, password: string) =>
       request<Person>('POST', '/auth/accept', { token, email, name, password }),
     createInvite: (projectId: string | null, role: Exclude<Role, 'owner'>) =>
-      request<{ token: string; path: string }>('POST', '/invites', {
+      request<Invite>('POST', '/invites', {
         project_id: projectId,
         role,
       }),
