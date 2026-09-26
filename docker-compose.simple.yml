@@ -6,7 +6,7 @@
 
 services:
   katib:
-    image: ghcr.io/mergenenbilge/katib:latest
+    image: ghcr.io/mergenenbilge/katib:v0.1.0-rc2
     build: .
     restart: unless-stopped
     ports:
