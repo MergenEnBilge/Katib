@@ -110,7 +110,9 @@ def test_the_database_offers_the_built_in_one_as_a_choice(api: TestClient) -> No
     assert [o["value"] for o in database["options"]] == [DEFAULT_DATABASE_URL]
 
 
-def test_an_address_that_is_not_a_database_is_still_refused(api: TestClient) -> None:
+def test_an_address_that_is_not_a_database_is_still_refused(
+    api: TestClient, sqlite_only: None
+) -> None:
     refused = api.put(f"{API}/settings", json={"values": {"database.url": "my database"}})
     assert refused.status_code == 422
     assert "sqlite:///" in refused.json()["message"]
