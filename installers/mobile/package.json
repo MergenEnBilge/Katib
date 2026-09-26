@@ -1,0 +1,23 @@
+{
+  "name": "katib-mobile",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Katib for Android and iOS. It connects to a Katib server you choose.",
+  "scripts": {
+    "add:android": "cap add android",
+    "add:ios": "cap add ios && node configure-ios.mjs",
+    "assets": "capacitor-assets generate --assetPath resources",
+    "sync": "cap sync",
+    "apk": "cd android && ./gradlew assembleDebug",
+    "ios": "cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/ios": "^7.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^7.0.0"
+  }
+}

@@ -34,5 +34,7 @@ site/
 
 dist/
 build/
-android-app/node_modules/
-android-app/android/
+installers/mobile/node_modules/
+installers/mobile/android/
+installers/mobile/ios/
+installers/mobile/*.apk

@@ -1,6 +1,7 @@
 #!/bin/sh
 # Wraps the PyInstaller output in dist/Katib into a .deb for Debian, Ubuntu and Raspberry Pi OS.
-#   packaging/make-deb.sh 0.1.0
+# Run installers/build.py instead of calling this by hand.
+#   installers/linux/make-deb.sh 0.1.0
 set -eu
 
 VERSION="${1:?Give the version, for example 0.1.0}"
@@ -9,11 +10,11 @@ ROOT="build/deb/katib_${VERSION}_${ARCH}"
 
 rm -rf "$ROOT"
 mkdir -p "$ROOT/DEBIAN" "$ROOT/opt/katib" "$ROOT/usr/bin" \
-  "$ROOT/usr/share/applications" "$ROOT/usr/share/icons/hicolor/256x256/apps"
+  "$ROOT/usr/share/applications" "$ROOT/usr/share/icons/hicolor/256x256/apps" dist/installers
 
 cp -r dist/Katib/. "$ROOT/opt/katib/"
 ln -s /opt/katib/Katib "$ROOT/usr/bin/katib-app"
-cp packaging/icon.png "$ROOT/usr/share/icons/hicolor/256x256/apps/katib.png"
+cp installers/desktop/icon.png "$ROOT/usr/share/icons/hicolor/256x256/apps/katib.png"
 
 cat > "$ROOT/usr/share/applications/katib.desktop" <<DESKTOP
 [Desktop Entry]
@@ -39,4 +40,4 @@ Description: Image annotation tool
  export them for training. It runs on your own computer.
 CONTROL
 
-dpkg-deb --build --root-owner-group "$ROOT" "dist/katib_${VERSION}_${ARCH}.deb"
+dpkg-deb --build --root-owner-group "$ROOT" "dist/installers/katib_${VERSION}_${ARCH}.deb"

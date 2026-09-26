@@ -79,28 +79,29 @@ def main() -> int:
     save(padded(logo, 512, 0.7, background), web / "icon-maskable-512.png")
     save(padded(logo, 180, 1.0, background), web / "apple-touch-icon.png")
 
-    save(logo, ROOT / "packaging" / "icon.png", 512)
+    desktop = ROOT / "installers" / "desktop"
+    save(logo, desktop / "icon.png", 512)
     ico_sizes = [(s, s) for s in (16, 24, 32, 48, 64, 128, 256)]
-    logo.save(ROOT / "packaging" / "icon.ico", sizes=ico_sizes)
-    print("wrote packaging/icon.ico")
-    logo.resize((1024, 1024), Image.Resampling.LANCZOS).save(ROOT / "packaging" / "icon.icns")
-    print("wrote packaging/icon.icns")
+    logo.save(desktop / "icon.ico", sizes=ico_sizes)
+    print("wrote installers/desktop/icon.ico")
+    logo.resize((1024, 1024), Image.Resampling.LANCZOS).save(desktop / "icon.icns")
+    print("wrote installers/desktop/icon.icns")
 
-    android = ROOT / "android-app" / "resources"
-    save(logo, android / "icon-only.png", 1024)
-    save(padded(logo, 1024, 0.62, background), android / "icon-foreground.png")
-    save(Image.new("RGBA", (1024, 1024), background), android / "icon-background.png")
+    mobile = ROOT / "installers" / "mobile"
+    save(logo, mobile / "resources" / "icon-only.png", 1024)
+    save(padded(logo, 1024, 0.62, background), mobile / "resources" / "icon-foreground.png")
+    save(Image.new("RGBA", (1024, 1024), background), mobile / "resources" / "icon-background.png")
     splash = Image.new("RGBA", (2732, 2732), background)
     splash.alpha_composite(logo.resize((720, 720), Image.Resampling.LANCZOS), (1006, 1006))
-    save(splash, android / "splash.png")
+    save(splash, mobile / "resources" / "splash.png")
 
     for name in ("logo.svg",):
         if (BRAND / name).is_file():
             (web / "brand").mkdir(parents=True, exist_ok=True)
             shutil.copyfile(BRAND / name, web / "brand" / name)
             shutil.copyfile(BRAND / name, web / "icon.svg")
-            shutil.copyfile(BRAND / name, ROOT / "android-app" / "www" / name)
-            print("wrote the logo.svg copies under web/public and android-app/www")
+            shutil.copyfile(BRAND / name, mobile / "www" / name)
+            print("wrote the logo.svg copies under web/public and installers/mobile/www")
     return 0
 
 
