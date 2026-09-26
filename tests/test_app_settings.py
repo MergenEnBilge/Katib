@@ -81,7 +81,7 @@ def test_the_folders_katib_may_read_take_effect_at_once(api: TestClient, library
         ({"limits.max_upload_mb": 0}, "between"),
         ({"limits.max_upload_mb": "lots"}, "whole number"),
         ({"server.port": 70000}, "between"),
-        ({"server.public_url": "katib.example.com"}, "http"),
+        ({"server.public_url": "ftp://katib.example.com"}, "address"),
         ({"storage.allowed_import_roots": ["/no/such/place"]}, "not a folder"),
         ({"ml.enabled": "yes"}, "on or off"),
         ({"nothing.here": 1}, "not a setting"),
@@ -94,6 +94,14 @@ def test_bad_values_are_refused_with_a_reason(
     reply = api.put(f"{API}/settings", json={"values": values})
     assert reply.status_code == 422
     assert words in reply.json()["message"]
+
+
+def test_the_public_address_may_be_typed_the_way_it_is_typed_in_a_browser(api: TestClient) -> None:
+    """Nobody types a scheme into a browser, so Katib should not insist on one here."""
+    reply = api.put(f"{API}/settings", json={"values": {"server.public_url": "192.168.1.20:8420"}})
+    assert reply.status_code == 200
+    saved = [f for f in reply.json()["fields"] if f["key"] == "server.public_url"][0]
+    assert saved["value"] == "http://192.168.1.20:8420"
 
 
 def test_sharing_on_the_network_works_once_accounts_are_chosen_too(api: TestClient) -> None:
