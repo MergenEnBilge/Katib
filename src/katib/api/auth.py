@@ -92,6 +92,21 @@ class TokenOut(BaseModel):
     token: str | None = None
 
 
+class NewUserIn(BaseModel):
+    email: str
+    name: str = ""
+    password: str
+    is_admin: bool = False
+
+
+class PasswordIn(BaseModel):
+    password: str
+
+
+class AdminIn(BaseModel):
+    is_admin: bool
+
+
 class MemberOut(BaseModel):
     user: UserOut
     role: str
@@ -270,6 +285,33 @@ def list_users(session: SessionDep, user: UserDep) -> list[UserOut]:
     if not user.is_admin:
         raise Forbidden("Only administrators can see everyone.")
     return [_user(u) for u in auth.list_users(session)]
+
+
+@router.post("/users", response_model=UserOut, status_code=201)
+def create_person(body: NewUserIn, request: Request, session: SessionDep, user: UserDep) -> UserOut:
+    """Make an account outright, for a team that would rather hand out logins than send invites."""
+    if not user.is_admin:
+        raise Forbidden("Only administrators can create accounts.")
+    if _settings(request).auth.mode != "local":
+        raise Forbidden("Accounts are off, so there is nobody to create. Turn them on first.")
+    made = auth.create_user(session, body.email, body.name, body.password, is_admin=body.is_admin)
+    return _user(made)
+
+
+@router.post("/users/{user_id}:password", response_model=UserOut)
+def set_password(
+    user_id: uuid.UUID, body: PasswordIn, session: SessionDep, user: UserDep
+) -> UserOut:
+    if not user.is_admin:
+        raise Forbidden("Only administrators can change someone else's password.")
+    return _user(auth.set_password(session, user_id, body.password))
+
+
+@router.post("/users/{user_id}:admin", response_model=UserOut)
+def set_admin(user_id: uuid.UUID, body: AdminIn, session: SessionDep, user: UserDep) -> UserOut:
+    if not user.is_admin:
+        raise Forbidden("Only administrators can make someone an administrator.")
+    return _user(auth.set_admin(session, user_id, body.is_admin, user))
 
 
 @router.post("/users/{user_id}:disable", response_model=UserOut)
