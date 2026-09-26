@@ -108,6 +108,19 @@ button {
 button:disabled {
   opacity: 0.6;
 }
+button.secondary {
+  margin-top: 10px;
+  color: var(--text);
+  font-weight: 500;
+  background: transparent;
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.2));
+}
+.scan-hint {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+}
 .ring {
   width: 16px;
   height: 16px;

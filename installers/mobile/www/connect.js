@@ -140,6 +140,36 @@ form.addEventListener('submit', (event) => {
   void connect(input.value);
 });
 
+// Scanning the code Katib shows under the workspace name beats typing an address on a phone
+// keyboard. The button only appears when the app is running natively, since a plain browser has
+// no scanner to call.
+const scan = document.getElementById('scan');
+const scanHint = document.getElementById('scan-hint');
+const ANY_BARCODE = 17; // CapacitorBarcodeScannerTypeHint.ALL
+
+async function scanCode() {
+  const plugin = window.Capacitor?.Plugins?.CapacitorBarcodeScanner;
+  if (!plugin) return;
+  scan.disabled = true;
+  try {
+    const result = await plugin.scanBarcode({ hint: ANY_BARCODE });
+    const text = (result?.ScanResult || '').trim();
+    if (!text) return;
+    input.value = text;
+    await connect(text);
+  } catch {
+    say('The scan was cancelled, or Katib cannot use the camera. Type the address instead.');
+  } finally {
+    scan.disabled = false;
+  }
+}
+
+if (window.Capacitor?.isNativePlatform?.()) {
+  scan.hidden = false;
+  scanHint.hidden = false;
+  scan.addEventListener('click', () => void scanCode());
+}
+
 showRecent();
 const last = localStorage.getItem(LAST_KEY);
 // Open the last server straight away, unless the person came back here on purpose to change it.
