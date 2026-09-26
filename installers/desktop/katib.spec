@@ -11,6 +11,10 @@ src = root / "src" / "katib"
 
 hidden = collect_submodules("katib") + collect_submodules("uvicorn") + collect_submodules("webview")
 hidden += ["psycopg", "argon2", "yaml"]
+if sys.platform.startswith("linux"):
+    # The GTK web view reaches for these at run time. PyInstaller's own gi hook then brings along
+    # the typelib files they need.
+    hidden += ["gi", "gi.repository.Gtk", "gi.repository.WebKit2", "cairo"]
 
 a = Analysis(
     [str(here / "entry.py")],

@@ -2,9 +2,12 @@ version = 1
 revision = 3
 requires-python = ">=3.12"
 resolution-markers = [
-    "python_full_version >= '3.14'",
-    "python_full_version == '3.13.*'",
-    "python_full_version < '3.13'",
+    "python_full_version >= '3.14' and sys_platform == 'linux'",
+    "python_full_version >= '3.14' and sys_platform != 'linux'",
+    "python_full_version == '3.13.*' and sys_platform == 'linux'",
+    "python_full_version == '3.13.*' and sys_platform != 'linux'",
+    "python_full_version < '3.13' and sys_platform == 'linux'",
+    "python_full_version < '3.13' and sys_platform != 'linux'",
 ]
 
 [[package]]
@@ -801,6 +804,7 @@ dependencies = [
 [package.optional-dependencies]
 desktop = [
     { name = "pywebview" },
+    { name = "pywebview", extra = ["gtk"], marker = "sys_platform == 'linux'" },
 ]
 ml = [
     { name = "onnxruntime" },
@@ -843,6 +847,7 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.5" },
     { name = "python-multipart", specifier = ">=0.0.12" },
     { name = "pywebview", marker = "extra == 'desktop'", specifier = ">=5" },
+    { name = "pywebview", extras = ["gtk"], marker = "sys_platform == 'linux' and extra == 'desktop'", specifier = ">=5" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "segno", specifier = ">=1.6.6" },
     { name = "sqlalchemy", specifier = ">=2.0,<2.1" },
@@ -1510,6 +1515,12 @@ wheels = [
 ]
 
 [[package]]
+name = "pycairo"
+version = "1.29.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/26/7c/ab4637b028d9ee12280ab9342f28310e613d5ca30c4d72d2aebeaa6a4969/pycairo-1.29.1.tar.gz", hash = "sha256:4fbd26b4af24c9787d84cf5448e34eb8dca064b732479aaecd03109520eebd5f", size = 666272, upload-time = "2026-08-07T08:45:50.095Z" }
+
+[[package]]
 name = "pycparser"
 version = "3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1630,6 +1641,24 @@ sdist = { url = "https://files.pythonhosted.org/packages/49/2e/ced460408999b33da
 wheels = [
     { url = "https://files.pythonhosted.org/packages/71/46/17f022dd3e953bf20a04a028a21ec746d942f8d2af30fa0f124fa0e6a684/pygments-2.21.0-py3-none-any.whl", hash = "sha256:2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9", size = 1250147, upload-time = "2026-08-17T08:02:44.912Z" },
 ]
+
+[[package]]
+name = "pygobject"
+version = "3.50.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pycairo" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/2b/58/d34e67a79631177e3c08e7d02b5165147f590171f2cae6769502af5f7f7e/pygobject-3.50.0.tar.gz", hash = "sha256:4500ad3dbf331773d8dedf7212544c999a76fc96b63a91b3dcac1e5925a1d103", size = 1080367, upload-time = "2024-09-12T12:05:22.579Z" }
+
+[[package]]
+name = "pygobject-stubs"
+version = "2.16.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/2d/1c/317ccaaa6a3ddce270652781cf09d3b1d5d343b1a1dabca304fe5c218474/pygobject_stubs-2.16.0.tar.gz", hash = "sha256:a97574616e92ef458605f9520d8d9db4c2a131affcd12fdd51db0b42395291e9", size = 934833, upload-time = "2025-12-08T20:33:33.876Z" }
 
 [[package]]
 name = "pyinstaller"
@@ -1892,6 +1921,12 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/59/4a/05307135dafba67778669d194bd1a3822a7685ec9ee8a6d7e70856c1a551/pywebview-6.2.1.tar.gz", hash = "sha256:71b7136752e40824655304d938efb62014218d1a90bd8e87e1cbdb1ce9c466af", size = 513126, upload-time = "2026-04-15T09:02:16.595Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/3d/25/9491695c22c4842c5b3903b4dc172e0eecf67a27c0af34a71512c9b76a0a/pywebview-6.2.1-py3-none-any.whl", hash = "sha256:9d07275f53894ab4d5e2e0e996227193e7187dec276d9b624dccbce029216b46", size = 525463, upload-time = "2026-04-15T09:02:10.186Z" },
+]
+
+[package.optional-dependencies]
+gtk = [
+    { name = "pygobject" },
+    { name = "pygobject-stubs" },
 ]
 
 [[package]]
