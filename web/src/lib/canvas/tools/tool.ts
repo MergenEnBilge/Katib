@@ -3,6 +3,14 @@ import type { ClassStyle, ToolEvent } from '../types';
 import type { Viewport } from '../viewport';
 import type { Pixels } from '../wand';
 
+/** A click handed to a segmentation model, as a fraction of the picture. */
+export interface SegmentClick {
+  x: number;
+  y: number;
+  /** False for "not this": a click that pushes the outline back off something it swallowed. */
+  positive: boolean;
+}
+
 export interface ToolContext {
   model: AnnotationModel;
   viewport: Viewport;
@@ -19,6 +27,11 @@ export interface ToolContext {
   accent(): string;
   /** The picture's colors, shrunk to a working size, or null while it is still loading. */
   pixels(): Pixels | null;
+  /**
+   * Ask a model on the server to outline what the clicks point at. Absent when this Katib has no
+   * such model, which is the usual case.
+   */
+  segment?(clicks: SegmentClick[]): Promise<[number, number][] | null>;
 }
 
 export interface KeyInfo {
