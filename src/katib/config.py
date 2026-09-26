@@ -41,8 +41,12 @@ class AuthSettings(BaseModel):
     secret_key: str = ""
 
 
+#: The built-in database. ``{data_dir}`` is filled in when the settings are read.
+DEFAULT_DATABASE_URL = "sqlite:///{data_dir}/katib.db"
+
+
 class DatabaseSettings(BaseModel):
-    url: str = "sqlite:///{data_dir}/katib.db"
+    url: str = DEFAULT_DATABASE_URL
 
 
 class StorageSettings(BaseModel):
