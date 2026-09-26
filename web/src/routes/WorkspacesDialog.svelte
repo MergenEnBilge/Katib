@@ -89,11 +89,24 @@
           {/if}
         </div>
       {/each}
+      {#if info.app_url}
+        <div class="app">
+          <img class="qr small" src={api.share.qrUrl(info.app_url)} alt="QR code to download the Katib app" width="132" height="132" />
+          <div>
+            <p class="line"><strong>Rather have the app?</strong></p>
+            <p class="hint">
+              Point an Android phone at this code to download it. Open it, then type the address
+              above, or scan the code beside it from inside the app.
+            </p>
+            <p class="hint">On an iPhone, open the address in Safari and choose Add to Home Screen.</p>
+          </div>
+        </div>
+      {/if}
       {#if !info.secure}
         <Callout>
           This address is not encrypted. That is fine at home or in an office you trust. Passwords and
-          annotations can be read by others on the same network, and phones cannot install Katib as an app.
-          To add HTTPS, see “Running it on a server with Docker” in the README.
+          annotations can be read by others on the same network, and an iPhone will not add it to the
+          home screen. To add HTTPS, see the guide to putting Katib online.
         </Callout>
       {/if}
     {/if}
@@ -166,6 +179,22 @@
 
   .address {
     margin-block-end: var(--space-3);
+  }
+
+  .app {
+    display: flex;
+    gap: var(--space-3);
+    align-items: flex-start;
+    padding: var(--space-3);
+    margin-block-end: var(--space-3);
+    background: var(--surface-2);
+    border-radius: var(--radius-card);
+  }
+
+  .qr.small {
+    width: 132px;
+    height: 132px;
+    flex: none;
   }
 
   .row {
