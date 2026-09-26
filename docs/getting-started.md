@@ -96,8 +96,11 @@ One line, on any machine with Docker:
 ```bash
 docker run -d --name katib --restart unless-stopped \
   -p 8420:8420 -v katib-data:/data \
-  ghcr.io/mergenenbilge/katib:latest
+  ghcr.io/mergenenbilge/katib:v0.1.0-rc2
 ```
+
+The tag is a release candidate because that is the newest Katib there is. A `:latest` tag will
+appear with the first stable release.
 
 Open `http://localhost:8420`, or the machine's address from another computer. On a Linux server,
 this does the same and prints the address for you:
