@@ -92,8 +92,21 @@ When the same setting appears in more than one place, the environment wins, then
 | `limits.max_model_mb` | `500` | Largest model the browser may upload |
 | `limits.max_image_pixels` | `200000000` | Pictures with more pixels than this are refused |
 | `limits.operation_retention_days` | `30` | How long bulk changes stay undoable |
-| `ml.enabled` | `false` | Allow pre-labeling with your own model |
+| `ml.enabled` | `false` | Allow pre-labeling and click to select with your own models |
 | `ml.models_dir` | `models` in the data folder | Where `.onnx` models live |
+
+Under **Model help** there is also a box for the two halves of a Segment Anything model, which is
+what click to select needs. [Model help](assist.md) explains which model to use and why it comes in
+two files.
+
+## People
+
+With accounts on, **Settings**, then **People** lists everyone who has one. Administrators can
+create an account with its password, reset a password, make someone an administrator, and shut
+someone out. Katib sends no email, so you pass passwords on yourself.
+
+Shutting someone out ends their sessions immediately and keeps their name on their work. Accounts
+cannot be deleted, because their annotations would lose their author.
 
 ## Backups
 
