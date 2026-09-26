@@ -13,7 +13,7 @@ The files here are placeholders. To use your own logo:
 2. Run `python scripts/apply_brand.py`.
 3. Rebuild the web app with `pnpm --dir web build`.
 
-The script rewrites the icons in `web/public`, `packaging` and `android-app/resources`. It does not touch anything else, so you can run it as often as you like.
+The script rewrites the icons in `web/public`, `installers/desktop` and `installers/mobile/resources`. It does not touch anything else, so you can run it as often as you like.
 
 If your logo has a solid background color, the script picks it up from the top-left pixel of `logo.png` and uses it behind the icons that need padding, such as the Android adaptive icon.
 
