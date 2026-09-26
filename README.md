@@ -26,20 +26,26 @@ take an afternoon by hand, and exports that drop straight into the training code
 
 ## Why you might like it
 
-- **It is fast where it matters.** Number keys pick classes, arrows nudge shapes, `Shift+Enter`
-  finishes a picture and opens the next. Every edit saves itself, so there is no save button and
-  nothing to lose. A 3,000 image project opens a page of thumbnails in five milliseconds.
-- **Mistakes are cheap.** Rename a class and every shape follows. Merge two classes or delete one
-  with all its shapes, and Katib shows you exactly what it will touch before it does it. Changed
-  your mind a fortnight later? Undo it from History.
-- **It tells you what is wrong before you train.** Stray one-pixel shapes, duplicates, near-identical
-  photos that will leak between train and validation, classes with a tenth of the examples of the
-  rest.
-- **Your data goes in and comes out.** YOLO, COCO, Pascal VOC, LabelMe and JSON Lines, in both
-  directions, with train/validation/test splits preserved. Import the same file twice and nothing
-  doubles.
-- **Nothing phones home.** Katib makes no network requests of its own. No account, no telemetry, no
-  usage tier.
+Annotation is repetitive work, so the keyboard matters more than anything. Number keys pick classes,
+arrows nudge shapes a pixel at a time, `Shift+Enter` marks a picture done and opens the next one.
+There is no save button, because every edit saves itself. On a project of 3,000 images a page of
+thumbnails comes back in five milliseconds, and it stays that way at 30,000.
+
+Mistakes are cheap to fix. Rename a class and every shape follows. Merge two classes, or delete one
+with all its shapes, and Katib shows you what it is about to touch before it touches anything. If
+you realise a fortnight later that it was the wrong call, undo it from History — that log is kept
+for 30 days and survives closing the browser.
+
+It also tells you what is wrong with a dataset before you waste a training run on it: stray
+one-pixel shapes from an accidental click, duplicate boxes, near-identical photos that will leak
+between your train and validation sets, classes with a tenth of the examples of the rest.
+
+Your data goes in and comes back out. YOLO, COCO, Pascal VOC, LabelMe and JSON Lines, both
+directions, with train/validation/test splits preserved. Import the same annotation file twice and
+nothing doubles.
+
+And it is quiet. Katib makes no network requests of its own — no account to create, no telemetry, no
+licence check, nothing to switch off.
 
 ## Install
 
@@ -55,9 +61,7 @@ Katib is still on release candidates, so the downloads are marked pre-release. W
 whole install is one line:
 
 ```bash
-docker run -d --name katib --restart unless-stopped \
-  -p 8420:8420 -v katib-data:/data \
-  ghcr.io/mergenenbilge/katib:v0.1.0-rc2
+docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.1.0-rc2
 ```
 
 Open <http://localhost:8420> and you are labelling. The [install
@@ -73,39 +77,40 @@ and a guided tour, and you will have drawn your first box inside two minutes.
 
 ## What you can do with it
 
-**Draw six kinds of shape.** Boxes, polygons, rotated boxes for things at an angle, keypoints with
-skeletons, brush masks, whole-image tags, and text for captions or the words inside a shape. The
-magic wand outlines an object from one click. Pick the kinds a project needs when you create it and
-the toolbar only shows those.
+There are six kinds of shape: boxes, polygons, rotated boxes for anything sitting at an angle,
+keypoints with skeletons, brush masks, and whole-image tags. Text sits alongside them, for captions
+or for transcribing the words inside a shape. The magic wand outlines an object from a single click
+when it stands out from its background. You choose which kinds a project uses when you create it,
+and the toolbar shows only those.
 
-**Catch problems before your model does.**
+Before you commit to a training run, the health panel looks for the things that quietly ruin one.
 
 <p align="center">
   <img src="docs/images/health.png" width="820" alt="The dataset health window listing images without shapes, tiny shapes, duplicates and class balance">
 </p>
 
-**Split your data and keep it split.** Katib reads the train, validation and test folders your
-dataset already has, remembers the split on each image, and uses it when you export. Reshuffle with
-a seed you control, or set your own ratios.
+Splits are treated as part of the data rather than an export-time afterthought. Katib reads the
+train, validation and test folders a dataset arrives with, keeps the split on each image, and uses
+it when you export. Reshuffle with a seed you control, or set your own ratios per dataset kind.
 
 <p align="center">
   <img src="docs/images/splits.png" width="820" alt="The split window with train, validation and test shares and a preview of what will move">
 </p>
 
-**Work together without stepping on each other.** Invite people with a link and give each a role:
-owner, manager, annotator, reviewer or viewer. Katib hands each annotator the next image, shows who
-else is on the project, and stops two people editing one image at once. Reviewers approve finished
-images or send them back with a comment.
+For teams, invite people with a link and give each one a role — owner, manager, annotator, reviewer
+or viewer. Katib hands each annotator the next image, shows who else is on the project, and stops
+two people editing the same image at once. Reviewers approve finished images or send them back with
+a comment.
 
-**Change anything without editing a file.** Every setting has a page, a plain explanation, and a
-note saying whether it applies now or after a restart. Backups are one button.
+You should never need to edit a config file. Every setting has a page, an explanation in plain
+words, and a note telling you whether it takes effect now or after a restart. Backups are a button.
 
 <p align="center">
   <img src="docs/images/settings.png" width="900" alt="Katib settings, showing who can use it, how it is reached, and the port">
 </p>
 
-**Label from the sofa.** The interface adapts down to a phone. Add it to your home screen and it
-keeps working when the signal drops; edits you make offline go up when you are back.
+The interface goes all the way down to a phone. Add it to your home screen and it keeps working when
+the signal drops; anything you drew offline is sent the next time you have a connection.
 
 <p align="center">
   <img src="docs/images/phone.png" width="300" alt="Katib on a phone, showing a picture with labelled boxes">

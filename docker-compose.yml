@@ -3,7 +3,8 @@
 
 services:
   katib:
-    build: .
+    # To run your own changes instead of the published build, swap this line for "build: ."
+    image: ghcr.io/mergenenbilge/katib:v0.1.0-rc2
     restart: unless-stopped
     depends_on:
       db:
