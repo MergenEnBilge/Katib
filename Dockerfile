@@ -13,7 +13,10 @@ RUN pip install --no-cache-dir uv && useradd --create-home --uid 1000 katib
 WORKDIR /app
 COPY pyproject.toml uv.lock README.md ./
 COPY src/ ./src/
-RUN uv sync --frozen --no-dev --extra postgres
+# ml brings onnxruntime, so pre-labeling and click to select work in a container without anyone
+# installing anything. It is the largest thing in the image; drop the extra to halve it if no
+# model will ever run here.
+RUN uv sync --frozen --no-dev --extra postgres --extra ml
 COPY --from=web /app/src/katib/static ./src/katib/static
 
 ENV PATH="/app/.venv/bin:$PATH" \

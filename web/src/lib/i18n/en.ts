@@ -11,6 +11,7 @@ const en = {
   'nav.settings': 'Settings',
   'nav.help': 'Help',
   'nav.main': 'Main',
+  'nav.changePassword': 'Change your password',
   'nav.signOut': 'Sign out',
   'nav.localWorkspace': 'Local workspace',
   'nav.workspaceHint': 'Share this computer or switch to another server',

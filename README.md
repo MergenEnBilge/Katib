@@ -57,16 +57,16 @@ licence check, nothing to switch off.
 | Katib on your iPhone | Open your server in Safari, then **Add to Home Screen** |
 | To work on Katib itself | [From the source](docs/getting-started.md#from-the-source) |
 
-Katib is still on release candidates, so the downloads are marked pre-release. With Docker, the
-whole install is one line:
+With Docker, the whole install is one line:
 
 ```bash
-docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.1.0-rc3
+docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.1.0
 ```
 
-Open <http://localhost:8420> and you are labelling. The [install
-guide](docs/getting-started.md) walks through every platform properly, including
-the warnings Windows and macOS show for software that is not code-signed yet.
+Open <http://localhost:8420>. Katib asks for a setup code before it will make the first account,
+since whoever makes it runs the server — `docker exec katib cat /data/setup-code.txt` shows it.
+Then you are labelling. The [install guide](docs/getting-started.md) walks through every platform
+properly, including the warnings Windows and macOS show for software that is not code-signed yet.
 
 New to this? On the home page, choose **Try it with practice pictures**. You get a small project
 and a guided tour, and you will have drawn your first box inside two minutes.
@@ -176,20 +176,30 @@ pnpm --dir web dev            # front end on :5173, proxies /api to the backend
 
 ## Status
 
-Katib is young. Everything described here works today, and the checks run on every push: the Python
-tests against both SQLite and Postgres, the browser tests at desktop and phone sizes with an
-automated accessibility pass, a Docker build, and speed budgets.
+This is 0.1.0, the first release Katib has made without a "rc" on the end. Everything described
+here works today, and the checks run on every push: the Python tests against both SQLite and
+Postgres, the browser tests at desktop and phone sizes with an automated accessibility pass, a
+Docker build, and speed budgets. Every export format is exercised by a test that sends a project
+out through the API and reads it back in again.
 
-The Windows installer, the Linux `.deb` and the Android app have each been built and run. The macOS
-disk image is built by the release workflow and has not been opened on a Mac. Installers are not
-code-signed yet, so Windows and macOS will warn you the first time.
+Being honest about what that number does and does not promise:
 
-Click to select is covered by tests that run a stand-in model end to end, which proves the
-plumbing, the click arithmetic and the outlining. It has not yet been run against real SAM weights
-by us, so treat that part as new.
+- The Windows installer, the Linux `.deb`, the Docker image and the Android app have each been
+  built and run. The macOS disk image is built by the release workflow and has not been opened on
+  a Mac.
+- Installers are not code-signed, so Windows and macOS warn you the first time. The APK is signed
+  with a debug key unless you configure a release keystore.
+- Click to select is covered end to end by tests that run a stand-in model, which proves the
+  plumbing, the click arithmetic and the outlining. It has not been run here against real SAM
+  weights.
+- Your data is safe to keep: every schema change ships with a migration, and upgrading a container
+  runs them at startup.
 
 Not there yet: translations. The groundwork for other languages and right-to-left layouts is in
 place, but the interface is English.
+
+[Security](docs/security.md) lists what Katib protects, what it leaves to you, and what the
+reviews before this release found.
 
 ## License
 

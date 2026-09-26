@@ -11,7 +11,7 @@
 
 set -eu
 
-IMAGE="${KATIB_IMAGE:-ghcr.io/mergenenbilge/katib:v0.1.0-rc3}"
+IMAGE="${KATIB_IMAGE:-ghcr.io/mergenenbilge/katib:v0.1.0}"
 NAME="katib"
 PORT="8420"
 PHOTOS=""
@@ -87,7 +87,11 @@ say "  On this machine:   http://localhost:$PORT"
 say ""
 say "Open it now and create the administrator account."
 if [ -n "$CODE" ]; then
-  say "If you open it from outside your own network, it asks for this setup code: $CODE"
+  say ""
+  say "It asks for this setup code, which proves the server is yours:"
+  say "  $CODE"
+  say "Anyone who can reach this machine could otherwise claim the account first."
+  say "To see it again: docker exec $NAME cat /data/setup-code.txt"
 fi
 say ""
 say "To stop it:      docker stop $NAME"

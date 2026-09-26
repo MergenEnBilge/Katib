@@ -103,6 +103,11 @@ class PasswordIn(BaseModel):
     password: str
 
 
+class OwnPasswordIn(BaseModel):
+    current_password: str
+    new_password: str
+
+
 class AdminIn(BaseModel):
     is_admin: bool
 
@@ -184,8 +189,9 @@ def setup(
         if not setup_code.matches(settings.data_dir, body.setup_code):
             limiter.fail(key)
             raise Forbidden(
-                "This server can be reached from the internet, so it needs its setup code. "
-                "You will find it in the server's log, or in setup-code.txt in its data folder."
+                "Other people can reach this server, and whoever makes this account runs it, "
+                "so it needs its setup code. You will find it in the server's log, or in "
+                "setup-code.txt in its data folder."
             )
     user = auth.setup_first_admin(session, body.email, body.name, body.password)
     setup_code.clear(settings.data_dir)
@@ -260,6 +266,30 @@ def create_invite(
     # the administrator happens to be using. "localhost" helps nobody.
     urls = share_urls(request)
     return InviteOut(token=token, path=path, url=f"{urls[0]}{path}" if urls else "")
+
+
+@router.post("/auth/password", response_model=UserOut)
+def change_password(
+    body: OwnPasswordIn,
+    request: Request,
+    response: Response,
+    session: SessionDep,
+    user: UserDep,
+    limiter: LimiterDep,
+) -> UserOut:
+    """Change your own password. Anyone handed one by an administrator should."""
+    key = f"password:{user.id}"
+    wait = limiter.retry_after(key)
+    if wait:
+        raise TooManyAttempts(f"Too many attempts. Try again in {wait} seconds.", retry_after=wait)
+    try:
+        token = auth.change_own_password(session, user, body.current_password, body.new_password)
+    except Unauthorized:
+        limiter.fail(key)
+        raise
+    limiter.reset(key)
+    _set_cookie(request, response, token)
+    return _user(user)
 
 
 @router.get("/auth/tokens", response_model=list[TokenOut])

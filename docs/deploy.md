@@ -22,10 +22,17 @@ Install [Docker Desktop](https://www.docker.com/products/docker-desktop/), open 
 into PowerShell or Terminal:
 
 ```bash
-docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.1.0-rc3
+docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.1.0
 ```
 
-Open <http://localhost:8420>. Create your account. You are labelling.
+Open <http://localhost:8420>. Katib asks for a setup code before it will create the first
+account, because whoever creates it runs the server. Read the code with:
+
+```bash
+docker exec katib cat /data/setup-code.txt
+```
+
+Paste it in, create your account, and you are labelling. The code stops working from then on.
 
 Katib comes back by itself whenever Docker starts. Your projects live in a Docker volume called
 `katib-data`, separate from the container, so deleting the container does not touch them.
@@ -36,17 +43,20 @@ To let someone else in, give them your machine's network address with `:8420` on
 To label pictures already on your disk, mount the folder as well:
 
 ```bash
-docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data -v C:\Photos:/photos:ro ghcr.io/mergenenbilge/katib:v0.1.0-rc3
+docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data -v C:\Photos:/photos:ro ghcr.io/mergenenbilge/katib:v0.1.0
 ```
 
 Then choose **Import**, **Connect a folder**, and pick `/photos`. The `:ro` makes it read-only.
 Katib never writes to your pictures anyway, but it costs nothing to be certain.
 
-!!! warning "Who gets in first"
+!!! note "Who can reach it"
 
-    `-p 8420:8420` publishes Katib on every network interface, and whoever opens it first creates
-    the administrator account. On a shared or public network, create yours immediately. If Katib is
-    only for you, bind it to your own machine instead: `-p 127.0.0.1:8420:8420`.
+    `-p 8420:8420` publishes Katib on every network interface, so anyone on your network can open
+    it. That is the point on a shared machine and a surprise on a laptop in a cafe. If Katib is
+    only for you, publish it to your own machine instead: `-p 127.0.0.1:8420:8420`.
+
+    Katib still asks for the setup code either way. From inside a container there is no way to
+    tell how Docker handed the port out, so it assumes the careful answer.
 
 Prefer not to touch a terminal at all? In Docker Desktop, search for `mergenenbilge/katib`, choose
 **Run**, open **Optional settings**, set the host port to `8420`, and add a volume named
@@ -65,10 +75,9 @@ The script looks for Docker and offers to install it, downloads Katib, starts it
 answers, then prints the address. Add `--photos /path/to/pictures` to mount a folder, or
 `--port 9000` if something already uses 8420.
 
-Open the address it prints. Coming from outside your own network, Katib asks for a setup code before
-it will create the first account — the script prints it, and `docker exec katib cat
-/data/setup-code.txt` shows it again later. That code is what stops a stranger claiming your server
-before you get to it.
+Open the address it prints. Katib asks for a setup code before it will create the first account —
+the script prints it, and `docker exec katib cat /data/setup-code.txt` shows it again later. That
+code is what stops somebody else on the network claiming your server before you get to it.
 
 Run the same command again to update. The `katib-data` volume is untouched.
 
@@ -186,8 +195,8 @@ Then `docker compose up -d`. Caddy asks Let's Encrypt for a certificate, gets on
 and renews it on its own for as long as it keeps running. There is no certificate file to manage and
 no renewal to remember.
 
-Open `https://katib.example.com`. Because you are now arriving from a public address, Katib asks for
-the setup code before it lets you create the first account:
+Open `https://katib.example.com`. Katib asks for the setup code before it lets you create the first
+account:
 
 ```bash
 docker compose exec katib cat /data/setup-code.txt
@@ -231,8 +240,9 @@ not settle for plain `http`.
 **The page does not open.** Is the container running? `docker ps`. Is something else on port 8420?
 Pick another with `--port`.
 
-**It wants a setup code.** You are reaching it from outside its network, which is what that check is
-for. `docker exec katib cat /data/setup-code.txt`, or look for "setup code" in `docker logs katib`.
+**It wants a setup code.** It asks everybody, because whoever makes the first account runs the
+server. `docker exec katib cat /data/setup-code.txt`, or look for "setup code" in
+`docker logs katib`.
 
 **Caddy will not get a certificate.** Almost always DNS or the firewall. Check the A record resolves
 to the right IP, check ports 80 and 443 are actually open from outside, then read

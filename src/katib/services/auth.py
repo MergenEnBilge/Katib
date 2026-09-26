@@ -237,6 +237,27 @@ def set_password(session: Session, user_id: uuid.UUID, password: str) -> User:
     return user
 
 
+def change_own_password(session: Session, user: User, current: str, new: str) -> str:
+    """Change your own password and stay signed in here. Returns a fresh session token.
+
+    Knowing the old one is the point: it stops someone who walks up to an unlocked screen from
+    taking the account. Every other session ends, so a borrowed laptop stops being a way back in.
+    """
+    if not verify_password(user.password_hash, current):
+        raise Unauthorized("That is not your current password.")
+    set_password(session, user.id, new)
+    token = new_token()
+    session.add(
+        AuthSession(
+            user_id=user.id,
+            token_hash=hash_token(token),
+            expires_at=utcnow() + timedelta(days=SESSION_DAYS),
+        )
+    )
+    session.flush()
+    return token
+
+
 def set_admin(session: Session, user_id: uuid.UUID, is_admin: bool, actor: User) -> User:
     user = _person(session, user_id)
     if user.id == actor.id and not is_admin:
