@@ -63,9 +63,10 @@ With Docker, the whole install is one line:
 docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.1.0
 ```
 
-Open <http://localhost:8420> and you are labelling. The [install
-guide](docs/getting-started.md) walks through every platform properly, including
-the warnings Windows and macOS show for software that is not code-signed yet.
+Open <http://localhost:8420>. Katib asks for a setup code before it will make the first account,
+since whoever makes it runs the server — `docker exec katib cat /data/setup-code.txt` shows it.
+Then you are labelling. The [install guide](docs/getting-started.md) walks through every platform
+properly, including the warnings Windows and macOS show for software that is not code-signed yet.
 
 New to this? On the home page, choose **Try it with practice pictures**. You get a small project
 and a guided tour, and you will have drawn your first box inside two minutes.

@@ -25,7 +25,14 @@ into PowerShell or Terminal:
 docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.1.0
 ```
 
-Open <http://localhost:8420>. Create your account. You are labelling.
+Open <http://localhost:8420>. Katib asks for a setup code before it will create the first
+account, because whoever creates it runs the server. Read the code with:
+
+```bash
+docker exec katib cat /data/setup-code.txt
+```
+
+Paste it in, create your account, and you are labelling. The code stops working from then on.
 
 Katib comes back by itself whenever Docker starts. Your projects live in a Docker volume called
 `katib-data`, separate from the container, so deleting the container does not touch them.
@@ -42,17 +49,14 @@ docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/
 Then choose **Import**, **Connect a folder**, and pick `/photos`. The `:ro` makes it read-only.
 Katib never writes to your pictures anyway, but it costs nothing to be certain.
 
-!!! note "The setup code"
+!!! note "Who can reach it"
 
-    Whoever creates the first account runs the server, so Katib asks for a code before it will
-    make one. Read it with:
+    `-p 8420:8420` publishes Katib on every network interface, so anyone on your network can open
+    it. That is the point on a shared machine and a surprise on a laptop in a cafe. If Katib is
+    only for you, publish it to your own machine instead: `-p 127.0.0.1:8420:8420`.
 
-    ```
-    docker exec katib cat /data/setup-code.txt
-    ```
-
-    It is also in `docker logs katib`, and it stops working once the account exists. If Katib is
-    only for you, publish it to your own machine as well: `-p 127.0.0.1:8420:8420`.
+    Katib still asks for the setup code either way. From inside a container there is no way to
+    tell how Docker handed the port out, so it assumes the careful answer.
 
 Prefer not to touch a terminal at all? In Docker Desktop, search for `mergenenbilge/katib`, choose
 **Run**, open **Optional settings**, set the host port to `8420`, and add a volume named
