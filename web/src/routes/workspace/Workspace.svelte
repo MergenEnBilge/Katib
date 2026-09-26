@@ -99,13 +99,14 @@
   let dialog = $state<Dialog>(null);
   let railOpen = $state(false);
   let panelOpen = $state(false);
+  let zoom = $state(100);
+  let touring = $state(false);
 
   function openTab(next: Tab): void {
     tab = next;
     layout.openTab(next);
   }
-  let zoom = $state(100);
-  let touring = $state(false);
+
   // A tool's tip waits until the person picks a tool themselves, so it never crowds the first screen.
   let toolPicked = $state(false);
   let firstTool = true;
