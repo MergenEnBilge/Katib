@@ -22,7 +22,8 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          # Capacitor 7 compiles against Java 21. An older one fails with "invalid source release".
+          java-version: 21
       - run: npm install
       - run: npm run add:android
       - run: npm run assets
@@ -104,7 +105,7 @@ jobs:
           node-version: 22
       - run: npm install
       - run: npm run add:ios
-      - run: npm run assets
+      - run: npm run assets:ios
       - run: npm run sync
       - name: Build it without signing
         working-directory: installers/mobile/ios/App
