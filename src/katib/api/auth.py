@@ -18,7 +18,7 @@ from katib.api.deps import (
     need,
 )
 from katib.api.share import APP_DOWNLOAD_URL, share_urls
-from katib.config import Settings
+from katib.config import Settings, is_loopback
 from katib.db.models import User
 from katib.services import access, auth, setup_code
 from katib.services.errors import Forbidden, InvalidInput, TooManyAttempts, Unauthorized
@@ -140,8 +140,12 @@ def _settings(request: Request) -> Settings:
 
 
 def _needs_code(request: Request) -> bool:
+    settings = _settings(request)
     return setup_code.needs_code(
-        client_address(request), request.headers, _settings(request).server.behind_proxy
+        client_address(request),
+        request.headers,
+        settings.server.behind_proxy,
+        on_a_network=not is_loopback(settings.server.host),
     )
 
 
