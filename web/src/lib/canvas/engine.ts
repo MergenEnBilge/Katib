@@ -5,14 +5,15 @@ import { BrushTool } from './tools/brush';
 import { KeypointsTool } from './tools/keypoints';
 import { ObbTool } from './tools/obb';
 import { PolygonTool } from './tools/polygon';
+import { SmartTool } from './tools/smart';
 import { WandTool } from './tools/wand';
 import { SelectTool } from './tools/select';
-import type { Tool, ToolContext } from './tools/tool';
+import type { SegmentClick, Tool, ToolContext } from './tools/tool';
 import type { ClassStyle, Point, ToolEvent } from './types';
 import { Viewport } from './viewport';
 import { WORKING_SIDE, type Pixels } from './wand';
 
-export type ToolName = 'select' | 'box' | 'polygon' | 'obb' | 'keypoints' | 'brush' | 'wand';
+export type ToolName = 'select' | 'box' | 'polygon' | 'obb' | 'keypoints' | 'brush' | 'wand' | 'smart';
 
 export interface EngineOptions {
   activeClassId(): string | null;
@@ -21,6 +22,8 @@ export interface EngineOptions {
   /** Fired when zoom or pan changes, so the UI can show the zoom level. */
   onView(): void;
   onCursor?(cursor: string): void;
+  /** Outline what a click points at, when this Katib has a model that can. */
+  segment?(clicks: SegmentClick[]): Promise<[number, number][] | null>;
 }
 
 /**
@@ -80,6 +83,7 @@ export class Engine {
       newId: () => crypto.randomUUID(),
       accent: () => getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(),
       pixels: () => this.samplePixels(),
+      segment: opts.segment?.bind(opts),
     };
     this.tools = {
       select: new SelectTool(context),
@@ -89,6 +93,7 @@ export class Engine {
       keypoints: new KeypointsTool(context),
       brush: new BrushTool(context),
       wand: new WandTool(context),
+      smart: new SmartTool(context),
     };
     this.tool = this.tools.select;
 

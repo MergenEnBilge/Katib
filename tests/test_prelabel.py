@@ -232,4 +232,5 @@ def test_it_says_how_to_turn_it_on_when_it_is_off(tmp_path: Path) -> None:
         project = client.post(f"{API}/projects", json={"name": "P"}).json()["id"]
         res = client.post(f"{API}/projects/{project}/prelabel", json={"model": "x.onnx"})
     assert res.status_code == 403
-    assert "ml.enabled" in res.json()["message"]
+    # The message points at the switch in Settings, not at the setting's name in a file.
+    assert "Settings" in res.json()["message"]

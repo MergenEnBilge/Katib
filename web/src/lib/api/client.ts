@@ -25,6 +25,8 @@ import type {
   OperationInfo,
   OpResult,
   Person,
+  SegmentClick,
+  Segmentation,
   Project,
   ProjectClass,
   RevertResult,
@@ -272,13 +274,19 @@ export const api = {
 
   ml: {
     status: () => request<MlStatus>('GET', '/ml'),
-    addModel: async (file: File): Promise<{ name: string; classes: string[] | null }> => {
+    addModel: async (
+      file: File,
+      kind: 'detect' | 'sam-encoder' | 'sam-decoder' = 'detect',
+    ): Promise<{ name: string; classes: string[] | null }> => {
       const form = new FormData();
       form.append('file', file);
+      form.append('kind', kind);
       const response = await send('/ml/models', { method: 'POST', body: form });
       if (!response.ok) return fail(response);
       return (await response.json()) as { name: string; classes: string[] | null };
     },
+    segment: (projectId: string, imageId: string, points: SegmentClick[]) =>
+      request<Segmentation>('POST', `/projects/${projectId}/images/${imageId}/segment`, { points }),
     prelabel: (
       projectId: string,
       body: {
