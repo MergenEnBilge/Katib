@@ -2074,6 +2074,16 @@ export interface components {
              * @default false
              */
             in_container: boolean;
+            /**
+             * Needs Address
+             * @default false
+             */
+            needs_address: boolean;
+            /**
+             * Port
+             * @default 0
+             */
+            port: number;
         };
         /** ShuffleIn */
         ShuffleIn: {
