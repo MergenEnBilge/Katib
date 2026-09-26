@@ -57,9 +57,14 @@ def test_the_cover_is_the_first_picture(session: Session) -> None:
 
     images = [
         Image(
-            project_id=p.id, filename=f"{i}.jpg", storage_key=f"k{i}", width=1, height=1,
-            sha256=str(i), position=position,
-        )  # fmt: skip
+            project_id=p.id,
+            filename=f"{i}.jpg",
+            storage_key=f"k{i}",
+            width=1,
+            height=1,
+            sha256=str(i),
+            position=position,
+        )
         for i, position in enumerate([2, 0, 1])
     ]
     session.add_all(images)
