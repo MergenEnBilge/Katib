@@ -3,13 +3,13 @@
   "appName": "Katib",
   "webDir": "www",
   "server": {
-    "androidScheme": "https",
-    "iosScheme": "https",
+    "androidScheme": "http",
+    "iosScheme": "http",
     "cleartext": true,
     "allowNavigation": ["*"]
   },
   "android": {
-    "allowMixedContent": false
+    "allowMixedContent": true
   },
   "ios": {
     "limitsNavigationsToAppBoundDomains": false
