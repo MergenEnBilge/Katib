@@ -79,7 +79,7 @@
 
   .picker {
     position: absolute;
-    inset-block-start: 20vh;
+    inset-block-start: calc(20dvh + var(--safe-top));
     inset-inline-start: 50%;
     transform: translateX(-50%);
     z-index: var(--z-menu);

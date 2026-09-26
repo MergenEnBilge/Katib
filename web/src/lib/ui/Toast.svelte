@@ -33,7 +33,7 @@
   .region {
     position: fixed;
     inset-inline: 0;
-    inset-block-end: 20px;
+    inset-block-end: calc(20px + var(--safe-bottom));
     z-index: var(--z-toast);
     display: flex;
     justify-content: center;

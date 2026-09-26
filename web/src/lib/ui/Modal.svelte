@@ -79,12 +79,15 @@
     z-index: var(--z-modal);
     display: grid;
     place-items: center;
+    padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
     background: var(--scrim);
   }
 
   .modal {
-    max-width: calc(100vw - 2 * var(--space-6));
-    max-height: calc(100vh - 2 * var(--space-6));
+    /* dvh, not vh: on a phone vh is the tallest the viewport ever gets, so a dialog sized with it
+       has its last row under the browser's own bar. */
+    max-width: calc(100dvw - var(--safe-left) - var(--safe-right) - 2 * var(--space-6));
+    max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 2 * var(--space-6));
     display: flex;
     flex-direction: column;
     background: var(--surface-2);

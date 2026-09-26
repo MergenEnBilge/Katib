@@ -8,10 +8,13 @@
     "cleartext": true,
     "allowNavigation": ["*"]
   },
+  "backgroundColor": "#0b0e0c",
   "android": {
-    "allowMixedContent": true
+    "allowMixedContent": true,
+    "backgroundColor": "#0b0e0c"
   },
   "ios": {
-    "limitsNavigationsToAppBoundDomains": false
+    "limitsNavigationsToAppBoundDomains": false,
+    "backgroundColor": "#0b0e0c"
   }
 }
