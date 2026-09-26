@@ -189,8 +189,9 @@ def setup(
         if not setup_code.matches(settings.data_dir, body.setup_code):
             limiter.fail(key)
             raise Forbidden(
-                "This server can be reached from the internet, so it needs its setup code. "
-                "You will find it in the server's log, or in setup-code.txt in its data folder."
+                "Other people can reach this server, and whoever makes this account runs it, "
+                "so it needs its setup code. You will find it in the server's log, or in "
+                "setup-code.txt in its data folder."
             )
     user = auth.setup_first_admin(session, body.email, body.name, body.password)
     setup_code.clear(settings.data_dir)
