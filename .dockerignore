@@ -1,11 +1,27 @@
 .git
+.github
 .venv
 **/__pycache__
 **/node_modules
+
+# Not needed to run the server
+tests
+docs
+brand
+installers
+sdk
+scripts
+
+# Build output, rebuilt inside the image
+build
+dist
+site
+src/katib/static
 web/test-results
 web/.e2e
 web/playwright-report
-src/katib/static
+
+# Local data and settings
 *.db
 katib.toml
 .env
