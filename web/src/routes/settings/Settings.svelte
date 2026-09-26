@@ -161,6 +161,10 @@
         {#if tab === 'sharing'}
           <ModePicker
             current={(key) => shown(key, data?.fields.find((f) => f.key === key)?.value)}
+            lockedBy={(key) => {
+              const field = data?.fields.find((f) => f.key === key);
+              return field?.source === 'environment' ? (field.env_name ?? null) : null;
+            }}
             onpick={(values) => (draft = { ...draft, ...values })}
           />
         {/if}
