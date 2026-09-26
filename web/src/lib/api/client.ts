@@ -16,6 +16,7 @@ import type {
   ImageItem,
   ImagePage,
   Inbox,
+  Invite,
   Job,
   Lock,
   Member,
@@ -122,7 +123,7 @@ export const api = {
     accept: (token: string, email: string, name: string, password: string) =>
       request<Person>('POST', '/auth/accept', { token, email, name, password }),
     createInvite: (projectId: string | null, role: Exclude<Role, 'owner'>) =>
-      request<{ token: string; path: string }>('POST', '/invites', {
+      request<Invite>('POST', '/invites', {
         project_id: projectId,
         role,
       }),
@@ -258,6 +259,13 @@ export const api = {
 
   ml: {
     status: () => request<MlStatus>('GET', '/ml'),
+    addModel: async (file: File): Promise<{ name: string; classes: string[] | null }> => {
+      const form = new FormData();
+      form.append('file', file);
+      const response = await send('/ml/models', { method: 'POST', body: form });
+      if (!response.ok) return fail(response);
+      return (await response.json()) as { name: string; classes: string[] | null };
+    },
     prelabel: (
       projectId: string,
       body: {

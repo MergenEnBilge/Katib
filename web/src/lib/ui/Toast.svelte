@@ -8,6 +8,7 @@
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
       class="toast"
+      class:interactive={!!toast.action}
       onpointerenter={() => toasts.hold()}
       onpointerleave={() => toasts.release()}
       onfocusin={() => toasts.hold()}
@@ -39,8 +40,10 @@
     pointer-events: none;
   }
 
+  /* A toast with nothing to press must not swallow taps meant for what is under it, which on a
+     phone is often the button you just used. One with an action still takes them. */
   .toast {
-    pointer-events: auto;
+    pointer-events: none;
     display: flex;
     align-items: center;
     gap: var(--space-4);
@@ -50,6 +53,10 @@
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-card);
     box-shadow: var(--shadow);
+  }
+
+  .toast.interactive {
+    pointer-events: auto;
   }
 
   button {

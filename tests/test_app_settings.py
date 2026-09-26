@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 from PIL import Image as PILImage
 
 from katib.api.app import create_app
-from katib.config import Settings, read_saved
+from katib.config import DEFAULT_DATABASE_URL, Settings, read_saved
 
 API = "/api/v1"
 
@@ -99,6 +99,21 @@ def test_bad_values_are_refused_with_a_reason(
 def test_sharing_on_the_network_works_once_accounts_are_chosen_too(api: TestClient) -> None:
     both = {"auth.mode": "local", "server.host": "0.0.0.0"}
     assert api.put(f"{API}/settings", json={"values": both}).status_code == 200
+
+
+def test_the_database_offers_the_built_in_one_as_a_choice(api: TestClient) -> None:
+    """Most people should never have to think about a connection string."""
+    got = api.get(f"{API}/settings").json()
+    database = field(got, "database.url")
+    assert database["kind"] == "choice"
+    assert database["allow_other"] is True
+    assert [o["value"] for o in database["options"]] == [DEFAULT_DATABASE_URL]
+
+
+def test_an_address_that_is_not_a_database_is_still_refused(api: TestClient) -> None:
+    refused = api.put(f"{API}/settings", json={"values": {"database.url": "my database"}})
+    assert refused.status_code == 422
+    assert "sqlite:///" in refused.json()["message"]
 
 
 def test_the_database_password_is_never_shown(api: TestClient, sqlite_only: None) -> None:

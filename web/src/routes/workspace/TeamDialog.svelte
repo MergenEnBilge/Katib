@@ -43,7 +43,8 @@
     error = '';
     try {
       const made = await api.auth.createInvite(ws.projectId, inviteRole);
-      link = `${location.origin}${made.path}`;
+      // The server knows an address other people can reach. Ours may just say localhost.
+      link = made.url || `${location.origin}${made.path}`;
     } catch (err) {
       error = err instanceof ApiError ? err.message : 'Could not create the invite.';
     } finally {

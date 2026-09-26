@@ -4,6 +4,7 @@
   import { api, ApiError, waitForJob } from '../../lib/api/client';
   import type { MlStatus } from '../../lib/api/types';
   import { plural } from '../../lib/format';
+  import { router } from '../../lib/state/router.svelte';
   import type { Workspace } from '../../lib/state/workspace.svelte';
   import Button from '../../lib/ui/Button.svelte';
   import Callout from '../../lib/ui/Callout.svelte';
@@ -21,6 +22,24 @@
   let busy = $state(false);
   let progress = $state(0);
   let summary = $state('');
+  let picker = $state<HTMLInputElement | undefined>();
+  let uploading = $state(false);
+  let uploadError = $state('');
+
+  async function addModel(file: File): Promise<void> {
+    uploading = true;
+    uploadError = '';
+    try {
+      const added = await api.ml.addModel(file);
+      status = await api.ml.status();
+      model = added.name;
+    } catch (err) {
+      uploadError = err instanceof ApiError ? err.message : 'Could not add that model.';
+    } finally {
+      uploading = false;
+      if (picker) picker.value = '';
+    }
+  }
 
   $effect(() => {
     api.ml
@@ -91,26 +110,44 @@
   {onclose}
 >
   <TipCard id="dialog:prelabel" />
+  <input
+    bind:this={picker}
+    type="file"
+    accept=".onnx"
+    hidden
+    onchange={(e) => {
+      const file = e.currentTarget.files?.[0];
+      if (file) void addModel(file);
+    }}
+  />
   {#if status === null && !problem}
     <div class="sk" aria-busy="true"></div>
   {:else if status && !status.enabled}
     <Callout>
       <p class="line"><strong>Model pre-labeling is turned off.</strong></p>
-      <p class="line">To use it, add this to <code>katib.toml</code> and restart Katib:</p>
-      <pre>[ml]
-enabled = true</pre>
-      <p class="line">Then install the extra package with <code>uv sync --extra ml</code>.</p>
+      <p class="line">Turn it on under Settings, then Model help. It takes effect at once.</p>
+      <Button onclick={() => router.navigate('/settings')}>Open Settings</Button>
     </Callout>
   {:else if status && !status.installed}
     <Callout>
       <p class="line"><strong>The model runtime is not installed.</strong></p>
-      <p class="line">Install it with <code>uv sync --extra ml</code> and restart Katib.</p>
+      <p class="line">Katib needs one extra package to run models. Install it with
+        <code>uv sync --extra ml</code> and restart Katib. The Docker image already has it.</p>
     </Callout>
   {:else if status && status.models.length === 0}
     <Callout>
       <p class="line"><strong>No models yet.</strong></p>
-      <p class="line">Copy a YOLO detection model saved as <code>.onnx</code> into this folder, then open this window again:</p>
-      <p class="line"><code>{status.models_dir}</code></p>
+      <p class="line">
+        Choose a YOLO detection model saved as <code>.onnx</code>. It is kept on the server, so you
+        only do this once and everyone on this Katib can use it.
+      </p>
+      {#if uploadError}<p class="line bad">{uploadError}</p>{/if}
+      <Button loading={uploading} onclick={() => picker?.click()}>
+        {uploading ? 'Adding the model...' : 'Add a model'}
+      </Button>
+      {#if status.models_dir}
+        <p class="line quiet">Or copy one into <code>{status.models_dir}</code> on the server.</p>
+      {/if}
     </Callout>
   {:else if status}
     <label class="field">
@@ -211,11 +248,14 @@ enabled = true</pre>
     margin: 0 0 var(--space-1);
   }
 
-  pre {
-    margin: var(--space-1) 0;
-    padding: var(--space-2);
-    background: var(--bg);
-    border-radius: var(--radius-control);
+  .line.bad {
+    color: var(--danger-text, var(--warning-text));
+  }
+
+  .line.quiet {
+    margin-block-start: var(--space-2);
+    font-size: var(--text-small);
+    color: var(--text-2);
   }
 
   .bar {

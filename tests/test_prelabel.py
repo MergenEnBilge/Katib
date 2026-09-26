@@ -186,6 +186,47 @@ def test_a_model_outside_the_folder_is_not_found(api: TestClient, tmp_path: Path
     assert res.status_code == 404
 
 
+def test_a_model_can_be_added_from_the_browser(api: TestClient, tmp_path: Path) -> None:
+    """In Docker the models folder is inside the container, so copying a file there is not an
+    option. Uploading is the only way in."""
+    source = tmp_path / "vans.onnx"
+    write_model(source, names="{0: 'van'}")
+    added = api.post(
+        f"{API}/ml/models", files={"file": ("vans.onnx", source.read_bytes(), "application/onnx")}
+    )
+    assert added.status_code == 201, added.text
+    assert added.json()["name"] == "vans.onnx"
+    assert [m["name"] for m in api.get(f"{API}/ml").json()["models"]] == ["cars.onnx", "vans.onnx"]
+
+
+def test_only_onnx_files_can_be_uploaded(api: TestClient) -> None:
+    refused = api.post(f"{API}/ml/models", files={"file": ("notes.txt", b"hello", "text/plain")})
+    assert refused.status_code == 422
+    assert ".onnx" in refused.json()["message"]
+
+
+def test_an_uploaded_model_cannot_escape_the_models_folder(api: TestClient, tmp_path: Path) -> None:
+    source = tmp_path / "escape.onnx"
+    write_model(source)
+    sent = api.post(
+        f"{API}/ml/models",
+        files={"file": ("../../escape.onnx", source.read_bytes(), "application/onnx")},
+    )
+    assert sent.status_code == 201
+    assert sent.json()["name"] == "escape.onnx"
+    assert not (tmp_path.parent / "escape.onnx").exists()
+
+
+def test_a_model_that_is_already_there_is_not_overwritten(api: TestClient, tmp_path: Path) -> None:
+    source = tmp_path / "cars.onnx"
+    write_model(source)
+    refused = api.post(
+        f"{API}/ml/models", files={"file": ("cars.onnx", source.read_bytes(), "application/onnx")}
+    )
+    assert refused.status_code == 422
+    assert "already a model" in refused.json()["message"]
+
+
 def test_it_says_how_to_turn_it_on_when_it_is_off(tmp_path: Path) -> None:
     with TestClient(create_app(Settings(storage={"data_dir": str(tmp_path)}))) as client:
         project = client.post(f"{API}/projects", json={"name": "P"}).json()["id"]

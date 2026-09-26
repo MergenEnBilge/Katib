@@ -22,14 +22,20 @@ download the way there is on Android. Two ways in:
   connected. A free Apple ID installs it for seven days at a time; a paid developer account installs
   it for a year, or through TestFlight for other people.
 
-## Enter your server
+## Connecting it to your server
 
-The app asks for the address the first time and remembers it. To change it later, tap the workspace
-name on the home page and choose **Other servers**.
+Easiest: on a computer already running Katib, click the workspace name at the bottom of the sidebar.
+Katib shows a QR code. Tap **Scan the code instead** in the app and point the camera at it. That
+saves typing an address on a phone keyboard.
+
+Otherwise type the address, such as `192.168.1.20:8420`. The app remembers it and goes straight
+there next time. To change it later, tap the workspace name and choose **Other servers**.
 
 If your server does not use `https`, the app tells you before it connects. That is fine on your own
 home network. Do not do it over the internet. On iPhone, plain `http` only works for addresses on
 your own network.
+
+Android 8 or newer is needed, which is anything from 2017 onwards.
 
 ## Building it yourself
 
@@ -39,7 +45,7 @@ Xcode.
 ```bash
 cd installers/mobile
 npm install
-npm run add:android      # creates the android/ project (once)
+npm run add:android      # creates the android/ project (once) and sets the minimum Android
 npm run assets           # icons and splash screens from resources/
 npm run sync
 

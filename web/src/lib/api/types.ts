@@ -36,4 +36,5 @@ export type Comment = S['CommentOut'];
 export type Activity = S['ActivityOut'];
 export type Lock = S['LockOut'];
 export type ApiToken = S['TokenOut'];
+export type Invite = S['InviteOut'];
 export type Role = 'owner' | 'manager' | 'annotator' | 'reviewer' | 'viewer';

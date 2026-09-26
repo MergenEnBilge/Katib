@@ -14,7 +14,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 from pydantic import ValidationError
 
-from katib.config import Settings
+from katib.config import DEFAULT_DATABASE_URL, Settings
 from katib.services.errors import InvalidInput
 
 Kind = str  # "bool", "int", "text", "choice", "paths"
@@ -135,9 +135,11 @@ FIELDS: tuple[Field, ...] = (
         "database.url",
         "storage",
         "Database",
-        "Leave this as it is to keep the built-in database. To use Postgres, enter an address "
-        "like postgresql://user:password@host/katib. Your projects do not move with it.",
-        "text",
+        "The built-in database needs nothing from you and suits a team of a few people. Pick "
+        "another address only if you already run Postgres. Your projects do not move with it.",
+        "choice",
+        options=(Option(DEFAULT_DATABASE_URL, "Built in, stored in the data folder"),),
+        allow_other=True,
         secret=True,
     ),
     Field(
@@ -311,7 +313,9 @@ def _clean(f: Field, raw: Any) -> Any:
             raise InvalidInput(f"{label} must be one of the choices shown.")
         if f.key == "server.host" and not _HOST.match(text):
             raise InvalidInput(f"{label} is not a valid address.")
-        return text
+        if text in allowed:
+            return text
+        return _clean_text(f, text)
     return _clean_text(f, text)
 
 

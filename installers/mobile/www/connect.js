@@ -23,11 +23,17 @@ function isPrivateHost(host) {
   return a === 10 || a === 127 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 169 && b === 254);
 }
 
-/** Turn what someone typed into candidate origins to try, safest first. Returns [] when unusable. */
+/** Turn what someone typed into candidate origins to try, likeliest first. [] when unusable. */
 function candidates(text) {
   const typed = text.trim();
   if (!typed || /\s/.test(typed)) return [];
-  const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(typed) ? [typed] : [`https://${typed}`, `http://${typed}`];
+  // When no scheme is given, guess from the address. A Katib on your own network is almost always
+  // plain http, and trying https there is not merely slow: the server receives a TLS handshake on
+  // an http port and logs it as a broken request, which looks alarming and is our own doing.
+  const bare = typed.split('/')[0].split(':')[0];
+  const onYourNetwork = isPrivateHost(bare) || !bare.includes('.');
+  const order = onYourNetwork ? ['http', 'https'] : ['https', 'http'];
+  const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(typed) ? [typed] : order.map((s) => `${s}://${typed}`);
   const found = [];
   for (const raw of withScheme) {
     try {
@@ -133,6 +139,36 @@ form.addEventListener('submit', (event) => {
   event.preventDefault();
   void connect(input.value);
 });
+
+// Scanning the code Katib shows under the workspace name beats typing an address on a phone
+// keyboard. The button only appears when the app is running natively, since a plain browser has
+// no scanner to call.
+const scan = document.getElementById('scan');
+const scanHint = document.getElementById('scan-hint');
+const ANY_BARCODE = 17; // CapacitorBarcodeScannerTypeHint.ALL
+
+async function scanCode() {
+  const plugin = window.Capacitor?.Plugins?.CapacitorBarcodeScanner;
+  if (!plugin) return;
+  scan.disabled = true;
+  try {
+    const result = await plugin.scanBarcode({ hint: ANY_BARCODE });
+    const text = (result?.ScanResult || '').trim();
+    if (!text) return;
+    input.value = text;
+    await connect(text);
+  } catch {
+    say('The scan was cancelled, or Katib cannot use the camera. Type the address instead.');
+  } finally {
+    scan.disabled = false;
+  }
+}
+
+if (window.Capacitor?.isNativePlatform?.()) {
+  scan.hidden = false;
+  scanHint.hidden = false;
+  scan.addEventListener('click', () => void scanCode());
+}
 
 showRecent();
 const last = localStorage.getItem(LAST_KEY);
