@@ -13,11 +13,11 @@
 Whichever you choose, your images and labels stay on your own hardware. Katib makes no network
 requests of its own.
 
-!!! note "Katib is still on release candidates"
+!!! note "Which version"
 
-    The downloads are marked pre-release, which is honest rather than ominous: the checks run on
-    every change, but the version number has not settled. Replace `<version>` below with the one on
-    the [releases page](https://github.com/MergenEnBilge/Katib/releases), currently `0.1.0-rc3`.
+    The commands here name `0.1.0`, the first full release. Later versions are on the
+    [releases page](https://github.com/MergenEnBilge/Katib/releases); swap the number and
+    everything else stays the same.
 
 !!! warning "Copying commands on Windows"
 
@@ -105,11 +105,11 @@ Mac with Xcode, you can also build and install the real app — see
 One line, on any machine with Docker:
 
 ```bash
-docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.1.0-rc3
+docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.1.0
 ```
 
-The tag is a release candidate because that is the newest Katib there is. A `:latest` tag will
-appear with the first stable release.
+Naming the version, as above, means an upgrade happens when you ask for it rather than the next
+time the image is pulled. `:latest` also works if you would rather always have the newest.
 
 Open `http://localhost:8420`, or the machine's address from another computer. On a Linux server,
 this does the same and prints the address for you:
@@ -168,9 +168,15 @@ each platform needs.
 
 On your own computer, Katib opens straight into your projects. There is nothing to sign in to.
 
-On a shared server, the first person to open the page creates the administrator account. If you
-reach the server from outside your own network, Katib asks for a setup code first, so a stranger
-cannot claim your server. Find it in the server's log or in `setup-code.txt` in its data folder.
+On a shared server, the first person to open the page creates the administrator account, and that
+account runs the server. So if anyone else could reach Katib, it asks for a setup code before it
+will create that account. Copy it from the server's log — Docker prints it with
+`docker logs katib` — or read `setup-code.txt` in the data folder. It stops working the moment the
+account exists.
+
+A Katib that answers only on the computer it runs on never asks, because nobody else can get
+there. In Docker it always asks, even when you published the port to `127.0.0.1` only: from inside
+a container there is no way to tell how Docker handed the port out.
 
 ## Try it first
 

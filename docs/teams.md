@@ -15,8 +15,13 @@ Each one sets several settings together — who signs in, which addresses Katib 
 whether to trust a proxy. The individual settings stay underneath if you want to arrange them
 yourself.
 
-Choosing anything but **Just me** needs a restart, and Katib offers you the button. The first person
-to open it afterwards creates the administrator account; after that, everyone signs in.
+Choosing anything but **Just me** needs a restart, and Katib offers you the button. Afterwards the
+first person to open it creates the administrator account, and that account runs the server — so
+Katib asks for a setup code first. It is printed in the server's log when Katib starts, and kept in
+`setup-code.txt` in the data folder. Once the account exists the code stops working.
+
+That step is not ceremony. Anyone who can reach Katib could otherwise claim the account before you
+do, and the wifi in an office or a cafe is not a list of people you trust.
 
 With accounts off, Katib only listens on your own computer and refuses to start on a network
 address. That keeps an open instance from being exposed by accident.
