@@ -79,9 +79,13 @@ and a guided tour, and you will have drawn your first box inside two minutes.
 
 There are six kinds of shape: boxes, polygons, rotated boxes for anything sitting at an angle,
 keypoints with skeletons, brush masks, and whole-image tags. Text sits alongside them, for captions
-or for transcribing the words inside a shape. The magic wand outlines an object from a single click
-when it stands out from its background. You choose which kinds a project uses when you create it,
-and the toolbar shows only those.
+or for transcribing the words inside a shape. You choose which kinds a project uses when you create
+it, and the toolbar shows only those.
+
+Two of the tools draw for you. The magic wand outlines an object that stands out from its
+background, with no model and no setup. Give Katib a Segment Anything model and the click-to-select
+tool outlines things the wand cannot follow — a dog on a lawn, a car among cars — and shift-clicking
+adds what it missed. Both run on your own hardware.
 
 Before you commit to a training run, the health panel looks for the things that quietly ruin one.
 
@@ -98,9 +102,11 @@ it when you export. Reshuffle with a seed you control, or set your own ratios pe
 </p>
 
 For teams, invite people with a link and give each one a role — owner, manager, annotator, reviewer
-or viewer. Katib hands each annotator the next image, shows who else is on the project, and stops
-two people editing the same image at once. Reviewers approve finished images or send them back with
-a comment.
+or viewer. Invite someone who will work on a phone and you get a code to hold a camera up to, which
+downloads the app if they need it and opens the project if they already have it. Or skip invites
+and create the accounts yourself, passwords and all, from Settings. Katib hands each annotator the
+next image, shows who else is on the project, and stops two people editing the same image at once.
+Reviewers approve finished images or send them back with a comment.
 
 You should never need to edit a config file. Sharing opens with three choices — just you, your team
 on this network, over the internet — and picking one sets everything that goes with it. Every other
@@ -127,7 +133,7 @@ connection.
 |---|-----|
 | Your training code | Export YOLO, COCO, VOC, LabelMe or JSON Lines, with or without the image files |
 | Scripts and pipelines | A REST API and a [Python client](sdk/README.md). `pip install` it and drive Katib from a notebook |
-| Your own model | Drop an ONNX detector in the models folder and let it draft boxes for you to correct |
+| Your own model | An ONNX detector drafts boxes for you to correct; a SAM model outlines what you click |
 | A phone or tablet | The Android app, or add the page to your home screen |
 | Another machine on your network | `katib share` prints an address and a QR code |
 
@@ -178,9 +184,12 @@ The Windows installer, the Linux `.deb` and the Android app have each been built
 disk image is built by the release workflow and has not been opened on a Mac. Installers are not
 code-signed yet, so Windows and macOS will warn you the first time.
 
-Not there yet: click-to-segment with a neural network (the magic wand covers simple cases), and
-translations — the groundwork for other languages and right-to-left layouts is in place, but the
-interface is English.
+Click to select is covered by tests that run a stand-in model end to end, which proves the
+plumbing, the click arithmetic and the outlining. It has not yet been run against real SAM weights
+by us, so treat that part as new.
+
+Not there yet: translations. The groundwork for other languages and right-to-left layouts is in
+place, but the interface is English.
 
 ## License
 
