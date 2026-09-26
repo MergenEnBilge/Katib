@@ -4,10 +4,14 @@
   "webDir": "www",
   "server": {
     "androidScheme": "https",
+    "iosScheme": "https",
     "cleartext": true,
     "allowNavigation": ["*"]
   },
   "android": {
     "allowMixedContent": false
+  },
+  "ios": {
+    "limitsNavigationsToAppBoundDomains": false
   }
 }

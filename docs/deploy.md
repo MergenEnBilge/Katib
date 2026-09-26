@@ -8,6 +8,7 @@ Pick the way that matches what you have. You do not need to know how servers wor
 | Share with people on my network | Docker Desktop, below | 5 minutes |
 | Run it on a cloud server or a Raspberry Pi | The install script, below | 5 minutes |
 | Use Katib from an Android phone | The `Katib-android.apk` from the releases page, which connects to your server | 2 minutes |
+| Use Katib from an iPhone | Open your server in Safari and choose Add to Home Screen | 1 minute |
 | Run it for a team with HTTPS and Postgres | [Running a server](server.md) | 15 minutes |
 
 Everything you can set up here can be changed later from **Settings** inside Katib, so nothing you choose now is final.
