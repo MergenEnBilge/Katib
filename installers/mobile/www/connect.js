@@ -93,7 +93,7 @@ function say(text, bad = false) {
   note.classList.toggle('bad', bad);
 }
 
-async function connect(text) {
+async function connect(text, path = '') {
   const options = candidates(text);
   if (options.length === 0) {
     say('That does not look like an address. Try something like katib.example.com or 192.168.1.20:8420.', true);
@@ -109,7 +109,7 @@ async function connect(text) {
         say('This address is not encrypted. Anyone between you and the server could read your work.');
         await new Promise((resolve) => setTimeout(resolve, 2500));
       }
-      location.href = origin;
+      location.href = origin + path;
       return;
     }
   }
@@ -170,12 +170,41 @@ if (window.Capacitor?.isNativePlatform?.()) {
   scan.addEventListener('click', () => void scanCode());
 }
 
+// Someone invited to a project scans a code, and the invite page offers to open the app. That
+// arrives here as katib://open?server=<address>&path=/invite/<token>, either as the app starts or
+// while it is already running. Both go to the right server and the right page without typing.
+function openDeepLink(url) {
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== 'katib:') return false;
+  const server = parsed.searchParams.get('server');
+  const path = parsed.searchParams.get('path') || '';
+  if (!server) return false;
+  input.value = server;
+  void connect(server, path.startsWith('/') ? path : '');
+  return true;
+}
+
+function start() {
+  const last = localStorage.getItem(LAST_KEY);
+  if (last) input.value = last;
+  // Open the last server straight away, unless the person came back here on purpose to change it.
+  if (last && !location.search.includes('change')) void connect(last);
+}
+
 showRecent();
-const last = localStorage.getItem(LAST_KEY);
-// Open the last server straight away, unless the person came back here on purpose to change it.
-if (last && !location.search.includes('change')) {
-  input.value = last;
-  void connect(last);
-} else if (last) {
-  input.value = last;
+const appPlugin = window.Capacitor?.Plugins?.App;
+if (appPlugin) {
+  void appPlugin.addListener('appUrlOpen', (event) => openDeepLink(event?.url || ''));
+  Promise.resolve(appPlugin.getLaunchUrl?.())
+    .then((launch) => {
+      if (!openDeepLink(launch?.url || '')) start();
+    })
+    .catch(start);
+} else {
+  start();
 }

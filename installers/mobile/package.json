@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@capacitor/android": "^7.0.0",
+    "@capacitor/app": "^7.1.2",
     "@capacitor/barcode-scanner": "^2.2.6",
     "@capacitor/core": "^7.0.0",
     "@capacitor/ios": "^7.0.0"
