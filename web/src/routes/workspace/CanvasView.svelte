@@ -61,10 +61,10 @@
 
 <div class="stage" bind:this={host} role="application" aria-label="Annotation canvas"></div>
 
-<div class="chip" aria-live="off">
-  <span class="mono">{zoom}%</span>
-  <span class="hint">{hint}</span>
-</div>
+<!-- What the current tool wants you to do next. The zoom reading lives in the toolbar. -->
+{#if hint}
+  <div class="chip" aria-live="off">{hint}</div>
+{/if}
 {#if ws.imageLoading}
   <div class="loading" role="status"><Spinner size={16} />Loading image</div>
 {/if}
@@ -81,25 +81,17 @@
     position: absolute;
     inset-block-end: var(--space-3);
     inset-inline-start: var(--space-3);
-    display: flex;
-    gap: var(--space-3);
     max-width: calc(100% - 2 * var(--space-3));
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
     padding: 4px var(--space-3);
+    overflow: hidden;
     color: var(--text-2);
     font-size: var(--text-small);
+    text-overflow: ellipsis;
+    white-space: nowrap;
     background: var(--surface-2);
     border: 1px solid var(--border);
     border-radius: var(--radius-control);
     pointer-events: none;
-  }
-
-  .hint {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
   .loading {

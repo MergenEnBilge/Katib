@@ -1921,6 +1921,8 @@ export interface components {
             created_at: string;
             /** Last Edited */
             last_edited: string | null;
+            /** Cover Image Id */
+            cover_image_id?: string | null;
         };
         /** ProjectPatch */
         ProjectPatch: {

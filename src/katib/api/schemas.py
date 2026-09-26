@@ -36,6 +36,7 @@ class ProjectOut(BaseModel):
     done_count: int
     created_at: datetime
     last_edited: datetime | None
+    cover_image_id: uuid.UUID | None = None
 
 
 class ClassIn(BaseModel):

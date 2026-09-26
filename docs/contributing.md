@@ -22,7 +22,7 @@ pnpm --dir web dev            # frontend on :5173, proxies /api to the backend
 
 ## How the code is laid out
 
-The backend is Python with FastAPI and SQLAlchemy. `ARCHITECTURE.md` explains how the pieces fit together, and `DESIGN.md` describes the interface.
+The backend is Python with FastAPI and SQLAlchemy. [How Katib is built](internals.md) is the tour, with diagrams of the layers and of what happens when you draw a box. `ARCHITECTURE.md` in the repository root is the detailed specification, and `DESIGN.md` describes the interface.
 
 | Folder | What lives there |
 |--------|------------------|

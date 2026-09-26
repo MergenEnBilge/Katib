@@ -51,6 +51,29 @@ def test_summary_counts_images(session: Session) -> None:
     assert (summary.image_count, summary.done_count) == (3, 2)
 
 
+def test_the_cover_is_the_first_picture(session: Session) -> None:
+    p = projects.create_project(session, "P")
+    assert projects.list_projects(session)[0].cover_image_id is None, "empty project has no cover"
+
+    images = [
+        Image(
+            project_id=p.id,
+            filename=f"{i}.jpg",
+            storage_key=f"k{i}",
+            width=1,
+            height=1,
+            sha256=str(i),
+            position=position,
+        )
+        for i, position in enumerate([2, 0, 1])
+    ]
+    session.add_all(images)
+    session.flush()
+
+    [summary] = projects.list_projects(session)
+    assert summary.cover_image_id == images[1].id, "the picture at position 0 is the cover"
+
+
 def test_search_filters_by_name(session: Session) -> None:
     projects.create_project(session, "Street Scenes")
     projects.create_project(session, "Birds")

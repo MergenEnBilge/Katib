@@ -28,6 +28,7 @@ def _out(s: ProjectSummary, role: str = "owner") -> ProjectOut:
         done_count=s.done_count,
         created_at=p.created_at,
         last_edited=s.last_edited,
+        cover_image_id=s.cover_image_id,
     )
 
 
