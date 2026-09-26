@@ -10,14 +10,20 @@
 | Katib on my iPhone or iPad | [Add it to the home screen](#iphone-and-ipad) | 1 minute |
 | To change Katib itself | [From the source](#from-the-source) | 5 minutes |
 
-!!! note "No tagged release yet"
-
-    Katib has not had its first tagged release, so the releases page is empty for now. Until it is
-    there, use Docker, run it from the source, or [build the installer
-    yourself](#build-an-installer-yourself) — one command.
-
 Whichever you choose, your images and labels stay on your own hardware. Katib makes no network
 requests of its own.
+
+!!! note "Katib is still on release candidates"
+
+    The downloads are marked pre-release, which is honest rather than ominous: the checks run on
+    every change, but the version number has not settled. Replace `<version>` below with the one on
+    the [releases page](https://github.com/MergenEnBilge/Katib/releases), currently `0.1.0-rc2`.
+
+!!! warning "Copying commands on Windows"
+
+    Every command here is one line. Copy the whole line. Guides often break long commands across
+    several lines with a `\` at the end, which a Mac or Linux terminal understands and PowerShell
+    does not — it reads them as separate commands and fails with `invalid reference format`.
 
 ## Windows
 
@@ -94,9 +100,7 @@ Mac with Xcode, you can also build and install the real app — see
 One line, on any machine with Docker:
 
 ```bash
-docker run -d --name katib --restart unless-stopped \
-  -p 8420:8420 -v katib-data:/data \
-  ghcr.io/mergenenbilge/katib:v0.1.0-rc2
+docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.1.0-rc2
 ```
 
 The tag is a release candidate because that is the newest Katib there is. A `:latest` tag will
