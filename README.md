@@ -61,7 +61,7 @@ Katib is still on release candidates, so the downloads are marked pre-release. W
 whole install is one line:
 
 ```bash
-docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.1.0-rc2
+docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.1.0-rc3
 ```
 
 Open <http://localhost:8420> and you are labelling. The [install
@@ -102,15 +102,20 @@ or viewer. Katib hands each annotator the next image, shows who else is on the p
 two people editing the same image at once. Reviewers approve finished images or send them back with
 a comment.
 
-You should never need to edit a config file. Every setting has a page, an explanation in plain
-words, and a note telling you whether it takes effect now or after a restart. Backups are a button.
+You should never need to edit a config file. Sharing opens with three choices — just you, your team
+on this network, over the internet — and picking one sets everything that goes with it. Every other
+setting has an explanation in plain words and a note saying whether it takes effect now or after a
+restart. Backups are a button.
 
 <p align="center">
   <img src="docs/images/settings.png" width="900" alt="Katib settings, showing who can use it, how it is reached, and the port">
 </p>
 
-The interface goes all the way down to a phone. Add it to your home screen and it keeps working when
-the signal drops; anything you drew offline is sent the next time you have a connection.
+The interface goes all the way down to a phone. Click the workspace name on a computer and Katib
+shows two codes: one your phone camera downloads the Android app from, and one the app scans to
+connect — so nobody types an IP address on a phone keyboard. Add it to your home screen instead and
+it keeps working when the signal drops; anything you drew offline is sent the next time you have a
+connection.
 
 <p align="center">
   <img src="docs/images/phone.png" width="300" alt="Katib on a phone, showing a picture with labelled boxes">
