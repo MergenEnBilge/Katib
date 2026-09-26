@@ -90,6 +90,8 @@ Shapes that a format cannot hold are converted where that is sensible (for examp
 
 Choose **Export**, pick a format and which images to include (all, done, or not done). You can copy the images into the export or leave them out.
 
+Every format on the list is covered by a test that exports a project holding one of each shape kind, unpacks the zip, imports it into an empty project and checks the shapes came back. That runs on every change, so an export that cannot be read again does not reach you.
+
 ### Train, validation and test splits
 
 If your images have a saved split, exporting uses it and writes the `train`, `val` and `test` folders your training code expects. Images with no split go with the training images. You can instead make a new split just for that export, or leave the export unsplit. See [Splits](#splits).
