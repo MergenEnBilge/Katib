@@ -17,7 +17,7 @@ from katib.api.deps import (
     is_https,
     need,
 )
-from katib.api.share import share_urls
+from katib.api.share import APP_DOWNLOAD_URL, share_urls
 from katib.config import Settings
 from katib.db.models import User
 from katib.services import access, auth, setup_code
@@ -69,6 +69,8 @@ class InviteOut(BaseModel):
 class InviteInfoOut(BaseModel):
     project: str | None
     role: str
+    #: Where the phone app can be downloaded, for someone opening this on a phone without it.
+    app_url: str = ""
 
 
 class AcceptIn(BaseModel):
@@ -213,7 +215,7 @@ def logout(request: Request, session: SessionDep) -> Response:
 @router.get("/auth/invites/{token}", response_model=InviteInfoOut)
 def invite_info(token: str, session: SessionDep) -> InviteInfoOut:
     info = auth.invite_info(session, token)
-    return InviteInfoOut(project=info["project"], role=str(info["role"]))
+    return InviteInfoOut(project=info["project"], role=str(info["role"]), app_url=APP_DOWNLOAD_URL)
 
 
 @router.post("/auth/accept", response_model=UserOut, status_code=201)
