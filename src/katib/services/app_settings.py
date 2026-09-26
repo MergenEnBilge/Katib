@@ -329,9 +329,13 @@ def _folder(raw: str, label: str) -> str:
 def _clean_text(f: Field, text: str) -> str:
     label = f"“{f.label}”"
     if f.key == "server.public_url" and text:
+        # People type what they would type in a browser, and browsers do not need the scheme
+        # either. Assume the plain one, which is what a bare address on a network is.
+        if "//" not in text:
+            text = f"http://{text}"
         parts = urlsplit(text)
         if parts.scheme not in ("http", "https") or not parts.netloc:
-            raise InvalidInput(f"{label} should start with http:// or https://.")
+            raise InvalidInput(f"{label} should be an address such as 192.168.1.20:8420.")
         return text.rstrip("/")
     if f.key == "database.url":
         if not text.startswith(("sqlite:///", "postgresql://", "postgres://")):
