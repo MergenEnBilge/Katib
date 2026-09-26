@@ -5,7 +5,8 @@ test('the workspaces dialog explains sharing and remembers other servers', async
   await page.getByRole('button', { name: 'Local workspace' }).click();
   const dialog = page.getByRole('dialog', { name: 'Workspaces' });
   await expect(dialog.getByText('Katib is only open on this computer.')).toBeVisible();
-  await expect(dialog.getByText('katib share')).toBeVisible();
+  // It points at the mode in Settings rather than a command to retype.
+  await expect(dialog.getByText('My team, on this network')).toBeVisible();
 
   await dialog.getByRole('tab', { name: 'Other servers' }).click();
   await dialog.getByLabel('Name').fill('Design team');

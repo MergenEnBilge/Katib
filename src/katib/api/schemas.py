@@ -162,6 +162,8 @@ class ShareOut(BaseModel):
     urls: list[str]
     secure: bool
     app_url: str = ""
+    #: Katib is in a container, so it cannot work out the address of the machine hosting it.
+    in_container: bool = False
 
 
 class MlModelOut(BaseModel):

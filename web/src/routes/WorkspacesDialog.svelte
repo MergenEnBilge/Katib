@@ -68,12 +68,20 @@
       <Callout tone="danger">{problem}</Callout>
     {:else if info === null}
       <div class="sk" aria-busy="true"></div>
+    {:else if info.in_container}
+      <Callout>
+        <p class="line"><strong>Katib cannot tell you this machine's address.</strong></p>
+        <p class="line">
+          It is running in Docker, which hides the address of the computer it sits on. Open Katib
+          from the phone or laptop you want to share with, using that computer's address and port
+          8420, and this page will show it from then on.
+        </p>
+        <p class="line">On a server with a name of its own, set the public address under Settings, then Sharing.</p>
+      </Callout>
     {:else if !info.reachable}
       <Callout>
         <p class="line"><strong>Katib is only open on this computer.</strong></p>
-        <p class="line">To let a phone or a colleague in, stop Katib and start it again with:</p>
-        <p class="line"><code>katib share</code></p>
-        <p class="line">That turns on accounts and prints an address and a QR code. Open this page again for the same details.</p>
+        <p class="line">Under Settings, then Sharing, choose <strong>My team, on this network</strong> and restart Katib. Then come back here for the address and a code to scan.</p>
       </Callout>
     {:else}
       <p class="lead">On a phone or another computer on the same network, open one of these addresses{info.accounts ? '. People sign in with an account you invite.' : '.'}</p>
