@@ -23,11 +23,17 @@ function isPrivateHost(host) {
   return a === 10 || a === 127 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 169 && b === 254);
 }
 
-/** Turn what someone typed into candidate origins to try, safest first. Returns [] when unusable. */
+/** Turn what someone typed into candidate origins to try, likeliest first. [] when unusable. */
 function candidates(text) {
   const typed = text.trim();
   if (!typed || /\s/.test(typed)) return [];
-  const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(typed) ? [typed] : [`https://${typed}`, `http://${typed}`];
+  // When no scheme is given, guess from the address. A Katib on your own network is almost always
+  // plain http, and trying https there is not merely slow: the server receives a TLS handshake on
+  // an http port and logs it as a broken request, which looks alarming and is our own doing.
+  const bare = typed.split('/')[0].split(':')[0];
+  const onYourNetwork = isPrivateHost(bare) || !bare.includes('.');
+  const order = onYourNetwork ? ['http', 'https'] : ['https', 'http'];
+  const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(typed) ? [typed] : order.map((s) => `${s}://${typed}`);
   const found = [];
   for (const raw of withScheme) {
     try {
