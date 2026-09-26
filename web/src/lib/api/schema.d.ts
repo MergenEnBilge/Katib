@@ -1670,6 +1670,11 @@ export interface components {
             token: string;
             /** Path */
             path: string;
+            /**
+             * Url
+             * @default
+             */
+            url: string;
         };
         /** JobOut */
         JobOut: {
@@ -2031,6 +2036,11 @@ export interface components {
             urls: string[];
             /** Secure */
             secure: boolean;
+            /**
+             * App Url
+             * @default
+             */
+            app_url: string;
         };
         /** ShuffleIn */
         ShuffleIn: {
