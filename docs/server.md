@@ -38,7 +38,9 @@ Katib is only reachable through Caddy. The compose file sets `server.behind_prox
 
 ### Upgrading
 
-Pull the new code and run `docker compose up -d --build`. Migrations run at startup. Your data lives in Docker volumes, so it survives upgrades and `docker compose down`.
+Run `docker compose pull` then `docker compose up -d`. Migrations run at startup. Your data lives in Docker volumes, so it survives upgrades and `docker compose down`.
+
+If you changed the compose file to build from source, pull the new code and run `docker compose up -d --build` instead.
 
 ## Without Docker
 
