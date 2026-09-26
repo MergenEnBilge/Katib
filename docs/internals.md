@@ -1,7 +1,8 @@
 # How Katib is built
 
 A map of the code, for anyone who wants to change it. [Contributing](contributing.md) covers setup
-and the checks; this page covers the shape of things.
+and the checks. `ARCHITECTURE.md` in the repository root is the detailed specification, down to
+table columns and endpoint shapes; this page is the tour you read first.
 
 ## The short version
 
