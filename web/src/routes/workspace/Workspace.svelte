@@ -30,10 +30,13 @@
     ChevronRight,
     PanelLeft,
     PanelRight,
+    PanelRightClose,
+    PanelRightOpen,
   } from '@lucide/svelte';
   import { onMount } from 'svelte';
   import type { ToolName } from '../../lib/canvas/engine';
   import { resolveShortcut, type Action } from '../../lib/shortcuts/keys';
+  import { layout } from '../../lib/state/layout.svelte';
   import { router } from '../../lib/state/router.svelte';
   import { applyTheme, theme } from '../../lib/state/theme.svelte';
   import { session } from '../../lib/state/session.svelte';
@@ -89,12 +92,18 @@
     | 'help'
     | null;
 
+  type Tab = 'classes' | 'details' | 'review' | 'text';
+
   let tool = $state<ToolName>('select');
-  let tab = $state<'classes' | 'details' | 'review' | 'text'>('classes');
+  let tab = $state<Tab>(layout.tab as Tab);
   let dialog = $state<Dialog>(null);
-  let railCollapsed = $state(false);
   let railOpen = $state(false);
   let panelOpen = $state(false);
+
+  function openTab(next: Tab): void {
+    tab = next;
+    layout.openTab(next);
+  }
   let zoom = $state(100);
   let touring = $state(false);
   // A tool's tip waits until the person picks a tool themselves, so it never crowds the first screen.
@@ -126,7 +135,12 @@
     ['details', 'Details'],
     ...(ws.types.includes('text') ? [['text', 'Text']] : []),
     ...(shared ? [['review', 'Review']] : []),
-  ] as [string, string][]);
+  ] as [Tab, string][]);
+
+  // A remembered tab may not exist in this project, such as Text in a project without text.
+  $effect(() => {
+    if (!panelTabs.some(([id]) => id === tab)) tab = 'classes';
+  });
 
   const saveLabel = $derived(
     ws.saveState === 'error'
@@ -224,7 +238,10 @@
         engine.fit();
         break;
       case 'toggle-rail':
-        railCollapsed = !railCollapsed;
+        layout.toggle('rail');
+        break;
+      case 'toggle-panel':
+        layout.toggle('panel');
         break;
       case 'copy':
         ws.copy();
@@ -350,6 +367,15 @@
           {#if theme.current === 'dark'}<Sun size={16} />{:else}<Moon size={16} />{/if}
         </IconButton>
       </span>
+      <span class="hide-narrow">
+        <IconButton
+          label={layout.panel ? 'Show classes and details' : 'Fold the side panel away'}
+          shortcut="]"
+          onclick={() => layout.toggle('panel')}
+        >
+          {#if layout.panel}<PanelRightOpen size={16} class="mirror" />{:else}<PanelRightClose size={16} class="mirror" />{/if}
+        </IconButton>
+      </span>
       <span class="only-narrow">
         <IconButton label="Show classes and details" onclick={() => ((panelOpen = !panelOpen), (railOpen = false))}>
           <PanelRight size={16} class="mirror" />
@@ -373,8 +399,8 @@
       <div class="rail-wrap" class:open={railOpen} data-tour="images">
         <ImageRail
           {ws}
-          collapsed={railCollapsed}
-          ontoggle={() => (railCollapsed = !railCollapsed)}
+          collapsed={layout.rail}
+          ontoggle={() => layout.toggle('rail')}
           onimport={() => (dialog = 'import-images')}
         />
       </div>
@@ -407,10 +433,16 @@
         {/if}
       </main>
 
-      <aside class="panel-wrap" class:open={panelOpen} aria-label="Classes and details" data-tour="classes">
+      <aside
+        class="panel-wrap"
+        class:open={panelOpen}
+        class:folded={layout.panel}
+        aria-label="Classes and details"
+        data-tour="classes"
+      >
         <div class="tabs" role="tablist">
           {#each panelTabs as [id, label] (id)}
-            <button type="button" role="tab" aria-selected={tab === id} class:active={tab === id} data-tour={id === 'text' ? 'text' : undefined} onclick={() => (tab = id as typeof tab)}>
+            <button type="button" role="tab" aria-selected={tab === id} class:active={tab === id} data-tour={id === 'text' ? 'text' : undefined} onclick={() => openTab(id)}>
               {label}
               {#if id === 'details' && ws.selectionCount > 0}<span class="badge mono">{ws.selectionCount}</span>{/if}
             </button>
@@ -691,6 +723,11 @@
     border-inline-start: 1px solid var(--border);
   }
 
+  /* Folded away on a wide screen. On a narrow one it is a slide-over, which folding does not touch. */
+  .panel-wrap.folded {
+    display: none;
+  }
+
   .tabs {
     display: flex;
     height: 45px;
@@ -798,6 +835,10 @@
   @media (max-width: 1099px) {
     .only-narrow {
       display: inline-flex;
+    }
+
+    .panel-wrap.folded {
+      display: flex;
     }
 
     .rail-wrap,
