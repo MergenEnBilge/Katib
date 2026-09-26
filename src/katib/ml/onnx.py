@@ -26,7 +26,7 @@ class ModelError(ValueError):
 
 def is_available() -> bool:
     try:
-        import onnxruntime  # noqa: F401
+        import onnxruntime  # noqa: F401  # pyright: ignore[reportMissingImports]
     except ImportError:
         return False
     return True
@@ -60,7 +60,7 @@ class OnnxDetector:
 
     def __init__(self, path: Path) -> None:
         try:
-            import onnxruntime as ort
+            import onnxruntime as ort  # pyright: ignore[reportMissingImports]
         except ImportError as err:
             raise MlUnavailable(
                 "Model pre-labeling needs an extra package. Install it with: uv sync --extra ml"
