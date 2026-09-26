@@ -121,6 +121,11 @@ export const api = {
     login: (email: string, password: string) =>
       request<Person>('POST', '/auth/login', { email, password }),
     logout: () => request<void>('POST', '/auth/logout'),
+    changePassword: (currentPassword: string, newPassword: string) =>
+      request<Person>('POST', '/auth/password', {
+        current_password: currentPassword,
+        new_password: newPassword,
+      }),
     invite: (token: string) =>
       request<InviteInfo>('GET', `/auth/invites/${token}`),
     accept: (token: string, email: string, name: string, password: string) =>

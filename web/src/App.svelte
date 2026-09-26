@@ -3,6 +3,7 @@
     CircleHelp,
     Inbox as InboxIcon,
     Layers,
+    KeyRound,
     LogOut,
     Moon,
     PanelLeftClose,
@@ -32,6 +33,7 @@
   import Logo from './lib/ui/Logo.svelte';
   import HelpDialog from './routes/HelpDialog.svelte';
   import Projects from './routes/Projects.svelte';
+  import PasswordDialog from './routes/PasswordDialog.svelte';
   import WorkspacesDialog from './routes/WorkspacesDialog.svelte';
 
   $effect(applyTheme);
@@ -48,6 +50,7 @@
   });
 
   let showWorkspaces = $state(false);
+  let showPassword = $state(false);
   let showHelp = $state(false);
   let tourName = $state<TourName | null>(null);
 
@@ -168,6 +171,7 @@
         </button>
         <span class="tools">
           {#if session.mode === 'local'}
+            <IconButton label={t('nav.changePassword')} onclick={() => (showPassword = true)}><KeyRound size={16} /></IconButton>
             <IconButton label={t('nav.signOut')} onclick={() => session.signOut()}><LogOut size={16} /></IconButton>
           {/if}
           <IconButton
@@ -205,6 +209,7 @@
     </main>
   </div>
   {#if showWorkspaces}<WorkspacesDialog onclose={() => (showWorkspaces = false)} />{/if}
+  {#if showPassword}<PasswordDialog onclose={() => (showPassword = false)} />{/if}
   {#if showHelp}
     <HelpDialog
       onclose={() => (showHelp = false)}
