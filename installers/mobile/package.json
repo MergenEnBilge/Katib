@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "Katib for Android and iOS. It connects to a Katib server you choose.",
   "scripts": {
-    "add:android": "cap add android",
+    "add:android": "cap add android && node configure-android.mjs",
     "add:ios": "cap add ios && node configure-ios.mjs",
     "assets": "capacitor-assets generate --android --assetPath resources",
     "assets:ios": "capacitor-assets generate --ios --assetPath resources",
@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@capacitor/android": "^7.0.0",
+    "@capacitor/barcode-scanner": "^2.2.6",
     "@capacitor/core": "^7.0.0",
     "@capacitor/ios": "^7.0.0"
   },
