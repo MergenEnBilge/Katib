@@ -161,6 +161,7 @@ class ShareOut(BaseModel):
     accounts: bool
     urls: list[str]
     secure: bool
+    app_url: str = ""
 
 
 class MlModelOut(BaseModel):
