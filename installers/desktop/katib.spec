@@ -1,17 +1,19 @@
-# PyInstaller recipe. Build with: uv run --group packaging pyinstaller packaging/katib.spec
+# PyInstaller recipe, shared by every desktop installer.
+# Build it through installers/build.py rather than calling PyInstaller by hand.
 import sys
 from pathlib import Path
 
 from PyInstaller.utils.hooks import collect_submodules
 
-root = Path(SPECPATH).parent
+here = Path(SPECPATH)
+root = here.parent.parent
 src = root / "src" / "katib"
 
 hidden = collect_submodules("katib") + collect_submodules("uvicorn") + collect_submodules("webview")
 hidden += ["psycopg", "argon2", "yaml"]
 
 a = Analysis(
-    [str(root / "packaging" / "entry.py")],
+    [str(here / "entry.py")],
     pathex=[str(root / "src")],
     datas=[
         (str(src / "static"), "katib/static"),
@@ -28,13 +30,13 @@ exe = EXE(
     exclude_binaries=True,
     name="Katib",
     console=False,
-    icon=str(root / "packaging" / ("icon.ico" if sys.platform == "win32" else "icon.png")),
+    icon=str(here / ("icon.ico" if sys.platform == "win32" else "icon.png")),
 )
 coll = COLLECT(exe, a.binaries, a.datas, name="Katib")
 if sys.platform == "darwin":
     app = BUNDLE(
         coll,
         name="Katib.app",
-        icon=str(root / "packaging" / "icon.icns"),
+        icon=str(here / "icon.icns"),
         bundle_identifier="app.katib.desktop",
     )
