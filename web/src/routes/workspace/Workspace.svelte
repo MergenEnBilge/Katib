@@ -243,6 +243,9 @@
       case 'toggle-panel':
         layout.toggle('panel');
         break;
+      case 'focus-mode':
+        layout.focus();
+        break;
       case 'copy':
         ws.copy();
         break;
