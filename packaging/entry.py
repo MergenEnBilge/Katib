@@ -2,8 +2,8 @@
 
 import multiprocessing
 
-from katib.desktop.window import run_desktop
 from katib.config import load_settings
+from katib.desktop.window import run_desktop
 
 if __name__ == "__main__":
     multiprocessing.freeze_support()
