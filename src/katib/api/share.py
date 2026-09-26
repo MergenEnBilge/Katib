@@ -1,5 +1,7 @@
 """Sharing: the addresses other devices use to reach this server, and a QR code for them."""
 
+from dataclasses import dataclass, field
+
 from fastapi import APIRouter, Request, Response
 
 from katib import net
@@ -16,7 +18,17 @@ router = APIRouter(tags=["share"])
 MAX_QR_TEXT = 300
 
 
-def share_urls(request: Request) -> list[str]:
+@dataclass(frozen=True)
+class Reach:
+    """How another device can reach this server."""
+
+    urls: list[str] = field(default_factory=list[str])
+    #: Katib is open to the network, but cannot work out which address to hand out. Someone has
+    #: to tell it. Without this the share window would only be able to say "no", which is wrong.
+    unknown: bool = False
+
+
+def reach(request: Request) -> Reach:
     """Addresses another device can use to reach this server, best first.
 
     The address someone set by hand wins. Otherwise the one this very request arrived on is used,
@@ -25,23 +37,29 @@ def share_urls(request: Request) -> list[str]:
     """
     settings: Settings = request.app.state.settings
     if settings.server.public_url:
-        return [settings.server.public_url.rstrip("/")]
+        return Reach([settings.server.public_url.rstrip("/")])
 
     # Listening on the loopback address means nobody else can reach this server, whatever address
     # the browser happens to have used.
     if is_loopback(settings.server.host):
-        return []
+        return Reach()
 
     host = net.shareable_host(request.headers.get("host", ""))
     if host:
         scheme = "https" if is_https(request) else "http"
-        return [f"{scheme}://{host}"]
+        return Reach([f"{scheme}://{host}"])
 
     # Someone browsing from the server itself. On the machine we can work out its own addresses; in
-    # a container we cannot see the host's, and a QR code leading nowhere is worse than none.
-    if net.in_container():
-        return []
-    return [f"http://{a}:{settings.server.port}" for a in net.lan_addresses()]
+    # a container we can only see the container's, which nothing outside Docker can reach.
+    addresses = [] if net.in_container() else net.lan_addresses()
+    if not addresses:
+        return Reach(unknown=True)
+    return Reach([f"http://{a}:{settings.server.port}" for a in addresses])
+
+
+def share_urls(request: Request) -> list[str]:
+    """Addresses another device can use to reach this server, best first."""
+    return reach(request).urls
 
 
 @router.get("/share", response_model=ShareOut)
@@ -50,14 +68,16 @@ def share(request: Request, user: UserDep, anywhere: AnywhereDep) -> ShareOut:
     if not anywhere:
         raise Forbidden("Only an administrator can see how to share this server.")
     settings: Settings = request.app.state.settings
-    urls = share_urls(request)
+    found = reach(request)
     return ShareOut(
-        reachable=bool(urls),
+        reachable=bool(found.urls),
         accounts=settings.auth.mode == "local",
-        urls=urls,
-        secure=bool(urls) and urls[0].startswith("https://"),
+        urls=found.urls,
+        secure=bool(found.urls) and found.urls[0].startswith("https://"),
         app_url=APP_DOWNLOAD_URL,
         in_container=net.in_container(),
+        needs_address=found.unknown,
+        port=settings.server.port,
     )
 
 
