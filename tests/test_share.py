@@ -101,5 +101,41 @@ def test_qr_code_is_an_svg(tmp_path: Path) -> None:
     assert too_long.status_code == 422
 
 
+def test_anyone_who_can_invite_can_make_a_code(tmp_path: Path) -> None:
+    """A manager invites people to their own project without being an administrator, and the
+    phone invite is a code to scan."""
+    with TestClient(create_app(shared_settings(tmp_path))) as admin:
+        sign_up(admin)
+        project = admin.post(f"{API}/projects", json={"name": "P"}).json()["id"]
+        token = admin.post(
+            f"{API}/invites", json={"project_id": project, "role": "manager"}
+        ).json()["token"]
+        manager = TestClient(admin.app)
+        manager.post(
+            f"{API}/auth/accept",
+            json={
+                "token": token,
+                "email": "m@example.com",
+                "name": "M",
+                "password": "correct horse battery",
+            },
+        )
+        code = manager.get(f"{API}/share/qr.svg", params={"text": "http://192.168.1.20:8420"})
+        closed = manager.get(f"{API}/share")
+    assert code.status_code == 200
+    assert closed.status_code == 403  # the addresses themselves stay with administrators
+
+
+def test_an_invite_says_where_the_phone_app_comes_from(tmp_path: Path) -> None:
+    with TestClient(create_app(shared_settings(tmp_path))) as c:
+        sign_up(c)
+        project = c.post(f"{API}/projects", json={"name": "P"}).json()["id"]
+        token = c.post(f"{API}/invites", json={"project_id": project, "role": "viewer"}).json()[
+            "token"
+        ]
+        info = c.get(f"{API}/auth/invites/{token}").json()
+    assert info["app_url"].endswith(".apk")
+
+
 def test_lan_addresses_never_include_loopback() -> None:
     assert not [a for a in net.lan_addresses() if a.startswith("127.")]

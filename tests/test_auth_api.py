@@ -185,7 +185,8 @@ def test_an_invite_link_works_once(admin: TestClient) -> None:
     project = admin.post(f"{API}/projects", json={"name": "P"}).json()
     token = invite(admin, project["id"], "reviewer")
     info = client_for(admin).get(f"{API}/auth/invites/{token}").json()
-    assert info == {"project": "P", "role": "reviewer"}
+    assert info["project"] == "P"
+    assert info["role"] == "reviewer"
     body = {"token": token, "email": "r@example.com", "name": "R", "password": PASSWORD}
     assert client_for(admin).post(f"{API}/auth/accept", json=body).status_code == 201
     second = client_for(admin).post(f"{API}/auth/accept", json={**body, "email": "s@example.com"})
