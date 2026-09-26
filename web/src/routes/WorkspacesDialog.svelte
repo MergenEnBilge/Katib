@@ -68,12 +68,20 @@
       <Callout tone="danger">{problem}</Callout>
     {:else if info === null}
       <div class="sk" aria-busy="true"></div>
+    {:else if info.in_container}
+      <Callout>
+        <p class="line"><strong>Katib cannot tell you this machine's address.</strong></p>
+        <p class="line">
+          It is running in Docker, which hides the address of the computer it sits on. Open Katib
+          from the phone or laptop you want to share with, using that computer's address and port
+          8420, and this page will show it from then on.
+        </p>
+        <p class="line">On a server with a name of its own, set the public address under Settings, then Sharing.</p>
+      </Callout>
     {:else if !info.reachable}
       <Callout>
         <p class="line"><strong>Katib is only open on this computer.</strong></p>
-        <p class="line">To let a phone or a colleague in, stop Katib and start it again with:</p>
-        <p class="line"><code>katib share</code></p>
-        <p class="line">That turns on accounts and prints an address and a QR code. Open this page again for the same details.</p>
+        <p class="line">Under Settings, then Sharing, choose <strong>My team, on this network</strong> and restart Katib. Then come back here for the address and a code to scan.</p>
       </Callout>
     {:else}
       <p class="lead">On a phone or another computer on the same network, open one of these addresses{info.accounts ? '. People sign in with an account you invite.' : '.'}</p>
@@ -89,11 +97,24 @@
           {/if}
         </div>
       {/each}
+      {#if info.app_url}
+        <div class="app">
+          <img class="qr small" src={api.share.qrUrl(info.app_url)} alt="QR code to download the Katib app" width="132" height="132" />
+          <div>
+            <p class="line"><strong>Rather have the app?</strong></p>
+            <p class="hint">
+              Point an Android phone at this code to download it. Open it, then type the address
+              above, or scan the code beside it from inside the app.
+            </p>
+            <p class="hint">On an iPhone, open the address in Safari and choose Add to Home Screen.</p>
+          </div>
+        </div>
+      {/if}
       {#if !info.secure}
         <Callout>
           This address is not encrypted. That is fine at home or in an office you trust. Passwords and
-          annotations can be read by others on the same network, and phones cannot install Katib as an app.
-          To add HTTPS, see “Running it on a server with Docker” in the README.
+          annotations can be read by others on the same network, and an iPhone will not add it to the
+          home screen. To add HTTPS, see the guide to putting Katib online.
         </Callout>
       {/if}
     {/if}
@@ -166,6 +187,22 @@
 
   .address {
     margin-block-end: var(--space-3);
+  }
+
+  .app {
+    display: flex;
+    gap: var(--space-3);
+    align-items: flex-start;
+    padding: var(--space-3);
+    margin-block-end: var(--space-3);
+    background: var(--surface-2);
+    border-radius: var(--radius-card);
+  }
+
+  .qr.small {
+    width: 132px;
+    height: 132px;
+    flex: none;
   }
 
   .row {

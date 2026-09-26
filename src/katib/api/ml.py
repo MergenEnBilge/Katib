@@ -3,8 +3,9 @@
 import uuid
 from functools import lru_cache
 from pathlib import Path
+from typing import Annotated
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, File, Request, UploadFile
 
 from katib.api.class_ops import OpsStorage
 from katib.api.deps import AnywhereDep, RunnerDep, SessionDep, StorageDep, UserDep, need
@@ -51,6 +52,48 @@ def status(request: Request, user: UserDep, anywhere: AnywhereDep) -> MlStatusOu
         models_dir=str(folder) if anywhere else "",
         models=models,
     )
+
+
+@router.post("/ml/models", response_model=MlModelOut, status_code=201)
+def upload_model(
+    file: Annotated[UploadFile, File()],
+    request: Request,
+    user: UserDep,
+    anywhere: AnywhereDep,
+) -> MlModelOut:
+    """Add a model from the browser.
+
+    Copying a file into the models folder is fine on your own machine, but the folder is inside the
+    container when Katib runs in Docker, where there is nothing to drag it onto.
+    """
+    if not anywhere:
+        raise Forbidden("Only an administrator can add a model.")
+    name = Path(file.filename or "").name
+    if not name.endswith(".onnx") or name.startswith("."):
+        raise InvalidInput("A model must be a file ending in .onnx.")
+
+    settings = _settings(request)
+    folder = settings.models_dir
+    folder.mkdir(parents=True, exist_ok=True)
+    destination = folder / name
+    if destination.exists():
+        raise InvalidInput(f"There is already a model called {name}. Rename it and try again.")
+
+    size = 0
+    limit = settings.limits.max_model_mb * 1024 * 1024
+    with destination.open("wb") as out:
+        while chunk := file.file.read(1024 * 1024):
+            size += len(chunk)
+            if size > limit:
+                out.close()
+                destination.unlink(missing_ok=True)
+                raise InvalidInput(f"A model may be at most {settings.limits.max_model_mb} MB.")
+            out.write(chunk)
+
+    if not onnx.is_available():
+        return MlModelOut(name=name, classes=None)
+    classes = _class_names(str(destination), destination.stat().st_mtime)
+    return MlModelOut(name=name, classes=classes)
 
 
 @router.post("/projects/{project_id}/prelabel", response_model=JobOut, status_code=202)

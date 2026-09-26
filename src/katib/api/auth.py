@@ -17,6 +17,7 @@ from katib.api.deps import (
     is_https,
     need,
 )
+from katib.api.share import share_urls
 from katib.config import Settings
 from katib.db.models import User
 from katib.services import access, auth, setup_code
@@ -61,6 +62,8 @@ class InviteIn(BaseModel):
 class InviteOut(BaseModel):
     token: str
     path: str
+    #: The whole link to send, built from an address other people can actually reach.
+    url: str = ""
 
 
 class InviteInfoOut(BaseModel):
@@ -222,14 +225,20 @@ def accept(body: AcceptIn, request: Request, response: Response, session: Sessio
 
 
 @router.post("/invites", response_model=InviteOut, status_code=201)
-def create_invite(body: InviteIn, session: SessionDep, user: UserDep) -> InviteOut:
+def create_invite(
+    body: InviteIn, request: Request, session: SessionDep, user: UserDep
+) -> InviteOut:
     if body.project_id is None:
         if not user.is_admin:
             raise Forbidden("Only administrators can invite people without a project.")
     else:
         need(session, user, body.project_id, "manage")
     token = auth.create_invite(session, user, body.project_id, body.role)
-    return InviteOut(token=token, path=f"/invite/{token}")
+    path = f"/invite/{token}"
+    # The whole point of an invite is that somebody else opens it, so it must not carry the address
+    # the administrator happens to be using. "localhost" helps nobody.
+    urls = share_urls(request)
+    return InviteOut(token=token, path=path, url=f"{urls[0]}{path}" if urls else "")
 
 
 @router.get("/auth/tokens", response_model=list[TokenOut])

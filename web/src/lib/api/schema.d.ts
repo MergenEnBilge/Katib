@@ -1086,6 +1086,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ml/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload Model
+         * @description Add a model from the browser.
+         *
+         *     Copying a file into the models folder is fine on your own machine, but the folder is inside the
+         *     container when Katib runs in Docker, where there is nothing to drag it onto.
+         */
+        post: operations["upload_model_api_v1_ml_models_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}/prelabel": {
         parameters: {
             query?: never;
@@ -1239,6 +1262,11 @@ export interface components {
         };
         /** Body_upload_image_api_v1_projects__project_id__images_post */
         Body_upload_image_api_v1_projects__project_id__images_post: {
+            /** File */
+            file: string;
+        };
+        /** Body_upload_model_api_v1_ml_models_post */
+        Body_upload_model_api_v1_ml_models_post: {
             /** File */
             file: string;
         };
@@ -1670,6 +1698,11 @@ export interface components {
             token: string;
             /** Path */
             path: string;
+            /**
+             * Url
+             * @default
+             */
+            url: string;
         };
         /** JobOut */
         JobOut: {
@@ -2031,6 +2064,16 @@ export interface components {
             urls: string[];
             /** Secure */
             secure: boolean;
+            /**
+             * App Url
+             * @default
+             */
+            app_url: string;
+            /**
+             * In Container
+             * @default false
+             */
+            in_container: boolean;
         };
         /** ShuffleIn */
         ShuffleIn: {
@@ -4556,6 +4599,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MlStatusOut"];
+                };
+            };
+        };
+    };
+    upload_model_api_v1_ml_models_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_model_api_v1_ml_models_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MlModelOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
