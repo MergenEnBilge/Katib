@@ -1147,6 +1147,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{project_id}/images/{image_id}/segment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Segment
+         * @description Outline whatever the clicks point at.
+         */
+        post: operations["segment_api_v1_projects__project_id__images__image_id__segment_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}/prelabel": {
         parameters: {
             query?: never;
@@ -1315,6 +1335,11 @@ export interface components {
         Body_upload_model_api_v1_ml_models_post: {
             /** File */
             file: string;
+            /**
+             * Kind
+             * @default detect
+             */
+            kind: string;
         };
         /** BulkIn */
         BulkIn: {
@@ -1387,6 +1412,21 @@ export interface components {
             /** Attr Schema */
             attr_schema?: components["schemas"]["AttrDef"][] | null;
             skeleton?: components["schemas"]["Skeleton"] | null;
+        };
+        /**
+         * ClickIn
+         * @description A click on a picture, as a fraction of its width and height.
+         */
+        ClickIn: {
+            /** X */
+            x: number;
+            /** Y */
+            y: number;
+            /**
+             * Positive
+             * @default true
+             */
+            positive: boolean;
         };
         /** CommentIn */
         CommentIn: {
@@ -1849,6 +1889,11 @@ export interface components {
             models_dir: string;
             /** Models */
             models: components["schemas"]["MlModelOut"][];
+            /**
+             * Can Segment
+             * @default false
+             */
+            can_segment: boolean;
         };
         /** NewUserIn */
         NewUserIn: {
@@ -2058,6 +2103,16 @@ export interface components {
             skipped: number;
             /** Message */
             message: string;
+        };
+        /** SegmentIn */
+        SegmentIn: {
+            /** Points */
+            points: components["schemas"]["ClickIn"][];
+        };
+        /** SegmentOut */
+        SegmentOut: {
+            /** Points */
+            points: number[][];
         };
         /** SettingsIn */
         SettingsIn: {
@@ -4809,6 +4864,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MlModelOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    segment_api_v1_projects__project_id__images__image_id__segment_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                image_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SegmentIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SegmentOut"];
                 };
             };
             /** @description Validation Error */
