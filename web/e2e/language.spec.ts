@@ -8,10 +8,15 @@ test('a mirrored test language flips the page and translates what has been moved
   await expect(page.getByRole('heading', { level: 1 })).toContainText('[');
   await page.screenshot({ path: 'test-results/rtl-projects.png' });
 
-  // The sidebar sits on the right in a right-to-left language.
   const sidebar = await page.locator('aside.sidebar').boundingBox();
   const viewport = page.viewportSize();
-  expect(sidebar && viewport && sidebar.x > viewport.width / 2).toBe(true);
+  expect(sidebar).not.toBeNull();
+  expect(viewport).not.toBeNull();
+  // A wide window puts the sidebar in a column, which moves to the right in a right-to-left
+  // language. A phone stacks it as a full-width bar across the top, where there is no side to take.
+  if (sidebar && viewport && sidebar.width < viewport.width) {
+    expect(sidebar.x).toBeGreaterThan(viewport.width / 2);
+  }
 });
 
 test('English is the default and the language choice is remembered', async ({ page }) => {
