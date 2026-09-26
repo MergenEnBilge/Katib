@@ -1,8 +1,19 @@
 <script lang="ts">
-  import { CircleHelp, Inbox as InboxIcon, Layers, LogOut, Moon, Settings as SettingsIcon, Sun } from '@lucide/svelte';
+  import {
+    CircleHelp,
+    Inbox as InboxIcon,
+    Layers,
+    LogOut,
+    Moon,
+    PanelLeftClose,
+    PanelLeftOpen,
+    Settings as SettingsIcon,
+    Sun,
+  } from '@lucide/svelte';
   import { onMount } from 'svelte';
   import { i18n, t } from './lib/i18n/index.svelte';
   import { sendWaitingEdits } from './lib/sync/offline';
+  import { layout } from './lib/state/layout.svelte';
   import { router } from './lib/state/router.svelte';
   import { startPractice } from './lib/state/practice';
   import { session } from './lib/state/session.svelte';
@@ -53,7 +64,18 @@
     event.preventDefault();
     router.navigate(to);
   }
+
+  // "[" folds the sidebar away, the same key that folds the image list in the workspace.
+  function onkeydown(event: KeyboardEvent): void {
+    if (event.key !== '[' || event.ctrlKey || event.metaKey || event.altKey) return;
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('input, textarea, select, [contenteditable="true"], dialog')) return;
+    event.preventDefault();
+    layout.toggle('sidebar');
+  }
 </script>
+
+<svelte:window {onkeydown} />
 
 {#if session.phase === 'loading'}
   <Splash message={t('loading')} />
@@ -87,35 +109,51 @@
     {/await}
   {/key}
 {:else}
-  <div class="home">
-    <aside class="sidebar">
+  <div class="home" class:folded={layout.sidebar}>
+    <aside class="sidebar" class:folded={layout.sidebar}>
       <div class="brand">
-        <Logo size={26} wordmark />
+        <Logo size={26} wordmark={!layout.sidebar} />
+        <span class="fold">
+          <IconButton
+            label={layout.sidebar ? t('nav.expand') : t('nav.fold')}
+            shortcut="["
+            onclick={() => layout.toggle('sidebar')}
+          >
+            {#if layout.sidebar}<PanelLeftOpen size={16} class="mirror" />{:else}<PanelLeftClose size={16} class="mirror" />{/if}
+          </IconButton>
+        </span>
       </div>
 
       <nav aria-label={t('nav.main')}>
         <a
           class="nav-item"
           href="/"
+          title={t('nav.projects')}
           aria-current={route.name === 'projects' ? 'page' : undefined}
-          onclick={(e) => go(e, '/')}><Layers size={16} />{t('nav.projects')}</a
+          onclick={(e) => go(e, '/')}><Layers size={16} /><span class="label">{t('nav.projects')}</span></a
         >
         <a
           class="nav-item"
           href="/inbox"
           data-tour="nav-inbox"
+          title={t('nav.inbox')}
           aria-current={route.name === 'inbox' ? 'page' : undefined}
-          onclick={(e) => go(e, '/inbox')}><InboxIcon size={16} />{t('nav.inbox')}</a
+          onclick={(e) => go(e, '/inbox')}><InboxIcon size={16} /><span class="label">{t('nav.inbox')}</span></a
         >
         <a
           class="nav-item"
           href="/settings"
           data-tour="nav-settings"
+          title={t('nav.settings')}
           aria-current={route.name === 'settings' ? 'page' : undefined}
-          onclick={(e) => go(e, '/settings')}><SettingsIcon size={16} />{t('nav.settings')}</a
+          onclick={(e) => go(e, '/settings')}><SettingsIcon size={16} /><span class="label">{t('nav.settings')}</span></a
         >
-        <button type="button" class="nav-item" data-tour="nav-help" onclick={() => (showHelp = true)}
-          ><CircleHelp size={16} />{t('nav.help')}</button
+        <button
+          type="button"
+          class="nav-item"
+          data-tour="nav-help"
+          title={t('nav.help')}
+          onclick={() => (showHelp = true)}><CircleHelp size={16} /><span class="label">{t('nav.help')}</span></button
         >
       </nav>
 
@@ -200,9 +238,14 @@
     height: 100%;
   }
 
+  .home.folded {
+    grid-template-columns: 60px 1fr;
+  }
+
   .sidebar {
     display: flex;
     flex-direction: column;
+    min-width: 0;
     background: var(--surface-1);
     border-inline-end: 1px solid var(--border);
   }
@@ -210,10 +253,21 @@
   .brand {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: var(--space-2);
     height: var(--header-h);
     padding-inline: var(--space-4);
     border-block-end: 1px solid var(--border);
+  }
+
+  .folded .brand {
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  /* At 60px there is room for one thing, and the fold button is the one you need. */
+  .folded .brand :global(.logo) {
+    display: none;
   }
 
   nav {
@@ -239,6 +293,21 @@
     background: none;
     border: 0;
     cursor: pointer;
+  }
+
+  .folded .nav-item {
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  .folded .label,
+  .folded .workspace {
+    display: none;
+  }
+
+  .folded .sidebar-footer {
+    justify-content: center;
+    padding-inline: 0;
   }
 
   .nav-item:hover:not([aria-current='page']) {
@@ -280,10 +349,37 @@
     overflow: auto;
   }
 
+  /* A phone shows the navigation as a bar across the top, which there is no point folding away. */
   @media (max-width: 699px) {
-    .home {
+    .home,
+    .home.folded {
       grid-template-columns: 1fr;
       grid-template-rows: auto 1fr;
+    }
+
+    .fold {
+      display: none;
+    }
+
+    .folded .label {
+      display: inline;
+    }
+
+    .folded .workspace {
+      display: inline;
+    }
+
+    .folded .brand {
+      justify-content: flex-start;
+    }
+
+    .folded .brand :global(.logo) {
+      display: inline-flex;
+    }
+
+    .folded .nav-item,
+    .folded .sidebar-footer {
+      padding-inline: var(--space-2);
     }
 
     .sidebar {

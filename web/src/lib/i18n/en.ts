@@ -15,6 +15,8 @@ const en = {
   'nav.localWorkspace': 'Local workspace',
   'nav.workspaceHint': 'Share this computer or switch to another server',
   'nav.signedIn': 'Signed in',
+  'nav.fold': 'Fold the sidebar away',
+  'nav.expand': 'Show the sidebar',
   'theme.toLight': 'Switch to light theme',
   'theme.toDark': 'Switch to dark theme',
   'time.never': 'never',
