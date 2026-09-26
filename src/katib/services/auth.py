@@ -215,6 +215,39 @@ def list_users(session: Session) -> list[User]:
     return list(session.scalars(stmt))
 
 
+def _person(session: Session, user_id: uuid.UUID) -> User:
+    """A real account. The implicit local user is not one anybody can administer."""
+    user = session.get(User, user_id)
+    if user is None or user.email == LOCAL_EMAIL:
+        raise NotFound("That person does not exist.")
+    return user
+
+
+def set_password(session: Session, user_id: uuid.UUID, password: str) -> User:
+    """Give someone a new password, usually because they have forgotten theirs."""
+    user = _person(session, user_id)
+    try:
+        check_strength(password)
+    except WeakPassword as err:
+        raise InvalidInput(str(err)) from err
+    user.password_hash = hash_password(password)
+    # Anyone signed in with the old password is signed out, which is the point of changing it.
+    session.execute(delete(AuthSession).where(AuthSession.user_id == user.id))
+    session.flush()
+    return user
+
+
+def set_admin(session: Session, user_id: uuid.UUID, is_admin: bool, actor: User) -> User:
+    user = _person(session, user_id)
+    if user.id == actor.id and not is_admin:
+        raise InvalidInput(
+            "You cannot take away your own administrator rights. Ask another administrator."
+        )
+    user.is_admin = is_admin
+    session.flush()
+    return user
+
+
 def set_disabled(session: Session, user_id: uuid.UUID, disabled: bool, actor: User) -> User:
     user = session.get(User, user_id)
     if user is None:
