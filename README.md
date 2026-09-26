@@ -16,6 +16,8 @@ Most annotation tools are either a quick desktop app that falls apart once a sec
 | Katib on your iPhone | Open your server in Safari and choose **Add to Home Screen**. See [installers/mobile](installers/mobile/README.md) |
 | To work on Katib itself | From the source, below |
 
+There is no tagged release yet, so the releases page is still empty. Until it is there, use Docker, run it from the source, or build the installer yourself with the one command below. The [install guide](docs/getting-started.md) walks through each of these, step by step.
+
 **With Docker.** This is the whole install:
 
 ```bash
@@ -49,7 +51,7 @@ New to labeling? On the home page choose **Try it with practice pictures**. It m
 **Build the installers yourself.** One command, on the machine you want an installer for:
 
 ```bash
-uv run python installers/build.py
+uv run --extra desktop --group packaging python installers/build.py
 ```
 
 The result lands in `dist/installers`. See [installers/README.md](installers/README.md) for what each platform needs.
@@ -132,7 +134,7 @@ allowed_import_roots = ["/data/photos"]
 
 Each tagged version (for example `v0.1.0`) is built for Windows (`Katib-<version>-windows-setup.exe`), macOS (`Katib-<version>-macos.dmg`) and Linux (`katib_<version>_<arch>.deb` and `Katib-<version>-linux-<arch>.tar.gz`), along with `Katib-android.apk` and a Docker image for Intel and ARM machines. They are attached to the GitHub release. Install, open Katib, and it runs in its own window with its data in your user folder. The installers are not code-signed yet, so Windows and macOS may warn the first time you open one. On macOS, right-click the app and choose Open.
 
-The `.deb` needs WebKitGTK (`gir1.2-webkit2-4.1`), which the package asks apt to install.
+The `.deb` needs WebKitGTK (`gir1.2-webkit2-4.1`), which the package asks apt to install. It is built on Ubuntu 22.04, so it runs on Ubuntu 22.04, Debian 12, Raspberry Pi OS bookworm and newer. On anything older, use Docker.
 
 ### Katib in its own window
 
@@ -280,7 +282,7 @@ After changing an API route, refresh the TypeScript types with `pnpm --dir web g
 
 Katib is under active development and has not had a stable release yet. Everything described above works today: labeling with six kinds of shapes and text, splits, class tools, dataset health, five dataset formats, teams with accounts, roles and review, sharing on a network, Docker with HTTPS, installing on a phone with offline edits, a desktop window, model pre-labeling, in-app settings and backups, and a Python client.
 
-The Windows app has been run on Windows. The macOS and Linux installers and the published Docker image are built by the release workflow and have not yet been run on those systems.
+The Windows setup program, the Linux `.deb` and the Android app have all been built and run: the Windows app on Windows, the `.deb` installed and opened on a clean Debian 12. The macOS disk image has not been built or run, because that needs a Mac. The Docker image runs; the published copy on ghcr waits for the first tagged release.
 
 Not available yet:
 

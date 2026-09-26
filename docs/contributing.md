@@ -7,6 +7,12 @@ uv sync --all-extras
 pnpm --dir web install
 ```
 
+On Linux, `--all-extras` builds the GTK bindings the desktop window needs, so install these first:
+
+```bash
+sudo apt install build-essential pkg-config libgirepository1.0-dev libcairo2-dev gir1.2-webkit2-4.1
+```
+
 Run the app with live reload:
 
 ```bash

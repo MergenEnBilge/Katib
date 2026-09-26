@@ -15,19 +15,23 @@ Everything that turns Katib into something people can install lives here.
 One command, on the machine you want an installer for:
 
 ```bash
-uv run python installers/build.py
+uv run --extra desktop --group packaging python installers/build.py
 ```
 
 It builds the web interface, freezes the app and wraps it for the platform you are on. The result
 lands in `dist/installers`. Add `--skip-web` to reuse an interface you have already built.
 
-You need:
+The `--extra desktop --group packaging` part installs the window toolkit and PyInstaller, which a
+plain `uv sync` leaves out. It also leaves your project environment holding exactly those, so if you
+were set up to run the tests, put the rest back afterwards with `uv sync --all-extras`.
+
+You also need:
 
 | Platform | Also needed |
 |----------|-------------|
 | Windows | [Inno Setup](https://jrsoftware.org/isdl.php). Without it you still get `dist/Katib`, which runs as a portable folder |
 | macOS | Nothing beyond Xcode's command line tools |
-| Linux | `dpkg-deb` for the .deb, and `libgirepository1.0-dev libcairo2-dev gir1.2-webkit2-4.1 pkg-config` to build the window toolkit |
+| Linux | `dpkg-deb` for the .deb, and `build-essential pkg-config libgirepository1.0-dev libcairo2-dev gir1.2-webkit2-4.1` to build the window toolkit |
 
 Cross-building is not possible: a Windows installer has to be built on Windows. That is what the
 `release` workflow is for. It runs this same script on all three and attaches the results to the

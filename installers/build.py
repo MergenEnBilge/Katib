@@ -1,10 +1,13 @@
 """Build the Katib installer for the machine you are on.
 
-    uv run python installers/build.py
+    uv run --extra desktop --group packaging python installers/build.py
 
 It builds the web interface, freezes the app with PyInstaller, then wraps the result the way the
 platform expects: a setup program on Windows, a disk image on macOS, a .deb and a tar archive on
 Linux. Everything it produces lands in dist/installers.
+
+The extra and the group in that command bring in the window toolkit and PyInstaller, which a plain
+`uv sync` leaves out.
 
 Options:
     --version 1.2.3   stamp this version instead of the one in pyproject.toml
@@ -12,6 +15,7 @@ Options:
 """
 
 import argparse
+import importlib.util
 import platform
 import re
 import shutil
@@ -23,18 +27,32 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "dist" / "installers"
 VERSION_PATTERN = r"\d+\.\d+\.\d+(?:[-+.][0-9A-Za-z.-]+)?"
+SETUP = "uv run --extra desktop --group packaging python installers/build.py"
+
+
+class Failed(Exception):
+    """A step failed. Reported as one line rather than a traceback."""
 
 
 def run(command: list[str]) -> None:
     print("->", " ".join(command), flush=True)
-    subprocess.run(command, cwd=ROOT, check=True)
+    result = subprocess.run(command, cwd=ROOT, check=False)
+    if result.returncode != 0:
+        raise Failed(f"{Path(command[0]).name} failed with exit code {result.returncode}.")
 
 
 def tool(name: str, advice: str) -> str:
     found = shutil.which(name)
     if not found:
-        raise SystemExit(f"{name} is not installed. {advice}")
+        raise Failed(f"{name} is not installed. {advice}")
     return found
+
+
+def installed(module: str) -> bool:
+    try:
+        return importlib.util.find_spec(module) is not None
+    except ModuleNotFoundError:
+        return False
 
 
 def version_from_pyproject() -> str:
@@ -50,7 +68,12 @@ def build_web() -> None:
 
 def freeze() -> None:
     if not (ROOT / "src" / "katib" / "static" / "index.html").is_file():
-        raise SystemExit("The web interface has not been built. Run this without --skip-web.")
+        raise Failed("The web interface has not been built. Run this without --skip-web.")
+    # Without pywebview the app freezes cleanly and then cannot open its window, so check for it
+    # here rather than shipping something that fails on the person who installs it.
+    missing = [name for name in ("PyInstaller", "webview") if not installed(name)]
+    if missing:
+        raise Failed(f"This environment is missing {' and '.join(missing)}. Build with:\n  {SETUP}")
     spec = ROOT / "installers" / "desktop" / "katib.spec"
     run([sys.executable, "-m", "PyInstaller", str(spec), "--noconfirm"])
 
@@ -58,7 +81,7 @@ def freeze() -> None:
 def package_windows(version: str) -> None:
     iscc = shutil.which("iscc") or shutil.which("ISCC")
     if not iscc:
-        raise SystemExit(
+        raise Failed(
             "Inno Setup is not installed, so there is no setup program to build.\n"
             "Get it from https://jrsoftware.org/isdl.php. dist/Katib already works as a\n"
             "portable folder: run Katib.exe inside it."
@@ -93,11 +116,11 @@ def main() -> int:
     system = platform.system()
     package = PACKAGERS.get(system)
     if package is None:
-        raise SystemExit(f"There is no installer recipe for {system} yet.")
+        raise Failed(f"There is no installer recipe for {system} yet.")
 
     version = args.version or version_from_pyproject()
     if not re.fullmatch(VERSION_PATTERN, version):
-        raise SystemExit(f"{version!r} does not look like a version, for example 1.2.3")
+        raise Failed(f"{version!r} does not look like a version, for example 1.2.3")
 
     if not args.skip_web:
         build_web()
@@ -117,4 +140,8 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        raise SystemExit(main())
+    except Failed as problem:
+        print(f"\n{problem}", file=sys.stderr)
+        raise SystemExit(1) from None
