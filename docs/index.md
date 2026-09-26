@@ -10,6 +10,7 @@ It runs on your own machine. Start it on a laptop with one command, or on a serv
 - **Labeling a lot of images?** Read [Drawing and shortcuts](drawing.md). The keyboard makes it much faster.
 - **Have data already?** [Images, folders and formats](data.md) covers connecting a folder of photos and importing existing labels.
 - **Setting it up for a team?** [Working together](teams.md) and [Running a server](server.md).
+- **Putting it where other people can reach it?** Read [Security](security.md) first. It is short.
 - **Want to script it?** [REST API and Python client](automation.md).
 
 ## What it can do
@@ -20,9 +21,9 @@ It runs on your own machine. Start it on a laptop with one command, or on a serv
 | Classes | Rename, merge and delete with a preview and 30 days of undo |
 | Data | YOLO (detection, segmentation, rotated boxes), COCO with keypoints, Pascal VOC and LabelMe, with train, validation and test splits |
 | Quality | Finds tiny and duplicate shapes, near-identical photos and unbalanced classes |
-| Teams | Invites, five roles, a task queue, review and live presence |
+| Teams | Invites for a computer or a phone, accounts you create yourself, five roles, a task queue, review and live presence |
 | Devices | Desktop, tablet and phone. Installable, and keeps working when the signal drops |
-| Help | Draft boxes from your own detection model, and outline objects with a magic wand |
+| Help | A magic wand that needs no model, click-to-select with a SAM model, and draft boxes from your own detection model |
 
 ## What it does not do
 
