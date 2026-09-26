@@ -100,6 +100,14 @@
 
   --dur-hover: 140ms;
   --focus-ring: 2px solid var(--accent);
+
+  /* Room a phone keeps for its status bar, its camera notch and its gesture bar. Android draws
+     apps edge to edge from version 15, so without this the toolbar sits under the clock and the
+     bottom row under the home gesture. Every other device reports zero and nothing moves. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
 }
 
 /* Touch devices get bigger targets (DESIGN.md section 10). */

@@ -14,6 +14,12 @@ body,
   height: 100%;
 }
 
+/* Keep the whole app clear of the phone's own furniture. Anything positioned against the viewport
+   instead of the page, such as a dialog or a toast, has to allow for these itself. */
+#app {
+  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+}
+
 body {
   margin: 0;
   background: var(--bg);
