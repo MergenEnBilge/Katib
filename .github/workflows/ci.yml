@@ -28,6 +28,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
+        with:
+          # An action does not see defaults.run.working-directory, so it needs the path spelled out.
+          package_json_file: web/package.json
       - uses: actions/setup-node@v4
         with:
           node-version: 24
