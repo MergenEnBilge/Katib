@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { api } from '../../lib/api/client';
   import { Engine, type ToolName } from '../../lib/canvas/engine';
   import Spinner from '../../lib/ui/Spinner.svelte';
   import { toasts } from '../../lib/state/toast.svelte';
@@ -33,6 +34,12 @@
         if (!engine) return;
         zoom = engine.viewport.percent;
         onzoom?.(zoom);
+      },
+      segment: async (clicks) => {
+        const imageId = ws.currentId;
+        if (!imageId) return null;
+        const found = await api.ml.segment(ws.projectId, imageId, clicks);
+        return found.points.map(([x, y]) => [x, y] as [number, number]);
       },
     });
     zoom = engine.viewport.percent;
