@@ -49,6 +49,8 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         with:
           files: dist/installers/*
+          # A tag like v0.1.0-rc1 is a pre-release, and GitHub marks it as such.
+          prerelease: ${{ contains(github.ref_name, '-') }}
 
   image:
     # The Docker image, for servers and for people who prefer Docker Desktop.
@@ -66,12 +68,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - id: names
-        run: echo "repo=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+        shell: bash
+        run: |
+          REPO="ghcr.io/$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
+          # A pre-release such as v0.1.0-rc1 must not become the tag people get by default.
+          if [[ "${GITHUB_REF_NAME}" == *-* ]]; then
+            echo "tags=${REPO}:${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tags=${REPO}:latest,${REPO}:${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
       - uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64,linux/arm64
           push: ${{ startsWith(github.ref, 'refs/tags/v') }}
-          tags: |
-            ghcr.io/${{ steps.names.outputs.repo }}:latest
-            ghcr.io/${{ steps.names.outputs.repo }}:${{ github.ref_name }}
+          tags: ${{ steps.names.outputs.tags }}
