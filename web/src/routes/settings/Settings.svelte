@@ -12,6 +12,7 @@
   import ModePicker from './ModePicker.svelte';
   import PeoplePanel from './PeoplePanel.svelte';
   import SettingRow from './SettingRow.svelte';
+  import SegmentPanel from './SegmentPanel.svelte';
   import SharePanel from './SharePanel.svelte';
   import TipCard from '../../lib/ui/TipCard.svelte';
 
@@ -181,6 +182,7 @@
         {/each}
 
         {#if tab === 'sharing'}<SharePanel />{/if}
+        {#if tab === 'model'}<SegmentPanel />{/if}
 
         {#if error}<Callout tone="danger">{error}</Callout>{/if}
         <div class="save" data-tour="settings-save">
