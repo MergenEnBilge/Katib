@@ -7,6 +7,7 @@ caller: on a single-person install that is anyone, on a shared server it is admi
 """
 
 import os
+import sys
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
@@ -60,7 +61,9 @@ def _start_places(ctx: StorageContext, unrestricted: bool) -> list[Place]:
     for name in SHORTCUTS:
         if (home / name).is_dir():
             places.append(Place(name, str(home / name)))
-    if hasattr(os, "listdrives"):
+    # Only Windows has drive letters. Checking sys.platform rather than the attribute lets a type
+    # checker skip this branch on the platforms where it cannot run.
+    if sys.platform == "win32":
         places.extend(Place(drive, drive) for drive in os.listdrives())
     else:
         places.append(Place("Computer", "/"))
