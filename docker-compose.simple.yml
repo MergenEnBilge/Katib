@@ -7,7 +7,7 @@
 services:
   katib:
     # To run your own changes instead of the published build, swap this line for "build: ."
-    image: ghcr.io/mergenenbilge/katib:v0.1.0-rc2
+    image: ghcr.io/mergenenbilge/katib:v0.1.0-rc3
     restart: unless-stopped
     ports:
       - "8420:8420"
