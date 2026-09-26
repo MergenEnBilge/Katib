@@ -10,8 +10,11 @@ from katib.api.schemas import ShareOut
 from katib.config import Settings, is_loopback
 from katib.services.errors import Forbidden, InvalidInput
 
-#: Where the Android app is published. Scanning this on a phone downloads it.
-APP_DOWNLOAD_URL = "https://github.com/MergenEnBilge/Katib/releases/latest"
+#: The Android app itself. GitHub keeps this address pointing at the newest release, so a phone
+#: that scans it starts the download instead of landing on a page listing files for five platforms.
+APP_DOWNLOAD_URL = (
+    "https://github.com/MergenEnBilge/Katib/releases/latest/download/Katib-android.apk"
+)
 
 router = APIRouter(tags=["share"])
 
@@ -82,9 +85,8 @@ def share(request: Request, user: UserDep, anywhere: AnywhereDep) -> ShareOut:
 
 
 @router.get("/share/qr.svg")
-def qr(user: UserDep, anywhere: AnywhereDep, text: str) -> Response:
-    if not anywhere:
-        raise Forbidden("Only an administrator can make share codes.")
+def qr(user: UserDep, text: str) -> Response:
+    """A code for any text. Anyone who can create an invite needs one, not only administrators."""
     if not text or len(text) > MAX_QR_TEXT:
         raise InvalidInput("That address is too long for a QR code.")
     return Response(net.qr_svg(text), media_type="image/svg+xml")
