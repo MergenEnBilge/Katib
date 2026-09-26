@@ -1,12 +1,44 @@
 # Model help
 
-Katib has two ways to draw less by hand. Neither sends anything off your computer.
+Katib has three ways to draw less by hand. None of them sends anything off your computer.
 
 ## Magic wand
 
 Press **W**, click inside an object, and Katib outlines the area around the click that has a similar color, as a polygon. Move the pointer first to see a preview.
 
 Press **]** to accept a wider range of colors, or **[** for a narrower one. It works best on objects that stand out from their background. It needs no model and no setup.
+
+## Click to select
+
+Where the magic wand follows colour, this follows shapes. Click a dog on a lawn and you get the
+dog, not the patch of brown fur the wand would have found. It needs a Segment Anything model, which
+you supply.
+
+Press **S**, then click the middle of an object. The first click on a picture takes a second or
+two while the model reads it; every click after that on the same picture is quick. If the outline
+grabbed too little, shift-click the part it missed. If it grabbed too much, ctrl-click the part it
+should let go of. Escape starts over.
+
+### Setting it up
+
+Segment Anything comes in two files: an **image encoder**, which reads the picture, and a **mask
+decoder**, which turns your click into an outline. Both have to be ONNX exports of the same model.
+
+1. Install the extra package: `uv sync --extra ml`. The Docker image already has it.
+2. Turn model help on under **Settings**, then **Model help**.
+3. Still under Model help, choose a file for each half. Katib stores them on the server, so you do
+   this once and everyone on that Katib can click to select.
+
+**Which model.** MobileSAM is the one to start with: its encoder is about 25 MB and it is quick
+enough on an ordinary laptop. The original SAM models work too and are better at awkward edges,
+but the largest of them will keep you waiting several seconds per picture without a graphics card.
+Get the ONNX exports from the model's own project — Katib never downloads anything.
+
+**Where the work happens.** On the server, not in your browser. A phone or an old laptop gets the
+same results as the machine Katib runs on, and no picture leaves it.
+
+The tool appears in the toolbar only in projects that use polygons, and only once both halves are
+loaded. Uploading either half again replaces it.
 
 ## Pre-label with your own model
 
@@ -46,7 +78,6 @@ By default, Katib creates a class for anything the model finds that the project 
 
 ### Not included
 
-Katib runs detection models only. Segmentation models such as SAM work a different way — an image
-encoder plus a prompt decoder, rather than one pass that returns boxes — so they will not load here,
-however you add them. Click-an-object-and-let-a-network-trace-it is not part of Katib yet, and the
-magic wand covers the simple cases without a model at all.
+Pre-labeling runs detection models only, and draws boxes. A segmentation model belongs under
+**Click to select** above, which is where its two halves go. Tracking across video frames is not
+something Katib does.
