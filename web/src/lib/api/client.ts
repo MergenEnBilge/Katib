@@ -259,6 +259,13 @@ export const api = {
 
   ml: {
     status: () => request<MlStatus>('GET', '/ml'),
+    addModel: async (file: File): Promise<{ name: string; classes: string[] | null }> => {
+      const form = new FormData();
+      form.append('file', file);
+      const response = await send('/ml/models', { method: 'POST', body: form });
+      if (!response.ok) return fail(response);
+      return (await response.json()) as { name: string; classes: string[] | null };
+    },
     prelabel: (
       projectId: string,
       body: {
