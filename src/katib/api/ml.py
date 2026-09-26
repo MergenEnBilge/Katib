@@ -174,9 +174,7 @@ def start(
     projects.get_project(session, project_id)
     settings = _settings(request)
     if not settings.ml.enabled:
-        raise Forbidden(
-            "Model pre-labeling is off. Set ml.enabled to true in katib.toml to use it."
-        )
+        raise Forbidden("Model help is off. Turn it on under Settings, then Model help.")
     if not onnx.is_available():
         raise InvalidInput(
             "Pre-labeling needs an extra package. Install it with: uv sync --extra ml"
