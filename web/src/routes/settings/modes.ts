@@ -34,6 +34,25 @@ export const MODES: readonly Mode[] = [
   },
 ];
 
+/**
+ * The environment variables that stand in the way of choosing `mode`, if any.
+ *
+ * The Docker image fixes how Katib listens and whether people sign in, because the container has
+ * to answer on every address and Docker decides what reaches it. Offering a choice that would then
+ * be refused on save is worse than saying so up front.
+ */
+export function blockedBy(
+  mode: Mode,
+  current: (key: string) => unknown,
+  lockedBy: (key: string) => string | null,
+): string[] {
+  const names = Object.entries(mode.values)
+    .filter(([key, value]) => current(key) !== value)
+    .map(([key]) => lockedBy(key))
+    .filter((name): name is string => name !== null);
+  return [...new Set(names)];
+}
+
 /** Which mode the current settings match, or null when someone has arranged their own. */
 export function activeMode(current: (key: string) => unknown): Mode['id'] | null {
   const match = MODES.find((mode) =>
