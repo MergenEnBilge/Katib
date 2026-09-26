@@ -47,8 +47,8 @@
   {#if listing && listing.path === null}
     {#if listing.places.length === 0}
       <p class="empty">
-        No folders are available yet. Ask an administrator to connect one, or add it to
-        <code>allowed_import_roots</code> in <code>katib.toml</code>.
+        No folders are available yet. An administrator can add one under Settings, then Storage,
+        as a folder everyone may import from.
       </p>
     {/if}
     <ul class="list" aria-label="Places">
