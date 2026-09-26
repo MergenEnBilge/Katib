@@ -6,27 +6,17 @@ Katib is an annotation tool for computer vision. You draw boxes and polygons on 
 
 Most annotation tools are either a quick desktop app that falls apart once a second person joins, or a hosted service that wants your data. Katib is meant to be both easy to start and solid when the project grows to thousands of images and several people.
 
-## What you can do with it
+## Install
 
-- **Draw fast.** Boxes, polygons, rotated boxes, keypoints, brush masks, whole-image tags and text on a smooth canvas. Number keys pick classes, arrow keys nudge shapes, and every edit saves on its own. Undo and redo work as you expect.
-- **Fix mistakes in bulk.** Rename a class and every shape follows. Merge two classes, delete one with all its shapes, or relabel a selection from the class gallery. Every bulk change shows what it will touch first, and you can undo it for 30 days, even after closing the browser.
-- **Spot problems before you train.** The health panel finds tiny stray shapes, duplicates, near-identical photos, and classes with far fewer examples than the rest.
-- **Bring your data, take it with you.** Import and export YOLO (detection, segmentation and rotated boxes), COCO (including keypoints), Pascal VOC and LabelMe, with train, validation and test splits. Importing the same file twice never doubles your labels.
-- **Keep your splits.** Katib reads the train, validation and test split your dataset already has, keeps it on each image, and lets you reshuffle or set your own ratios for each kind of dataset. Exports use it.
-- **Write about pictures.** Add captions to whole images and write the text found inside a shape, then export it as JSON Lines that loads straight into Hugging Face.
-- **Learn as you go.** A practice project with a guided tour and a checklist gets a new person drawing in two minutes.
-- **Work together.** Invite people with a link and give them a role: owner, manager, annotator, reviewer or viewer. Katib hands each annotator the next image, shows who else is on the project, and keeps two people from editing the same image at once. Reviewers can approve images or send them back with a comment.
-- **Change everything in the app.** Every setting has a page in Settings with a plain explanation, and a backup is one button.
-- **Learn with it, not from a manual.** Short tips appear the first time you use a tool or window, and tours explain the workspace, the home screen and Settings based on what your project has.
-- **Use any device.** The interface adapts from a wide desktop screen to a phone. Install it on a phone and it keeps working when the signal drops.
+| You want | Do this |
+|----------|---------|
+| Katib on your own computer | Download the installer for your system from the [releases page](https://github.com/MergenEnBilge/Katib/releases) and open it. Windows gets a setup program, macOS a disk image, Linux a `.deb` or an archive |
+| Katib for your team | One line with Docker, below |
+| Katib on your Android phone | `Katib-android.apk` from the same releases page |
+| Katib on your iPhone | Open your server in Safari and choose **Add to Home Screen**. See [installers/mobile](installers/mobile/README.md) |
+| To work on Katib itself | From the source, below |
 
-## Get started
-
-Pick whichever is easiest for you.
-
-**Install it.** Download the installer for your system from the [releases page](https://github.com/MergenEnBilge/Katib/releases): a setup program for Windows, a disk image for macOS, or a `.deb` package and archive for Linux. Open Katib and it runs in its own window.
-
-**Run it with Docker.** If you have Docker, this is the whole install:
+**With Docker.** This is the whole install:
 
 ```bash
 docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:latest
@@ -34,7 +24,7 @@ docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/
 
 Open <http://localhost:8420>. On a Linux server, `curl -fsSL https://raw.githubusercontent.com/MergenEnBilge/Katib/main/install.sh | sh` does the same and prints the address for you. The [guide to putting Katib online](docs/deploy.md) has step-by-step help for Docker Desktop, servers and Raspberry Pi.
 
-**Run it from the source.** You need Python 3.12 or newer and Node 20 or newer. Install the two helper tools once:
+**From the source.** You need Python 3.12 or newer and Node 20 or newer. Install the two helper tools once:
 
 ```bash
 pip install uv
@@ -50,11 +40,35 @@ pnpm --dir web build
 uv run katib
 ```
 
-If your terminal says `uv` is not recognized, `pip` put it in a folder that is not on your PATH. Put `python -m` in front of it instead, for example `python -m uv run katib`. If you are inside an activated virtual environment (your prompt starts with the environment name), `uv` is not installed in it, so run the `katib` command directly instead.
-
 Your browser opens on Katib. Nothing else is needed: the data lives in a small local database in your user folder.
 
+If your terminal says `uv` is not recognized, `pip` put it in a folder that is not on your PATH. Put `python -m` in front of it instead, for example `python -m uv run katib`. If you are inside an activated virtual environment (your prompt starts with the environment name), `uv` is not installed in it, so run the `katib` command directly instead.
+
 New to labeling? On the home page choose **Try it with practice pictures**. It makes a small project and walks you through it.
+
+**Build the installers yourself.** One command, on the machine you want an installer for:
+
+```bash
+uv run python installers/build.py
+```
+
+The result lands in `dist/installers`. See [installers/README.md](installers/README.md) for what each platform needs.
+
+## What you can do with it
+
+- **Draw fast.** Boxes, polygons, rotated boxes, keypoints, brush masks, whole-image tags and text on a smooth canvas. Number keys pick classes, arrow keys nudge shapes, and every edit saves on its own. Undo and redo work as you expect.
+- **Fix mistakes in bulk.** Rename a class and every shape follows. Merge two classes, delete one with all its shapes, or relabel a selection from the class gallery. Every bulk change shows what it will touch first, and you can undo it for 30 days, even after closing the browser.
+- **Spot problems before you train.** The health panel finds tiny stray shapes, duplicates, near-identical photos, and classes with far fewer examples than the rest.
+- **Bring your data, take it with you.** Import and export YOLO (detection, segmentation and rotated boxes), COCO (including keypoints), Pascal VOC and LabelMe, with train, validation and test splits. Importing the same file twice never doubles your labels.
+- **Keep your splits.** Katib reads the train, validation and test split your dataset already has, keeps it on each image, and lets you reshuffle or set your own ratios for each kind of dataset. Exports use it.
+- **Write about pictures.** Add captions to whole images and write the text found inside a shape, then export it as JSON Lines that loads straight into Hugging Face.
+- **Learn as you go.** A practice project with a guided tour and a checklist gets a new person drawing in two minutes.
+- **Work together.** Invite people with a link and give them a role: owner, manager, annotator, reviewer or viewer. Katib hands each annotator the next image, shows who else is on the project, and keeps two people from editing the same image at once. Reviewers can approve images or send them back with a comment.
+- **Change everything in the app.** Every setting has a page in Settings with a plain explanation, and a backup is one button.
+- **Learn with it, not from a manual.** Short tips appear the first time you use a tool or window, and tours explain the workspace, the home screen and Settings based on what your project has.
+- **Use any device.** The interface adapts from a wide desktop screen to a phone. Install it on a phone and it keeps working when the signal drops.
+
+## Using Katib
 
 ### Your first project
 
@@ -113,9 +127,9 @@ On a shared server, only the administrator can connect a new folder. Everyone el
 allowed_import_roots = ["/data/photos"]
 ```
 
-### Installers
+### What each release contains
 
-Each tagged version (for example `v0.1.0`) is built for Windows (`Katib-<version>-windows-setup.exe`), macOS (`Katib-macos.dmg`) and Linux (`katib_<version>_<arch>.deb` and `Katib-linux.tar.gz`), and a Docker image is published for Intel and ARM machines. They are attached to the GitHub release. Install, open Katib, and it runs in its own window with its data in your user folder. The installers are not code-signed yet, so Windows and macOS may warn the first time you open one. On macOS, right-click the app and choose Open.
+Each tagged version (for example `v0.1.0`) is built for Windows (`Katib-<version>-windows-setup.exe`), macOS (`Katib-<version>-macos.dmg`) and Linux (`katib_<version>_<arch>.deb` and `Katib-<version>-linux-<arch>.tar.gz`), along with `Katib-android.apk` and a Docker image for Intel and ARM machines. They are attached to the GitHub release. Install, open Katib, and it runs in its own window with its data in your user folder. The installers are not code-signed yet, so Windows and macOS may warn the first time you open one. On macOS, right-click the app and choose Open.
 
 The `.deb` needs WebKitGTK (`gir1.2-webkit2-4.1`), which the package asks apt to install.
 
@@ -194,7 +208,7 @@ url = "postgresql://katib:secret@localhost/katib"
 
 Open the address from **Share** on your phone. The interface fits the screen and you draw with a finger or a stylus.
 
-There is also an Android app, `Katib-android.apk` on the releases page. It connects to your server and opens it full screen. See [android-app/README.md](android-app/README.md). Or install Katib like an app from the browser. On Android, open the browser menu and choose **Install app**. On an iPhone, choose **Add to Home Screen** from the share sheet. This needs a secure address, so use the Docker setup with HTTPS or open Katib on the same computer.
+On Android there is an app, `Katib-android.apk` on the releases page. It connects to your server and opens it full screen. On an iPhone, open your server in Safari and choose **Add to Home Screen** from the share sheet, which does the same thing without an app to install. Either way, see [installers/mobile](installers/mobile/README.md). Adding to the home screen needs a secure address, so use the Docker setup with HTTPS or open Katib on the same computer.
 
 Once installed, Katib opens without a connection and keeps the images you have looked at. If the connection drops while you draw, your edits are kept on the device and sent the next time you open Katib with a connection. Images you have not opened yet are not available offline.
 
