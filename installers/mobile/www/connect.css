@@ -26,7 +26,9 @@
 }
 body {
   margin: 0;
-  min-height: 100vh;
+  /* dvh, not vh: vh is the tallest the viewport ever gets, so the last thing on the page ends up
+     under the phone's own bar. */
+  min-height: 100dvh;
   color: var(--text);
   background: var(--bg);
   font: 16px/1.45 system-ui, sans-serif;
@@ -34,7 +36,10 @@ body {
 main {
   max-width: 420px;
   margin: 0 auto;
-  padding: max(32px, env(safe-area-inset-top)) 20px 32px;
+  /* Clear of the status bar at the top and the gesture bar at the bottom, and of a notch when the
+     phone is turned on its side. */
+  padding-block: max(32px, env(safe-area-inset-top, 0px)) max(32px, env(safe-area-inset-bottom, 0px));
+  padding-inline: max(20px, env(safe-area-inset-left, 0px)) max(20px, env(safe-area-inset-right, 0px));
   text-align: center;
 }
 .logo {
@@ -113,7 +118,7 @@ button.secondary {
   color: var(--text);
   font-weight: 500;
   background: transparent;
-  border: 1px solid var(--line, rgba(255, 255, 255, 0.2));
+  border: 1px solid var(--border);
 }
 .scan-hint {
   margin: 8px 0 0;
