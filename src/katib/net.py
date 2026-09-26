@@ -3,6 +3,7 @@
 import io
 import ipaddress
 import socket
+from pathlib import Path
 
 import segno
 
@@ -25,6 +26,15 @@ def lan_addresses() -> list[str]:
     except OSError:
         pass
     return [a for a in found if not a.startswith(("127.", "169.254."))]
+
+
+def in_container() -> bool:
+    """Whether Katib is running inside a container.
+
+    It matters because the addresses the system reports are then the container's own, which nothing
+    outside Docker can reach. Guessing one would put a QR code on screen that leads nowhere.
+    """
+    return Path("/.dockerenv").exists()
 
 
 def shareable_host(host_header: str) -> str | None:

@@ -2069,6 +2069,11 @@ export interface components {
              * @default
              */
             app_url: string;
+            /**
+             * In Container
+             * @default false
+             */
+            in_container: boolean;
         };
         /** ShuffleIn */
         ShuffleIn: {

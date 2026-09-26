@@ -36,6 +36,11 @@ def share_urls(request: Request) -> list[str]:
     if host:
         scheme = "https" if is_https(request) else "http"
         return [f"{scheme}://{host}"]
+
+    # Someone browsing from the server itself. On the machine we can work out its own addresses; in
+    # a container we cannot see the host's, and a QR code leading nowhere is worse than none.
+    if net.in_container():
+        return []
     return [f"http://{a}:{settings.server.port}" for a in net.lan_addresses()]
 
 
@@ -52,6 +57,7 @@ def share(request: Request, user: UserDep, anywhere: AnywhereDep) -> ShareOut:
         urls=urls,
         secure=bool(urls) and urls[0].startswith("https://"),
         app_url=APP_DOWNLOAD_URL,
+        in_container=net.in_container(),
     )
 
 
