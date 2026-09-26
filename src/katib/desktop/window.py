@@ -29,7 +29,7 @@ def free_port() -> int:
 
 def run_desktop(settings: Settings) -> None:
     try:
-        import webview
+        import webview  # pyright: ignore[reportMissingImports]
     except ImportError as err:
         raise DesktopUnavailable(
             "The desktop window needs an extra package. Install it with: uv sync --extra desktop"
