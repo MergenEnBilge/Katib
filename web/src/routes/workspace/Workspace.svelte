@@ -243,6 +243,9 @@
       case 'toggle-panel':
         layout.toggle('panel');
         break;
+      case 'focus-mode':
+        layout.focus();
+        break;
       case 'copy':
         ws.copy();
         break;
@@ -318,7 +321,12 @@
       <span class="sep hide-narrow"></span>
       <span class="zoomtools hide-narrow">
       <IconButton label="Zoom out" shortcut="-" onclick={() => ws.engine?.zoomOut()}><ZoomOut size={16} /></IconButton>
-      <span class="zoom mono">{zoom}%</span>
+      <button
+        type="button"
+        class="zoom mono"
+        aria-label="Zoom level {zoom} percent. Click to fit the picture to the window"
+        title="Fit to view"
+        onclick={() => ws.engine?.fit()}>{zoom}%</button>
       <IconButton label="Zoom in" shortcut="+" onclick={() => ws.engine?.zoomIn()}><ZoomIn size={16} /></IconButton>
       <IconButton label="Fit to view" shortcut="0" onclick={() => ws.engine?.fit()}><Maximize size={16} /></IconButton>
       </span>
@@ -647,9 +655,20 @@
 
   .zoom {
     min-width: 44px;
+    height: var(--h-icon);
+    padding: 0;
     text-align: center;
+    font: inherit;
     font-size: var(--text-small);
     color: var(--text-2);
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius-control);
+    cursor: pointer;
+  }
+
+  .zoom:hover {
+    background: var(--surface-2);
   }
 
   .save {
