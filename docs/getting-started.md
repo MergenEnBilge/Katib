@@ -17,7 +17,7 @@ requests of its own.
 
     The downloads are marked pre-release, which is honest rather than ominous: the checks run on
     every change, but the version number has not settled. Replace `<version>` below with the one on
-    the [releases page](https://github.com/MergenEnBilge/Katib/releases), currently `0.1.0-rc2`.
+    the [releases page](https://github.com/MergenEnBilge/Katib/releases), currently `0.1.0-rc3`.
 
 !!! warning "Copying commands on Windows"
 
@@ -74,10 +74,15 @@ bookworm or newer**. On something older, use Docker instead.
 
 ## Android
 
-1. Download `Katib-android.apk` from the releases page, on the phone or by copying it across.
-2. Open it. Android asks you to allow installs from your browser or file manager the first time;
-   allow it, then install.
-3. Open Katib and type your server's address, such as `192.168.1.20:8420`. It remembers it.
+1. On a computer already running Katib, click the workspace name at the bottom of the sidebar. Point
+   your phone's camera at the **Rather have the app?** code to download it. (Or take
+   `Katib-android.apk` from the releases page.)
+2. Open the file. Android asks you to allow installs from your browser or file manager the first
+   time; allow it, then install.
+3. Open Katib, tap **Scan the code instead**, and point the camera at the address code in the same
+   window. Typing `192.168.1.20:8420` by hand works too. Either way it remembers.
+
+Android 8 or newer is needed.
 
 The app opens your server's own interface full screen, so the phone always matches everyone else's
 version. To use a different server later, tap the workspace name and choose **Other servers**.
@@ -100,7 +105,7 @@ Mac with Xcode, you can also build and install the real app — see
 One line, on any machine with Docker:
 
 ```bash
-docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.1.0-rc2
+docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.1.0-rc3
 ```
 
 The tag is a release candidate because that is the newest Katib there is. A `:latest` tag will
