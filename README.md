@@ -57,7 +57,7 @@ whole install is one line:
 ```bash
 docker run -d --name katib --restart unless-stopped \
   -p 8420:8420 -v katib-data:/data \
-  ghcr.io/mergenenbilge/katib:v0.1.0-rc1
+  ghcr.io/mergenenbilge/katib:v0.1.0-rc2
 ```
 
 Open <http://localhost:8420> and you are labelling. The [install

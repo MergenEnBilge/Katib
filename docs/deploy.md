@@ -19,7 +19,7 @@ Everything you can set up here can be changed later from **Settings** inside Kat
 2. Open a terminal (PowerShell on Windows, Terminal on macOS) and paste:
 
     ```bash
-    docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:latest
+    docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.1.0-rc2
     ```
 
 3. Open <http://localhost:8420> and create the administrator account.
