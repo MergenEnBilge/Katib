@@ -1,18 +1,19 @@
-"""Model pre-labeling: which models are available and running one over a project."""
+"""Model help: which models are available, pre-labeling a project, and click-to-select."""
 
 import uuid
 from functools import lru_cache
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, File, Request, UploadFile
+from fastapi import APIRouter, File, Form, Request, UploadFile
 
 from katib.api.class_ops import OpsStorage
 from katib.api.deps import AnywhereDep, RunnerDep, SessionDep, StorageDep, UserDep, need
 from katib.api.jobs import job_out
-from katib.api.schemas import JobOut, MlModelOut, MlStatusOut, PrelabelIn
+from katib.api.schemas import JobOut, MlModelOut, MlStatusOut, PrelabelIn, SegmentIn, SegmentOut
 from katib.config import Settings
-from katib.ml import onnx
+from katib.ml import onnx, sam
+from katib.services import images as images_service
 from katib.services import prelabel, projects
 from katib.services.errors import Forbidden, InvalidInput, NotFound
 
@@ -51,7 +52,13 @@ def status(request: Request, user: UserDep, anywhere: AnywhereDep) -> MlStatusOu
         # Where files live on the server is only for the people who can put files there.
         models_dir=str(folder) if anywhere else "",
         models=models,
+        can_segment=settings.ml.enabled and installed and sam.is_installed(folder),
     )
+
+
+#: What an uploaded file is. A detection model stands alone; the two halves of a Segment Anything
+#: model have to be told apart, because nothing in the file itself says which is which.
+KINDS = {"detect": "", "sam-encoder": sam.ENCODER_NAME, "sam-decoder": sam.DECODER_NAME}
 
 
 @router.post("/ml/models", response_model=MlModelOut, status_code=201)
@@ -60,6 +67,7 @@ def upload_model(
     request: Request,
     user: UserDep,
     anywhere: AnywhereDep,
+    kind: Annotated[str, Form()] = "detect",
 ) -> MlModelOut:
     """Add a model from the browser.
 
@@ -68,6 +76,8 @@ def upload_model(
     """
     if not anywhere:
         raise Forbidden("Only an administrator can add a model.")
+    if kind not in KINDS:
+        raise InvalidInput("Choose what this file is: a detection model, or half of a SAM model.")
     name = Path(file.filename or "").name
     if not name.endswith(".onnx") or name.startswith("."):
         raise InvalidInput("A model must be a file ending in .onnx.")
@@ -75,8 +85,13 @@ def upload_model(
     settings = _settings(request)
     folder = settings.models_dir
     folder.mkdir(parents=True, exist_ok=True)
+    # The two halves of a SAM model are kept under names Katib chooses, so that uploading a
+    # replacement is enough and nobody has to match up file names.
+    fixed = KINDS[kind]
+    if fixed:
+        name = fixed
     destination = folder / name
-    if destination.exists():
+    if destination.exists() and not fixed:
         raise InvalidInput(f"There is already a model called {name}. Rename it and try again.")
 
     size = 0
@@ -90,10 +105,58 @@ def upload_model(
                 raise InvalidInput(f"A model may be at most {settings.limits.max_model_mb} MB.")
             out.write(chunk)
 
-    if not onnx.is_available():
+    if fixed or not onnx.is_available():
         return MlModelOut(name=name, classes=None)
     classes = _class_names(str(destination), destination.stat().st_mtime)
     return MlModelOut(name=name, classes=classes)
+
+
+@lru_cache(maxsize=1)
+def _segmenter(folder: str, encoder_at: float, decoder_at: float) -> sam.SamSegmenter:
+    """The loaded model, kept between requests. Uploading a new half makes a new one."""
+    return sam.SamSegmenter(Path(folder))
+
+
+@router.post("/projects/{project_id}/images/{image_id}/segment", response_model=SegmentOut)
+def segment(
+    project_id: uuid.UUID,
+    image_id: uuid.UUID,
+    body: SegmentIn,
+    request: Request,
+    session: SessionDep,
+    user: UserDep,
+    storage: StorageDep,
+) -> SegmentOut:
+    """Outline whatever the clicks point at."""
+    need(session, user, project_id, "annotate")
+    settings = _settings(request)
+    folder = settings.models_dir
+    if not settings.ml.enabled:
+        raise Forbidden("Model help is off. Turn it on under Settings, then Model help.")
+    if not sam.is_installed(folder):
+        raise InvalidInput(
+            "No Segment Anything model has been added. "
+            "Upload its image encoder and mask decoder under Settings, then Model help."
+        )
+    if not body.points:
+        raise InvalidInput("Click on the thing you want outlined.")
+
+    image = images_service.get_image(session, image_id)
+    if image.project_id != project_id:
+        raise NotFound("That image is not in this project.")
+    path = images_service.image_path(image, storage)
+
+    encoder = folder / sam.ENCODER_NAME
+    decoder = folder / sam.DECODER_NAME
+    try:
+        model = _segmenter(str(folder), encoder.stat().st_mtime, decoder.stat().st_mtime)
+        clicks = [sam.Click(x=p.x, y=p.y, positive=p.positive) for p in body.points]
+        points = model.outline(path, str(image.id), clicks)
+    except onnx.MlUnavailable as err:
+        raise InvalidInput(str(err)) from err
+    except onnx.ModelError as err:
+        raise InvalidInput(str(err)) from err
+    return SegmentOut(points=[[x, y] for x, y in points] if points else [])
 
 
 @router.post("/projects/{project_id}/prelabel", response_model=JobOut, status_code=202)

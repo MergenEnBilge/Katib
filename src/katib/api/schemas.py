@@ -182,6 +182,8 @@ class MlStatusOut(BaseModel):
     installed: bool
     models_dir: str
     models: list[MlModelOut]
+    #: A Segment Anything model is loaded, so clicking an object can outline it.
+    can_segment: bool = False
 
 
 class PrelabelIn(BaseModel):
@@ -191,6 +193,24 @@ class PrelabelIn(BaseModel):
     create_missing_classes: bool = True
     # For models that do not carry their class names. One name per class, in the model's order.
     class_names: list[str] | None = None
+
+
+class ClickIn(BaseModel):
+    """A click on a picture, as a fraction of its width and height."""
+
+    x: float = Field(ge=0.0, le=1.0)
+    y: float = Field(ge=0.0, le=1.0)
+    #: False for "not this": a click that pushes the outline back off something it swallowed.
+    positive: bool = True
+
+
+class SegmentIn(BaseModel):
+    points: list[ClickIn] = Field(max_length=32)
+
+
+class SegmentOut(BaseModel):
+    #: The outline as x, y pairs between 0 and 1. Empty when the model found nothing there.
+    points: list[list[float]]
 
 
 class ConnectResultOut(BaseModel):
