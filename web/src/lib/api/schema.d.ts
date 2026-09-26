@@ -1153,7 +1153,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Qr */
+        /**
+         * Qr
+         * @description A code for any text. Anyone who can create an invite needs one, not only administrators.
+         */
         get: operations["qr_api_v1_share_qr_svg_get"];
         put?: never;
         post?: never;
@@ -1691,6 +1694,11 @@ export interface components {
             project: string | null;
             /** Role */
             role: string;
+            /**
+             * App Url
+             * @default
+             */
+            app_url: string;
         };
         /** InviteOut */
         InviteOut: {
