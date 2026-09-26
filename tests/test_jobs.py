@@ -1,3 +1,4 @@
+import threading
 import time
 from typing import Any
 
@@ -60,3 +61,19 @@ def test_interrupted_jobs_are_failed_on_startup(runner: JobRunner) -> None:
     with factory() as s:
         statuses = sorted(j.status for j in s.query(Job))
     assert statuses == ["done", "failed"]
+
+
+def test_shutdown_waits_for_a_job_that_already_started(runner: JobRunner) -> None:
+    started = threading.Event()
+    finished = threading.Event()
+
+    def work(progress: Progress) -> dict[str, Any]:
+        started.set()
+        time.sleep(0.3)
+        finished.set()
+        return {}
+
+    runner.submit("import_images", None, {}, work)
+    assert started.wait(5)
+    runner.shutdown()
+    assert finished.is_set(), "shutdown returned while a job was still writing"
