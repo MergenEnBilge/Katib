@@ -2,6 +2,13 @@ import { expect, test, type Page } from '@playwright/test';
 import { join } from 'node:path';
 import { OUT } from '../screenshots.config';
 
+// First-use tips are helpful in the app and clutter in a picture of it.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('katib.tips', JSON.stringify({ seen: [], off: true }));
+  });
+});
+
 const shot = async (page: Page, name: string): Promise<void> => {
   await page.waitForTimeout(400); // let the canvas and any fade finish
   await page.screenshot({ path: join(OUT, `${name}.png`) });
