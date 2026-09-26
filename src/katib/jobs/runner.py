@@ -90,4 +90,5 @@ class JobRunner:
             self._set(job_id, status="done", progress=1.0, result=result, finished_at=utcnow())
 
     def shutdown(self) -> None:
-        self._pool.shutdown(wait=False, cancel_futures=True)
+        """Drop whatever is still queued, but let a job that is already writing finish."""
+        self._pool.shutdown(wait=True, cancel_futures=True)
