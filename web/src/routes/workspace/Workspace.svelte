@@ -935,14 +935,14 @@
       inset-block: auto 0;
       inset-inline: 0;
       width: 100%;
-      height: 55vh;
+      height: 55dvh;
       transform: translateY(110%);
       border-inline-start: 0;
       border-block-start: 1px solid var(--border);
     }
 
     .rail-wrap {
-      width: 86vw;
+      width: 86dvw;
     }
 
     .rail-wrap :global(.rail) {

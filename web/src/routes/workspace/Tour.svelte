@@ -158,7 +158,7 @@
   .card {
     position: fixed;
     z-index: 71;
-    width: min(340px, calc(100vw - 24px));
+    width: min(340px, calc(100dvw - var(--safe-left) - var(--safe-right) - 24px));
     padding: var(--space-4);
     background: var(--surface-2);
     border: 1px solid var(--border-strong);
