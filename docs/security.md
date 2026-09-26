@@ -14,7 +14,7 @@ This page explains what Katib protects, what it leaves to you, and what was chec
 - **Uploads and pictures.** Files are limited in size and in pixel count (a defense against decompression bombs). Katib opens only the picture formats it supports, by their content, so a file's name cannot change how it is decoded. Uploaded files are stored under generated names, never a name you typed.
 - **Datasets you import.** XML is parsed with a library that refuses entity expansion attacks. Import paths must sit inside allowed folders.
 - **Pages** are served with a strict Content-Security-Policy, `X-Frame-Options: DENY` and `nosniff`. The interface never inserts untrusted text as HTML.
-- **First account.** Whoever creates the first administrator account owns the server. When that happens from outside your own network, or through a proxy Katib was not told to trust, Katib asks for a setup code that only someone with access to the server's log or data folder can read. Guessing it is rate limited.
+- **First account.** Whoever creates the first administrator account owns the server, so Katib guards it with a setup code as soon as anybody else could get there first. A server listening on a network address asks everyone for it, including the person sitting at that computer; so does a request that arrives from a public address or through a proxy Katib was not told to trust. The code is printed when Katib starts and kept in `setup-code.txt`, and it stops working once the account exists. Guessing it is rate limited. A server that answers only on its own computer needs no code, because nobody else can reach it.
 - **Settings, backups and restarts** can only be used by administrators. Passwords inside a database address are never shown again after they are saved, and the files that hold them are readable only by the account that runs Katib. Backups made in the app are deleted from the server after a day.
 - **Browser features** Katib does not use, such as the camera and location, are switched off for its pages. HTTPS visits get a `Strict-Transport-Security` header.
 - **No telemetry.** Katib makes no network requests on its own.
@@ -26,7 +26,8 @@ This page explains what Katib protects, what it leaves to you, and what was chec
 - **Keep the data folder private.** It holds the database, uploads and undo history.
 - **Back up** the data folder and, with Postgres, the database. See [Running a server](server.md#backups).
 - **Choose who is an administrator.** Administrators are owners of every project and can browse the server's folders.
-- **Models are code.** An ONNX model runs on your server. Only use models you trust.
+- **Models are code.** An ONNX model runs on your server. Only use models you trust. Only administrators can add one.
+- **Passwords you hand out.** An administrator can create an account and set its password from **Settings**, then **People**. Katib sends no email, so you pass it on yourself; do it somewhere that is not a shared channel, and let the person change it.
 
 ## What was reviewed
 
@@ -49,7 +50,20 @@ A second review covered the settings page, backups, restore, the setup code, the
 | Backup zips, which contain every password hash, stayed on the server | They are deleted after 24 hours |
 | Pages could ask the browser for the camera, microphone or location | A Permissions-Policy header switches them off |
 
-Dependencies are checked with `pnpm audit` and `pip-audit`, and neither reports known vulnerabilities in what ships.
+A third review, before 0.1.0, went through every route in the API, the file handling, the new
+click-to-select and account pages, and the phone app. It found and fixed:
+
+| Finding | Fix |
+|---------|-----|
+| Whoever reached a server on a shared network first could claim the administrator account without the setup code, because Katib treated a private address as proof of trust. An office or cafe wifi is not a list of people you trust | Any server open to a network asks everyone for the code |
+| The progress and result of a backup, including the name of the file it wrote, could be read by any signed-in person, though the file itself could not be downloaded | Jobs that belong to no project are administrators' only |
+| Making a QR code needed administrator rights, so a project manager could create a phone invite but not show it | Anyone signed in can render a code; the server's own addresses are still administrators' only |
+
+Dependencies are checked with `pnpm audit`, `npm audit` and `pip-audit`. Nothing that ships has a
+known vulnerability. The tools that build the Android icons do: `@capacitor/assets` pulls in old
+copies of `tar`, `sharp` and `uuid`, with no fixed version published. They run on a build machine
+and no part of them is inside the app, so the audit of what ships is clean while the full
+development audit is not.
 
 ## Known limits
 
