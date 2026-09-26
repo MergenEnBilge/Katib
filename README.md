@@ -49,7 +49,7 @@ New to labeling? On the home page choose **Try it with practice pictures**. It m
 **Build the installers yourself.** One command, on the machine you want an installer for:
 
 ```bash
-uv run python installers/build.py
+uv run --extra desktop --group packaging python installers/build.py
 ```
 
 The result lands in `dist/installers`. See [installers/README.md](installers/README.md) for what each platform needs.
