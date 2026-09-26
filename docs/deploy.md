@@ -22,7 +22,7 @@ Install [Docker Desktop](https://www.docker.com/products/docker-desktop/), open 
 into PowerShell or Terminal:
 
 ```bash
-docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.1.0-rc2
+docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.1.0-rc3
 ```
 
 Open <http://localhost:8420>. Create your account. You are labelling.
@@ -36,7 +36,7 @@ To let someone else in, give them your machine's network address with `:8420` on
 To label pictures already on your disk, mount the folder as well:
 
 ```bash
-docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data -v C:\Photos:/photos:ro ghcr.io/mergenenbilge/katib:v0.1.0-rc2
+docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data -v C:\Photos:/photos:ro ghcr.io/mergenenbilge/katib:v0.1.0-rc3
 ```
 
 Then choose **Import**, **Connect a folder**, and pick `/photos`. The `:ro` makes it read-only.

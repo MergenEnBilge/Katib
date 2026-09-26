@@ -12,16 +12,19 @@ Press **]** to accept a wider range of colors, or **[** for a narrower one. It w
 
 If you already have a YOLO detection model saved as ONNX, Katib can draft boxes for you to correct.
 
-1. Install the extra package: `uv sync --extra ml`
-2. Turn it on in `katib.toml`:
+1. Install the extra package: `uv sync --extra ml`. The Docker image already has it.
+2. Turn it on under **Settings**, then **Model help**. It takes effect at once, with no restart.
+3. In a project, choose **Pre-label with a model** (the sparkle button) and press **Add a model**.
+   Pick your `.onnx` file. It is stored on the server, so you do this once and everyone using that
+   Katib can pre-label with it.
+4. Choose the model and a minimum confidence, then run it.
 
-    ```toml
-    [ml]
-    enabled = true
-    ```
+You can also copy `.onnx` files straight into the `models` folder inside Katib's data folder, which
+the window shows the path to. That is often quicker when Katib runs on your own machine. With
+Docker the folder is inside the container, so uploading is the way in.
 
-3. Copy your `.onnx` file into the `models` folder inside Katib's data folder. The pre-label window shows the exact path. To keep models somewhere else, set `ml.models_dir`.
-4. In a project, choose **Pre-label with a model** (the sparkle button), pick the model and a minimum confidence, and run it.
+To keep models somewhere else, set `ml.models_dir`. Uploads are capped by `limits.max_model_mb`,
+which is 500 MB.
 
 Only people who can manage the project can run a model. Model boxes need a project that uses boxes.
 
@@ -43,4 +46,7 @@ By default, Katib creates a class for anything the model finds that the project 
 
 ### Not included
 
-Interactive segmentation that uses a model (click an object and let a neural network trace it) is not part of Katib yet. The magic wand covers simple cases without one.
+Katib runs detection models only. Segmentation models such as SAM work a different way — an image
+encoder plus a prompt decoder, rather than one pass that returns boxes — so they will not load here,
+however you add them. Click-an-object-and-let-a-network-trace-it is not part of Katib yet, and the
+magic wand covers the simple cases without a model at all.
