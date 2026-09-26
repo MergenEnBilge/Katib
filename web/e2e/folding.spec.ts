@@ -64,3 +64,26 @@ test('the side panel folds away with a key and comes back', async ({ page }) => 
   await page.keyboard.press('\\');
   await expect(panel).toBeHidden();
 });
+
+test('the zoom reading fits the picture to the window', async ({ page }) => {
+  test.skip(test.info().project.name === 'phone', 'The zoom controls are trimmed on a phone.');
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'New project' }).first().click();
+  await page.getByLabel('Project name').fill(`Zoom ${Date.now()}`);
+  await page.getByRole('button', { name: 'Create project' }).click();
+  await page.getByRole('button', { name: 'Import images' }).last().click();
+  await connectLibrary(page);
+  await expect(page.getByText('images added.')).toBeVisible();
+  await page.getByRole('dialog').getByRole('button', { name: 'Done' }).click();
+
+  const reading = page.getByRole('button', { name: /^Zoom level/ });
+  const percent = async (): Promise<number> => Number.parseInt((await reading.textContent()) ?? '', 10);
+  // The reading starts at 100% and changes once the picture is on screen and fitted to the window.
+  await expect(reading).not.toHaveText('100%');
+
+  for (let i = 0; i < 3; i++) await page.keyboard.press('+');
+  const zoomedIn = await percent();
+  await reading.click();
+  await expect.poll(percent).toBeLessThan(zoomedIn);
+});
