@@ -273,3 +273,53 @@ def test_an_admin_can_promote_someone_else(admin: TestClient) -> None:
         "is_admin"
     ]
     assert person.get(f"{API}/users").status_code == 200
+
+
+def test_you_can_change_your_own_password(admin: TestClient) -> None:
+    pid = admin.post(f"{API}/projects", json={"name": "P"}).json()["id"]
+    person = join(admin, pid, "annotator", "a@example.com")
+    changed = person.post(
+        f"{API}/auth/password",
+        json={"current_password": PASSWORD, "new_password": "a much better one"},
+    )
+    assert changed.status_code == 200, changed.text
+    # Still signed in here, because the reply hands this browser a new session.
+    assert person.get(f"{API}/projects").status_code == 200
+    again = client_for(admin).post(
+        f"{API}/auth/login", json={"email": "a@example.com", "password": "a much better one"}
+    )
+    assert again.status_code == 200
+
+
+def test_changing_a_password_needs_the_old_one(admin: TestClient) -> None:
+    pid = admin.post(f"{API}/projects", json={"name": "P"}).json()["id"]
+    person = join(admin, pid, "annotator", "a@example.com")
+    refused = person.post(
+        f"{API}/auth/password",
+        json={"current_password": "not it at all", "new_password": "a much better one"},
+    )
+    assert refused.status_code == 401
+    assert person.get(f"{API}/projects").status_code == 200
+
+
+def test_changing_your_password_signs_out_your_other_devices(admin: TestClient) -> None:
+    pid = admin.post(f"{API}/projects", json={"name": "P"}).json()["id"]
+    phone = join(admin, pid, "annotator", "a@example.com")
+    laptop = client_for(admin)
+    laptop.post(f"{API}/auth/login", json={"email": "a@example.com", "password": PASSWORD})
+    assert laptop.get(f"{API}/projects").status_code == 200
+
+    phone.post(
+        f"{API}/auth/password",
+        json={"current_password": PASSWORD, "new_password": "a much better one"},
+    )
+    assert laptop.get(f"{API}/projects").status_code == 401
+
+
+def test_a_weak_new_password_is_refused(admin: TestClient) -> None:
+    pid = admin.post(f"{API}/projects", json={"name": "P"}).json()["id"]
+    person = join(admin, pid, "annotator", "a@example.com")
+    refused = person.post(
+        f"{API}/auth/password", json={"current_password": PASSWORD, "new_password": "short"}
+    )
+    assert refused.status_code == 422
