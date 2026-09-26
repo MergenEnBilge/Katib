@@ -164,6 +164,10 @@ class ShareOut(BaseModel):
     app_url: str = ""
     #: Katib is in a container, so it cannot work out the address of the machine hosting it.
     in_container: bool = False
+    #: Katib is open to the network but does not know which address to hand out. Ask for one.
+    needs_address: bool = False
+    #: The port Katib is listening on, to suggest when asking for the address.
+    port: int = 0
 
 
 class MlModelOut(BaseModel):

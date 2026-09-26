@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 from katib import net
@@ -47,6 +48,26 @@ def test_a_browser_on_the_server_itself_falls_back_to_the_network_address(tmp_pa
         body = c.get(f"{API}/share", headers={"host": "localhost:9001"}).json()
     assert all(url.endswith(":9001") for url in body["urls"])
     assert not any("localhost" in url for url in body["urls"])
+
+
+def test_katib_asks_for_an_address_when_it_cannot_work_one_out(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """In Docker the only address Katib can see is the container's, which nobody can reach. The
+    share window has to ask rather than claim the server is closed."""
+    monkeypatch.setattr(net, "in_container", lambda: True)
+    with TestClient(create_app(shared_settings(tmp_path))) as c:
+        sign_up(c)
+        body = c.get(f"{API}/share", headers={"host": "localhost:9001"}).json()
+    assert body["urls"] == []
+    assert body["needs_address"] is True
+    assert body["port"] == 9001
+
+
+def test_a_server_closed_to_the_network_does_not_ask_for_an_address(tmp_path: Path) -> None:
+    with TestClient(create_app(Settings(storage={"data_dir": str(tmp_path)}))) as c:
+        body = c.get(f"{API}/share").json()
+    assert body["needs_address"] is False
 
 
 def test_an_invite_link_carries_an_address_other_people_can_open(tmp_path: Path) -> None:

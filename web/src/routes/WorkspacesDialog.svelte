@@ -8,6 +8,7 @@
   import Callout from '../lib/ui/Callout.svelte';
   import Modal from '../lib/ui/Modal.svelte';
   import TextField from '../lib/ui/TextField.svelte';
+  import AddressForm from './settings/AddressForm.svelte';
 
   let { onclose }: { onclose: () => void } = $props();
 
@@ -18,15 +19,18 @@
   let name = $state('');
   let address = $state('');
   let addressError = $state('');
+  let editing = $state(false);
 
-  $effect(() => {
+  function load(): void {
     api.share
       .get()
       .then((i) => (info = i))
       .catch((err: unknown) => {
         problem = err instanceof ApiError ? err.message : 'Could not check how Katib is shared.';
       });
-  });
+  }
+
+  $effect(load);
 
   async function copy(text: string): Promise<void> {
     try {
@@ -68,16 +72,8 @@
       <Callout tone="danger">{problem}</Callout>
     {:else if info === null}
       <div class="sk" aria-busy="true"></div>
-    {:else if info.in_container}
-      <Callout>
-        <p class="line"><strong>Katib cannot tell you this machine's address.</strong></p>
-        <p class="line">
-          It is running in Docker, which hides the address of the computer it sits on. Open Katib
-          from the phone or laptop you want to share with, using that computer's address and port
-          8420, and this page will show it from then on.
-        </p>
-        <p class="line">On a server with a name of its own, set the public address under Settings, then Sharing.</p>
-      </Callout>
+    {:else if info.needs_address}
+      <AddressForm port={info.port} onsaved={load} />
     {:else if !info.reachable}
       <Callout>
         <p class="line"><strong>Katib is only open on this computer.</strong></p>
@@ -109,6 +105,17 @@
             <p class="hint">On an iPhone, open the address in Safari and choose Add to Home Screen.</p>
           </div>
         </div>
+      {/if}
+      {#if editing}
+        <AddressForm
+          port={info.port}
+          onsaved={() => {
+            editing = false;
+            load();
+          }}
+        />
+      {:else}
+        <button type="button" class="link" onclick={() => (editing = true)}>Not the right address?</button>
       {/if}
       {#if !info.secure}
         <Callout>
@@ -255,6 +262,16 @@
     overflow: hidden;
     color: var(--text-2);
     text-overflow: ellipsis;
+  }
+
+  .link {
+    padding: 0;
+    margin-block-end: var(--space-3);
+    color: var(--accent-text);
+    background: transparent;
+    border: 0;
+    font-size: var(--text-small);
+    cursor: pointer;
   }
 
   .open {

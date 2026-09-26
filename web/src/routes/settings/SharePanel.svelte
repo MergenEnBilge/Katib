@@ -2,16 +2,19 @@
   import { api, ApiError } from '../../lib/api/client';
   import type { ShareInfo } from '../../lib/api/types';
   import Callout from '../../lib/ui/Callout.svelte';
+  import AddressForm from './AddressForm.svelte';
 
   let info = $state<ShareInfo | null>(null);
   let error = $state('');
 
-  $effect(() => {
+  function load(): void {
     api.share
       .get()
       .then((s) => (info = s))
       .catch((err) => (error = err instanceof ApiError ? err.message : 'Could not check how Katib is shared.'));
-  });
+  }
+
+  $effect(load);
 </script>
 
 <section class="share" aria-labelledby="share-title">
@@ -20,6 +23,8 @@
     <Callout tone="danger">{error}</Callout>
   {:else if !info}
     <p class="quiet">Checking...</p>
+  {:else if info.needs_address}
+    <AddressForm port={info.port} onsaved={load} />
   {:else if !info.reachable}
     <p class="quiet">
       Katib only answers on this computer right now. To let others in, choose accounts and
