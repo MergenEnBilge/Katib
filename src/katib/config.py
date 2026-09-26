@@ -57,6 +57,8 @@ class StorageSettings(BaseModel):
 
 class LimitSettings(BaseModel):
     max_upload_mb: int = 50
+    # Models are far larger than pictures, so they have their own ceiling.
+    max_model_mb: int = 500
     max_image_pixels: int = 200_000_000
     operation_retention_days: int = 30
 
