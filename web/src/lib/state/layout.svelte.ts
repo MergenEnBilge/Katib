@@ -40,6 +40,11 @@ export const layout = {
   toggle(which: 'sidebar' | 'rail' | 'panel'): void {
     set({ [which]: !current[which] });
   },
+  /** Give the picture the whole window, or put both side panels back. */
+  focus(): void {
+    const away = current.rail || current.panel;
+    set({ rail: !away, panel: !away });
+  },
   openTab(tab: string): void {
     set({ tab, panel: false });
   },

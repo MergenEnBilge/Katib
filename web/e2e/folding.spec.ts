@@ -56,4 +56,11 @@ test('the side panel folds away with a key and comes back', async ({ page }) => 
   await page.reload();
   await expect(panel).toBeHidden();
   expect((await images.boundingBox())?.width ?? 0).toBeLessThan(listWidth);
+
+  // The backslash puts both back in one press, and folds both again.
+  await page.keyboard.press('\\');
+  await expect(panel).toBeVisible();
+  expect((await images.boundingBox())?.width ?? 0).toBe(listWidth);
+  await page.keyboard.press('\\');
+  await expect(panel).toBeHidden();
 });

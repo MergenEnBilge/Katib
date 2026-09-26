@@ -22,6 +22,7 @@ export type Action =
   | 'zoom-fit'
   | 'toggle-rail'
   | 'toggle-panel'
+  | 'focus-mode'
   | 'copy'
   | 'paste'
   | 'help'
@@ -51,6 +52,7 @@ export const SHORTCUT_LIST: { keys: string; action: string; group: string }[] = 
   { group: 'Images', keys: 'Shift + Enter', action: 'Mark as done and go to the next' },
   { group: 'View', keys: '[', action: 'Fold the image list away, or bring it back' },
   { group: 'View', keys: ']', action: 'Fold the classes and details panel away, or bring it back' },
+  { group: 'View', keys: '\\', action: 'Give the picture the whole window, or put both panels back' },
   { group: 'Editing', keys: 'Delete', action: 'Delete the selection' },
   { group: 'Editing', keys: 'Arrows', action: 'Nudge by 1 px (Shift for 10 px)' },
   { group: 'Editing', keys: 'Tab', action: 'Select the next shape' },
@@ -121,6 +123,8 @@ export function resolveShortcut(e: KeyPress): Action | null {
       return 'toggle-rail';
     case ']':
       return 'toggle-panel';
+    case '\\':
+      return 'focus-mode';
     case '?':
       return 'help';
     default:
