@@ -1,14 +1,23 @@
 <script lang="ts">
   import { Check, Globe, Laptop, Users } from '@lucide/svelte';
-  import { activeMode, MODES } from './modes';
+  import { activeMode, blockedBy, MODES } from './modes';
 
   let {
     current,
     onpick,
-  }: { current: (key: string) => unknown; onpick: (values: Record<string, unknown>) => void } =
-    $props();
+    lockedBy = () => null,
+  }: {
+    current: (key: string) => unknown;
+    onpick: (values: Record<string, unknown>) => void;
+    /** The environment variable that fixes a setting, when one does. */
+    lockedBy?: (key: string) => string | null;
+  } = $props();
 
   const active = $derived(activeMode(current));
+  const blocked = $derived(
+    new Map(MODES.map((mode) => [mode.id, blockedBy(mode, current, lockedBy)])),
+  );
+  const fixed = $derived([...new Set([...blocked.values()].flat())]);
 </script>
 
 <div class="modes" role="group" aria-label="How you use Katib">
@@ -18,6 +27,7 @@
       class="mode"
       class:active={active === mode.id}
       aria-pressed={active === mode.id}
+      disabled={(blocked.get(mode.id) ?? []).length > 0}
       onclick={() => onpick(mode.values)}
     >
       <span class="top">
@@ -30,7 +40,13 @@
   {/each}
 </div>
 
-{#if active === null}
+{#if fixed.length > 0}
+  <p class="custom">
+    Whoever started Katib fixed this with {fixed.join(' and ')}, so it cannot be changed from here.
+    In Docker that is normal: the container has to answer on every address, and Docker decides what
+    reaches it.
+  </p>
+{:else if active === null}
   <p class="custom">These do not match your settings. That is fine, yours are below.</p>
 {/if}
 
@@ -56,8 +72,17 @@
     cursor: pointer;
   }
 
-  .mode:hover {
+  .mode:hover:not(:disabled) {
     border-color: var(--border-strong);
+  }
+
+  .mode:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
+  .mode:disabled.active {
+    opacity: 1;
   }
 
   .mode.active {

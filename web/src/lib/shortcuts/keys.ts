@@ -8,6 +8,7 @@ export type Action =
   | 'tool:keypoints'
   | 'tool:brush'
   | 'tool:wand'
+  | 'tool:smart'
   | 'class-picker'
   | 'class-manager'
   | 'prev'
@@ -43,6 +44,7 @@ export const SHORTCUT_LIST: { keys: string; action: string; group: string }[] = 
   { group: 'Tools', keys: 'K', action: 'Keypoints' },
   { group: 'Tools', keys: 'R', action: 'Brush mask' },
   { group: 'Tools', keys: 'W', action: 'Magic wand: outline an object with one click' },
+  { group: 'Tools', keys: 'S', action: 'Click to select: a model outlines what you click' },
   { group: 'Editing', keys: 'E, [ and ]', action: 'Brush: switch to the eraser, change the size' },
   { group: 'Editing', keys: 'V or Delete on a landmark', action: 'Hide it, or remove it' },
   { group: 'Classes', keys: '1 to 9', action: 'Choose a class, or relabel the selection' },
@@ -101,6 +103,8 @@ export function resolveShortcut(e: KeyPress): Action | null {
       return 'tool:brush';
     case 'w':
       return 'tool:wand';
+    case 's':
+      return 'tool:smart';
     case 'c':
     case '/':
       return 'class-picker';

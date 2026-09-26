@@ -14,6 +14,7 @@
     WandSparkles,
     Diamond,
     MousePointer2,
+    MousePointerClick,
     Pentagon,
     Waypoints,
     Redo2,
@@ -39,6 +40,7 @@
   import { layout } from '../../lib/state/layout.svelte';
   import { router } from '../../lib/state/router.svelte';
   import { applyTheme, theme } from '../../lib/state/theme.svelte';
+  import { api } from '../../lib/api/client';
   import { session } from '../../lib/state/session.svelte';
   import { onboarding } from '../../lib/state/onboarding.svelte';
   import { startPractice } from '../../lib/state/practice';
@@ -121,13 +123,27 @@
     { id: 'box', type: 'box', label: 'Box', key: 'B' },
     { id: 'polygon', type: 'polygon', label: 'Polygon', key: 'P' },
     { id: 'wand', type: 'polygon', label: 'Magic wand', key: 'W' },
+    { id: 'smart', type: 'polygon', label: 'Click to select', key: 'S' },
     { id: 'obb', type: 'obb', label: 'Rotated box', key: 'O' },
     { id: 'keypoints', type: 'keypoints', label: 'Keypoints', key: 'K' },
     { id: 'brush', type: 'mask', label: 'Brush mask', key: 'R' },
   ];
 
+  // Click to select needs a model on the server, which most Katibs do not have.
+  let canSegment = $state(false);
+  onMount(() => {
+    api.ml
+      .status()
+      .then((s) => (canSegment = s.can_segment))
+      .catch(() => (canSegment = false));
+  });
+
   // Only show the tools this project can save shapes for.
-  const tools = $derived(allTools.filter((t) => t.type === null || ws.types.includes(t.type)));
+  const tools = $derived(
+    allTools.filter(
+      (t) => (t.type === null || ws.types.includes(t.type)) && (t.id !== 'smart' || canSegment),
+    ),
+  );
 
   const shared = $derived(session.mode === 'local');
 
@@ -200,6 +216,7 @@
       case 'tool:keypoints':
       case 'tool:brush':
       case 'tool:wand':
+      case 'tool:smart':
         if (tools.some((t) => t.id === action.slice(5))) tool = action.slice(5) as ToolName;
         break;
       case 'class-picker':
@@ -306,7 +323,7 @@
       {#each tools as t (t.id)}
         <IconButton label={t.label} shortcut={t.key} onclick={() => (tool = t.id)}>
           <span class="tool" class:active={tool === t.id}>
-            {#if t.id === 'select'}<MousePointer2 size={16} />{:else if t.id === 'box'}<Square size={16} />{:else if t.id === 'polygon'}<Pentagon size={16} />{:else if t.id === 'wand'}<WandSparkles size={16} />{:else if t.id === 'obb'}<Diamond size={16} />{:else if t.id === 'keypoints'}<Waypoints size={16} />{:else}<Brush size={16} />{/if}
+            {#if t.id === 'select'}<MousePointer2 size={16} />{:else if t.id === 'box'}<Square size={16} />{:else if t.id === 'polygon'}<Pentagon size={16} />{:else if t.id === 'wand'}<WandSparkles size={16} />{:else if t.id === 'smart'}<MousePointerClick size={16} />{:else if t.id === 'obb'}<Diamond size={16} />{:else if t.id === 'keypoints'}<Waypoints size={16} />{:else}<Brush size={16} />{/if}
           </span>
         </IconButton>
       {/each}

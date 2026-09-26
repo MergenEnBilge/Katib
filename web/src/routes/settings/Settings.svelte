@@ -12,6 +12,7 @@
   import ModePicker from './ModePicker.svelte';
   import PeoplePanel from './PeoplePanel.svelte';
   import SettingRow from './SettingRow.svelte';
+  import SegmentPanel from './SegmentPanel.svelte';
   import SharePanel from './SharePanel.svelte';
   import TipCard from '../../lib/ui/TipCard.svelte';
 
@@ -160,6 +161,10 @@
         {#if tab === 'sharing'}
           <ModePicker
             current={(key) => shown(key, data?.fields.find((f) => f.key === key)?.value)}
+            lockedBy={(key) => {
+              const field = data?.fields.find((f) => f.key === key);
+              return field?.source === 'environment' ? (field.env_name ?? null) : null;
+            }}
             onpick={(values) => (draft = { ...draft, ...values })}
           />
         {/if}
@@ -181,6 +186,7 @@
         {/each}
 
         {#if tab === 'sharing'}<SharePanel />{/if}
+        {#if tab === 'model'}<SegmentPanel />{/if}
 
         {#if error}<Callout tone="danger">{error}</Callout>{/if}
         <div class="save" data-tour="settings-save">

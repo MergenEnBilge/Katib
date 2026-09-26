@@ -10,6 +10,7 @@
 | Keypoints | **K** | Click each landmark in order. Shift+click marks one as hidden, **N** skips one, Enter finishes early. |
 | Brush masks | **R** | Paint. **E** switches to the eraser. **[** and **]** change the brush size. |
 | Magic wand | **W** | Click inside an object to outline the area of similar color. **[** and **]** change how alike the colors must be. |
+| Click to select | **S** | Click an object and a model outlines it. Shift+click adds what it missed, Ctrl+click cuts back what it took too much of. Only appears when a model is loaded — see [Model help](assist.md). |
 | Image tags | | Switch a class on under "Tags on this image". |
 | Text | | Open the **Text** tab and write. See below. |
 
