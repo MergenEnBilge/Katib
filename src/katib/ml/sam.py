@@ -42,6 +42,11 @@ PIXEL_STD = (58.395, 57.12, 57.375)
 #: How many pictures' embeddings to keep. Each is about four megabytes.
 CACHE_SIZE = 4
 
+#: A model with nothing confident to say about a click sometimes answers with the whole picture
+#: rather than admitting it. That is never a real object someone meant to outline with one click,
+#: so a mask covering more of the picture than this is treated as no answer at all.
+MAX_MASK_COVERAGE = 0.97
+
 
 def is_installed(folder: Path) -> bool:
     """Whether both halves of a model are in the models folder."""
@@ -178,6 +183,9 @@ class SamSegmenter:
         scores = outputs[1] if len(outputs) > 1 else None
         best = int(np.argmax(scores[0])) if scores is not None and scores[0].size > 1 else 0
         grid = np.asarray(masks[0][best] if masks[0].ndim == 3 else masks[0])
-        flat = (grid > 0).astype(np.uint8).reshape(-1).tolist()
+        covered = grid > 0
+        if grid.size == 0 or covered.mean() > MAX_MASK_COVERAGE:
+            return None
+        flat = covered.astype(np.uint8).reshape(-1).tolist()
         height, width = grid.shape
         return mask_module.polygon(flat, width, height)

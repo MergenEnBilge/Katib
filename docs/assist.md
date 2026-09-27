@@ -21,6 +21,11 @@ two while the model reads it; every click after that on the same picture is quic
 grabbed too little, shift-click the part it missed. If it grabbed too much, ctrl-click the part it
 should let go of. Escape starts over.
 
+A click with nothing confident nearby says "Nothing found there" rather than drawing something
+wrong — a smaller model such as MobileSAM says this more often than a larger one, especially on a
+busy picture or a click near the edge of an object. Try the middle of the object again, or a
+larger model under **Setting it up** below.
+
 ### Setting it up
 
 Segment Anything comes in two files: an **image encoder**, which reads the picture, and a **mask
