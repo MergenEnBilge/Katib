@@ -18,7 +18,13 @@ from sqlalchemy.orm import Session
 from katib import net
 from katib.db.models import ProjectFolder
 from katib.services.errors import ImportNotAllowed, InvalidInput, NotFound
-from katib.services.images import StorageContext, container_hint, inside, resolve_folder
+from katib.services.images import (
+    StorageContext,
+    container_hint,
+    inside,
+    resolve_folder,
+    resolved_roots,
+)
 from katib.storage.imaging import ALLOWED_SUFFIXES
 
 # Folders with more entries than this are counted as "at least this many".
@@ -120,20 +126,19 @@ def browse(ctx: StorageContext, raw: str | None, *, unrestricted: bool) -> Listi
         raise InvalidInput(f"That folder does not exist.{container_hint(in_container)}") from None
     if not path.is_dir():
         raise InvalidInput("That path is not a folder.")
-    if not unrestricted and not inside(path, [r.resolve() for r in ctx.allowed_roots]):
+    roots = resolved_roots(ctx.allowed_roots)
+    if not unrestricted and not inside(path, roots):
         raise ImportNotAllowed("That folder is outside the folders Katib may use.")
 
     parent = path.parent
-    at_top = parent == path or (
-        not unrestricted and not inside(parent, [r.resolve() for r in ctx.allowed_roots])
-    )
+    at_top = parent == path or (not unrestricted and not inside(parent, roots))
     return Listing(
         path=str(path),
         parent=None if at_top else str(parent),
         places=places,
         folders=_subfolders(path),
         images_here=_count_images(path),
-        can_connect=unrestricted or inside(path, [r.resolve() for r in ctx.allowed_roots]),
+        can_connect=unrestricted or inside(path, roots),
         in_container=in_container,
     )
 
