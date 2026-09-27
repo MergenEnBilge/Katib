@@ -44,6 +44,9 @@ Open a project, choose **Team**, pick a role and create an invite link. Send it 
 you are inviting. A link works once and expires after seven days. The person opens it, chooses a
 password, and joins the project with that role.
 
+The same window opens without leaving the project list, too: an owner or manager sees a small
+button in the corner of each project's card there, with **Manage team** alongside it.
+
 Next to the role there is a second choice: whether they will be working **on a computer** or **on a
 phone**. Pick a phone and you get a code to hold a camera up to instead of a link to send. When
 they scan it, Android offers to open the invite in the Katib app, and offers to download the app
@@ -55,10 +58,11 @@ your name at the bottom of the sidebar and tell it.
 
 Owners can change roles or remove people in the same window.
 
-An owner can also delete the whole project from the **Settings** tab of that same window. It asks
-for the project's name typed back before it will run, and it cannot be undone — pictures you
-uploaded go with it, and pictures in a folder you only connected are left alone, since they were
-never copied here.
+An owner can also delete the whole project — from the **Settings** tab of that same window, or
+straight from its card in the project list, without opening it at all. Either way it asks for the
+project's name typed back before it will run, and it cannot be undone — pictures you uploaded go
+with it, and pictures in a folder you only connected are left alone, since they were never copied
+here.
 
 ## Handing out accounts instead
 
