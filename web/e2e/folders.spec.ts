@@ -46,3 +46,26 @@ test('upload a folder that already has labels', async ({ page }) => {
   test.skip(test.info().project.name === 'phone', 'The class panel is a slide-over on a phone.');
   await expect(page.getByRole('button', { name: 'car 1' })).toBeVisible();
 });
+
+test('shows which file is uploading while a folder goes up', async ({ page }) => {
+  // A folder goes up one file at a time. Slowing each request down is what makes that visible to
+  // a test reliably, rather than hoping it lands mid-upload on a fast local server.
+  await page.route('**/folders:upload-file', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    await route.continue();
+  });
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'New project' }).first().click();
+  await page.getByLabel('Project name').fill(`Progress ${test.info().project.name}`);
+  await page.getByRole('button', { name: 'Create project' }).click();
+  await expect(page).toHaveURL(/\/p\/[0-9a-f-]{36}$/);
+
+  await page.getByRole('button', { name: 'Import images' }).last().click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Upload a folder').setInputFiles(UPLOAD_SET);
+
+  await expect(page.getByText(/Uploading .+…/)).toBeVisible();
+  await expect(page.getByRole('progressbar', { name: 'Import progress' })).toBeVisible();
+  await expect(dialog.getByText('1 image added.')).toBeVisible();
+});
