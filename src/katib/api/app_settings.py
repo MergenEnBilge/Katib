@@ -319,7 +319,13 @@ def start_factory_reset(body: ResetIn, request: Request, _admin: AdminDep) -> Ac
     def wipe() -> None:
         log.warning("Factory reset requested. Deleting everything under %s.", settings.data_dir)
         engine.dispose()  # this request's own connection is only released once it returns
-        reset.factory_reset(settings.data_dir)
+        report = reset.factory_reset(settings.data_dir)
+        if report.failed:
+            log.error(
+                "Factory reset finished with %d item(s) still in place: %s",
+                len(report.failed),
+                report.failed,
+            )
 
     restart.restart_soon(before=wipe)
     return Accepted(restarting=True)
