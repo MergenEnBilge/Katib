@@ -150,7 +150,7 @@
           {#if project.role === 'owner' || project.role === 'manager'}
             <button
               type="button"
-              class="actions"
+              class="card-actions"
               aria-label="More actions for {project.name}"
               onclick={(e) => openActions(e, project)}
             >
@@ -313,7 +313,7 @@
     object-fit: cover;
   }
 
-  .actions {
+  .card-actions {
     position: absolute;
     top: var(--space-2);
     right: var(--space-2);
@@ -328,7 +328,7 @@
     cursor: pointer;
   }
 
-  .actions:hover {
+  .card-actions:hover {
     background: rgb(0 0 0 / 0.65);
   }
 
