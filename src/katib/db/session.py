@@ -26,6 +26,11 @@ def make_engine(url: str) -> Engine:
             cur = dbapi_connection.cursor()
             cur.execute("PRAGMA foreign_keys=ON")
             cur.execute("PRAGMA journal_mode=WAL")
+            # Two writes can still land close enough together to collide -- one background
+            # job's own write, say, while a request that started it is still mid-transaction.
+            # Without this, SQLite refuses the second one outright instead of waiting the
+            # instant it usually takes for the first to clear.
+            cur.execute("PRAGMA busy_timeout=5000")
             cur.close()
 
     return engine
