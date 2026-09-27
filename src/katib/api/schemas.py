@@ -133,6 +133,8 @@ class FolderListingOut(BaseModel):
     folders: list[PlaceOut]
     images_here: int
     can_connect: bool
+    #: Katib is in a container, so only folders mounted at startup are reachable from here.
+    in_container: bool = False
 
 
 class ConnectFolderIn(BaseModel):
