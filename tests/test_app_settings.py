@@ -1,5 +1,6 @@
 import io
 import json
+import threading
 import time
 import zipfile
 from collections.abc import Iterator
@@ -188,6 +189,8 @@ def test_only_administrators_change_settings_on_a_shared_server(tmp_path: Path) 
             assert other.get(f"{API}/settings").status_code == 403
             assert other.put(f"{API}/settings", json={"values": {}}).status_code == 403
             assert other.post(f"{API}/settings/backup").status_code == 403
+            assert other.get(f"{API}/settings/factory-reset").status_code == 403
+            assert other.post(f"{API}/settings/factory-reset").status_code == 403
 
 
 def wait_job(api: TestClient, job_id: str) -> dict[str, Any]:
@@ -215,3 +218,47 @@ def test_a_backup_holds_the_database_and_uploads(api: TestClient, sqlite_only: N
     assert "katib.db" in names
     assert "backup.json" in names
     assert any(n.startswith("uploads/") for n in names)
+
+
+def test_a_factory_reset_preview_counts_files_without_deleting_them(
+    api: TestClient, sqlite_only: None
+) -> None:
+    api.post(f"{API}/projects", json={"name": "Kept"})
+    before = api.get(f"{API}/settings/factory-reset").json()
+    assert before["files"] > 0
+    assert before["bytes"] > 0
+    assert api.get(f"{API}/settings").json()["fields"]
+
+
+def test_a_factory_reset_needs_the_word_typed_to_run(api: TestClient, sqlite_only: None) -> None:
+    refused = api.post(f"{API}/settings/factory-reset", json={"confirm": "yes please"})
+    assert refused.status_code == 422
+    assert "RESET" in refused.json()["message"]
+
+
+def test_a_factory_reset_wipes_the_data_folder(
+    api: TestClient, tmp_path: Path, sqlite_only: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # A real restart would relaunch the test process itself, so this runs the cleanup it
+    # schedules, after a short real delay, without actually restarting -- the same order as
+    # production, where the wipe only runs once this request's own database connection is
+    # already closed.
+    def fake_restart_soon(before: Any = None) -> None:
+        if before is not None:
+            threading.Timer(0.05, before).start()
+
+    monkeypatch.setattr("katib.api.app_settings.restart.restart_soon", fake_restart_soon)
+    api.post(f"{API}/projects", json={"name": "Gone soon"})
+    data_dir = tmp_path / "data"
+    assert (data_dir / "katib.db").is_file()
+
+    done = api.post(f"{API}/settings/factory-reset", json={"confirm": "reset"})
+    assert done.status_code == 202
+    assert done.json()["restarting"] is True
+
+    for _ in range(100):
+        if not (data_dir / "katib.db").exists():
+            break
+        time.sleep(0.02)
+    else:
+        raise AssertionError("factory reset did not delete the database in time")

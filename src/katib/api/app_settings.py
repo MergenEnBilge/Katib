@@ -1,6 +1,7 @@
 """Settings routes: read them, change them, restart, and back up."""
 
 import dataclasses
+import logging
 import os
 import platform
 import shutil
@@ -28,7 +29,7 @@ from katib.config import (
 )
 from katib.db.session import normalize_url
 from katib.jobs.runner import Progress
-from katib.services import app_settings, backup
+from katib.services import app_settings, backup, reset
 from katib.services import class_ops as class_ops_service
 from katib.services import folders as folders_service
 from katib.services.errors import Forbidden, InvalidInput, NotFound
@@ -36,6 +37,7 @@ from katib.services.images import StorageContext
 from katib.storage.imaging import set_pixel_limit
 
 router = APIRouter(tags=["settings"])
+log = logging.getLogger(__name__)
 
 
 def _settings(request: Request) -> Settings:
@@ -115,6 +117,15 @@ class DatabaseTestOut(BaseModel):
 
 class Accepted(BaseModel):
     restarting: bool
+
+
+class ResetPreviewOut(BaseModel):
+    files: int
+    bytes: int
+
+
+class ResetIn(BaseModel):
+    confirm: str = ""
 
 
 def _folder_size(path: Path) -> int:
@@ -286,3 +297,29 @@ def start_backup(
     if job is None:
         raise NotFound("The backup could not be started.")
     return job_out(job)
+
+
+@router.get("/settings/factory-reset", response_model=ResetPreviewOut)
+def preview_factory_reset(request: Request, _admin: AdminDep) -> ResetPreviewOut:
+    report = reset.preview(_settings(request).data_dir)
+    return ResetPreviewOut(files=report.files, bytes=report.bytes)
+
+
+@router.post("/settings/factory-reset", response_model=Accepted, status_code=202)
+def start_factory_reset(body: ResetIn, request: Request, _admin: AdminDep) -> Accepted:
+    if body.confirm.strip().upper() != "RESET":
+        raise InvalidInput(
+            "Type RESET to confirm. This deletes every project and cannot be undone."
+        )
+    if not getattr(request.app.state, "can_restart", True):
+        raise InvalidInput("Close Katib and open it again, then do this once more, to finish.")
+    settings = _settings(request)
+    engine = request.app.state.engine
+
+    def wipe() -> None:
+        log.warning("Factory reset requested. Deleting everything under %s.", settings.data_dir)
+        engine.dispose()  # this request's own connection is only released once it returns
+        reset.factory_reset(settings.data_dir)
+
+    restart.restart_soon(before=wipe)
+    return Accepted(restarting=True)
