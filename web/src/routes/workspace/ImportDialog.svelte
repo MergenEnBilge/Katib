@@ -40,7 +40,6 @@
   let error = $state('');
   let summary = $state<string[]>([]);
   let notes = $state<Note[]>([]);
-  let files: FileList | null = $state(null);
   let folderInput: HTMLInputElement | null = $state(null);
   let picker: HTMLInputElement | null = $state(null);
   /** The file currently going up, shown next to the progress bar during an upload. */
@@ -156,18 +155,19 @@
       currentFile = '';
       progress = 1;
       if (kept === 0) {
-        error = 'None of those files could be used. Choose a folder with pictures in it.';
+        error = 'None of those files could be used. Choose some pictures to upload.';
         return;
       }
       const made = await api.folders.uploadFinish(projectId, batch);
       await loadConnected();
       await finishImport(made.job);
     } catch (err) {
-      fail(err, 'Could not upload that folder.');
+      fail(err, 'Could not upload those files.');
     } finally {
       busy = false;
       currentFile = '';
       if (folderInput) folderInput.value = '';
+      if (picker) picker.value = '';
     }
   }
 
@@ -189,33 +189,6 @@
     } catch (err) {
       fail(err, 'Could not disconnect that folder.');
     }
-  }
-
-  async function upload(): Promise<void> {
-    if (!files || files.length === 0) return;
-    busy = true;
-    error = '';
-    summary = [];
-    notes = [];
-    const list = [...files];
-    let added = 0;
-    for (const [i, file] of list.entries()) {
-      currentFile = file.name;
-      progress = i / list.length;
-      try {
-        await api.images.upload(projectId, file);
-        added++;
-        changed = true;
-      } catch (err) {
-        notes.push({ subject: file.name, reason: err instanceof ApiError ? err.message : 'Upload failed.' });
-      }
-    }
-    progress = 1;
-    currentFile = '';
-    summary = [`${plural(added, 'image')} uploaded.`, notes.length ? `${plural(notes.length, 'file')} skipped.` : ''].filter(Boolean);
-    files = null;
-    if (picker) picker.value = '';
-    busy = false;
   }
 
   async function importLabels(): Promise<void> {
@@ -320,13 +293,15 @@
         <p class="note">
           Works everywhere, including in a container — the browser sends the files instead of
           Katib reading them itself. A whole folder brings its subfolders, and any classes and
-          labels already sitting in it, along for free.
+          labels already sitting in it, along for free. Pick loose files instead and any label
+          file among them — a data.yaml, a COCO .json, YOLO .txt files — is matched up the same
+          way, with no folder needed.
         </p>
         <div class="row">
           <Button variant="primary" loading={busy} onclick={() => folderInput?.click()}
             ><FolderOpen size={16} />Upload a folder</Button
           >
-          <Button loading={busy} onclick={() => picker?.click()}>Upload pictures</Button>
+          <Button loading={busy} onclick={() => picker?.click()}>Upload pictures and labels</Button>
         </div>
         <input
           bind:this={folderInput}
@@ -342,12 +317,10 @@
           type="file"
           multiple
           hidden
-          accept="image/jpeg,image/png,image/webp,image/bmp,image/tiff"
-          onchange={(e) => (files = e.currentTarget.files)}
+          aria-label="Upload pictures and labels"
+          accept="image/jpeg,image/png,image/webp,image/bmp,image/tiff,.txt,.json,.xml,.yaml,.yml"
+          onchange={(e) => uploadFolder(e.currentTarget.files)}
         />
-        {#if files && files.length}
-          <p class="note">{plural(files.length, 'file')} chosen. <Button loading={busy} onclick={upload}>Upload</Button></p>
-        {/if}
       </div>
     </div>
   {:else}

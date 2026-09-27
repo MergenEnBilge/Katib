@@ -1,5 +1,11 @@
 import { expect, test } from '@playwright/test';
-import { connectLibrary, UPLOAD_SET } from './fixtures';
+import {
+  connectLibrary,
+  UPLOAD_SET,
+  UPLOAD_SET_IMAGE,
+  UPLOAD_SET_LABEL,
+  UPLOAD_SET_YAML,
+} from './fixtures';
 
 test('browse for a folder, connect it and look for new images', async ({ page }) => {
   await page.goto('/');
@@ -45,6 +51,25 @@ test('upload a folder that already has labels', async ({ page }) => {
 
   test.skip(test.info().project.name === 'phone', 'The class panel is a slide-over on a phone.');
   await expect(page.getByRole('button', { name: 'car 1' })).toBeVisible();
+});
+
+test('upload loose pictures and a label file together, with no folder', async ({ page }) => {
+  // The same batch pipeline as a folder upload, just fed a flat file selection instead -- for
+  // when someone has a picture and its label sitting in different places, not one tidy folder.
+  await page.goto('/');
+  await page.getByRole('button', { name: 'New project' }).first().click();
+  await page.getByLabel('Project name').fill(`Loose ${test.info().project.name}`);
+  await page.getByRole('button', { name: 'Create project' }).click();
+  await expect(page).toHaveURL(/\/p\/[0-9a-f-]{36}$/);
+
+  await page.getByRole('button', { name: 'Import images' }).last().click();
+  const dialog = page.getByRole('dialog');
+  await dialog
+    .getByLabel('Upload pictures and labels')
+    .setInputFiles([UPLOAD_SET_YAML, UPLOAD_SET_IMAGE, UPLOAD_SET_LABEL]);
+
+  await expect(dialog.getByText('1 image added.')).toBeVisible();
+  await expect(dialog.getByText(/already had labels/)).toBeVisible();
 });
 
 test('shows which file is uploading while a folder goes up', async ({ page }) => {
