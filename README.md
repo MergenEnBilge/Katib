@@ -60,7 +60,7 @@ licence check, nothing to switch off.
 With Docker, the whole install is one line:
 
 ```bash
-docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.1.0
+docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.2.0
 ```
 
 Open <http://localhost:8420>. Katib asks for a setup code before it will make the first account,
@@ -176,11 +176,15 @@ pnpm --dir web dev            # front end on :5173, proxies /api to the backend
 
 ## Status
 
-This is 0.1.0, the first release Katib has made without a "rc" on the end. Everything described
-here works today, and the checks run on every push: the Python tests against both SQLite and
-Postgres, the browser tests at desktop and phone sizes with an automated accessibility pass, a
-Docker build, and speed budgets. Every export format is exercised by a test that sends a project
-out through the API and reads it back in again.
+This is 0.2.0. Everything described here works today, and the checks run on every push: the
+Python tests against both SQLite and Postgres, the browser tests at desktop and phone sizes with
+an automated accessibility pass, a Docker build, and speed budgets. Every export format is
+exercised by a test that sends a project out through the API and reads it back in again.
+
+Since 0.1.0, a folder can be uploaded through the browser and not only connected on the server —
+the way in when Katib runs in a container and cannot see your files directly — with a progress
+bar and every upload limit adjustable in Settings. Connecting or uploading a folder that already
+looks like a labelled dataset now picks up its classes, splits and shapes in the same step.
 
 Being honest about what that number does and does not promise:
 
