@@ -2,19 +2,39 @@
 
 ## Adding images
 
-Choose **Import images** in a project.
+Choose **Import images** in a project. There are two ways in, and which one is faster depends on
+where your pictures already are relative to Katib.
 
-**Upload from this device** copies the files into Katib's data folder. Files can be up to 50 MB by default (`limits.max_upload_mb`).
+**Connect a folder** reads images where they are, on the computer that runs Katib, and never
+copies, moves or changes your originals. This is the one to want: nothing is duplicated, and a
+folder of any size connects in an instant because Katib is only reading a directory listing, not
+transferring the pictures themselves. The catch is that Katib has to be able to see that folder
+itself. On your own machine that is true by default. In a container it usually is not — a
+container only sees folders that were mounted into it when it started, which is what `-v` on
+`docker run`, or a line under `volumes` in a compose file, does. Connecting a folder from inside
+Katib cannot reach anything beyond that, however correct the path looks, because the container's
+filesystem is not your computer's.
 
-**Upload a folder** does the same, but for a whole folder at once, subfolders included, chosen through the same picker your operating system always uses. It is what to reach for when Katib cannot see your files directly — most often because it is running in a container. Nothing needs mounting first: the browser reads the folder and sends it, so this works the same whether Katib is next to your photos or on a server across the room. Any `data.yaml`, labels, or other annotation files inside come along and are read the same way as [an existing dataset](#reading-an-existing-dataset) below.
-
-**Connect a folder** reads images where they are, on the computer that runs Katib, instead of copying them. Katib walks the folder and everything inside it, and adds each JPEG, PNG, WebP, BMP and TIFF file. It never copies, moves or changes your originals.
+**Upload a folder**, or its neighbour **Upload pictures** for a handful of loose files, sends
+everything over the browser instead, and copies it into Katib's data folder. This is what to
+reach for when Katib cannot see your files directly — there is no way around the copy in that
+case, because the browser and the server genuinely do not share a filesystem; sending the bytes is
+the only path between them. It works everywhere, though, which "Connect a folder" cannot promise.
+A whole folder brings its subfolders, and any `data.yaml`, labels or other annotation files
+inside, along with it, read the same way as [an existing dataset](#reading-an-existing-dataset)
+below. Either way, the upload goes up one file at a time, so you can watch it happen and see which
+file is going up right now, rather than stare at a spinner that gives no sign of life until a
+folder of any real size finishes. Files can be up to 50 MB by default (`limits.max_upload_mb`).
 
 Pictures that are already in the project, judged by their content and not their name, are skipped and reported. Files that cannot be read are skipped with a reason.
 
-!!! note "Running Katib in Docker"
+!!! tip "In Docker, mounting is worth doing"
 
-    A container only sees folders that were mounted into it when it started — that is what `-v` on `docker run`, or a line under `volumes` in a compose file, does. Connecting a folder from inside Katib cannot reach anything beyond that, however correct the path looks, because the container's filesystem is not your computer's. If you did not mount a photos folder when you started the container, either stop it and add one (see [Put Katib online](deploy.md)), or choose **Upload a folder** instead, which sends everything over the browser and needs nothing mounted.
+    If your pictures live on the same machine Docker runs on, mounting them (see [Put Katib
+    online](deploy.md)) and using **Connect a folder** is worth the one-time setup for anything
+    past a few dozen images — nothing is copied, and a folder of any size connects instantly.
+    Uploading is for when that is not possible, or the pictures are on a different machine
+    entirely, such as the phone or laptop you are sitting at.
 
 ### Reading an existing dataset
 
