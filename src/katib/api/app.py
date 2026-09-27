@@ -66,6 +66,7 @@ def create_app(settings: Settings) -> FastAPI:
             max_upload_bytes=settings.limits.max_upload_mb * 1024 * 1024,
             exports=LocalStorage(settings.data_dir / "exports"),
             folder_uploads=LocalStorage(settings.data_dir / "folder-uploads"),
+            max_folder_files=settings.limits.max_folder_upload_files,
         )
         app.state.operations = LocalStorage(settings.data_dir / "operations")
         with app.state.session_factory() as s:

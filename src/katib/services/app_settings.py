@@ -154,6 +154,18 @@ FIELDS: tuple[Field, ...] = (
         maximum=10240,
     ),
     Field(
+        "limits.max_folder_upload_files",
+        "limits",
+        "Largest folder upload, in files",
+        "A folder is uploaded one file at a time, so this is a backstop against one that would "
+        "never finish rather than a real technical ceiling. Raise it if you regularly work with "
+        "bigger datasets.",
+        "int",
+        live=True,
+        minimum=1,
+        maximum=200_000,
+    ),
+    Field(
         "limits.max_image_pixels",
         "limits",
         "Largest picture, in pixels",

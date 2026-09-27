@@ -24,7 +24,9 @@ A whole folder brings its subfolders, and any `data.yaml`, labels or other annot
 inside, along with it, read the same way as [an existing dataset](#reading-an-existing-dataset)
 below. Either way, the upload goes up one file at a time, so you can watch it happen and see which
 file is going up right now, rather than stare at a spinner that gives no sign of life until a
-folder of any real size finishes. Files can be up to 50 MB by default (`limits.max_upload_mb`).
+folder of any real size finishes. Files can be up to 100 MB by default (`limits.max_upload_mb`),
+and a folder up to 20,000 files (`limits.max_folder_upload_files`) — both are settings, so raise
+them under **Settings**, then **Limits**, if your pictures or your datasets are bigger than that.
 
 Pictures that are already in the project, judged by their content and not their name, are skipped and reported. Files that cannot be read are skipped with a reason.
 

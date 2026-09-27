@@ -88,7 +88,8 @@ When the same setting appears in more than one place, the environment wins, then
 | `database.url` | SQLite in the data folder | Where projects are stored |
 | `storage.data_dir` | Your user data folder | Where Katib keeps its database, thumbnails, uploads and undo history |
 | `storage.allowed_import_roots` | none | Folders everyone on a shared server may import from |
-| `limits.max_upload_mb` | `50` | Largest picture the browser may upload |
+| `limits.max_upload_mb` | `100` | Largest picture the browser may upload |
+| `limits.max_folder_upload_files` | `20000` | Largest folder upload, in files |
 | `limits.max_model_mb` | `500` | Largest model the browser may upload |
 | `limits.max_image_pixels` | `200000000` | Pictures with more pixels than this are refused |
 | `limits.operation_retention_days` | `30` | How long bulk changes stay undoable |

@@ -311,17 +311,24 @@ def test_finishing_an_upload_nothing_was_sent_for_is_refused(solo: TestClient) -
     assert finished.status_code == 422
 
 
-def test_a_folder_upload_is_capped(solo: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
-    from katib.services import images as images_service
-
-    monkeypatch.setattr(images_service, "MAX_FOLDER_UPLOAD_FILES", 1)
-    project = new_project(solo)
-    batch = str(uuid.uuid4())
-    first = upload_file(solo, project, batch, "a.png", png_bytes(), "image/png")
-    assert first.status_code == 200 and first.json()["kept"] is True
-    second = upload_file(solo, project, batch, "b.png", png_bytes(color="blue"), "image/png")
+def test_a_folder_upload_is_capped(tmp_path: Path) -> None:
+    settings = Settings(
+        storage={"data_dir": str(tmp_path / "data")}, limits={"max_folder_upload_files": 1}
+    )
+    with TestClient(create_app(settings)) as api:
+        project = new_project(api)
+        batch = str(uuid.uuid4())
+        first = upload_file(api, project, batch, "a.png", png_bytes(), "image/png")
+        assert first.status_code == 200 and first.json()["kept"] is True
+        second = upload_file(api, project, batch, "b.png", png_bytes(color="blue"), "image/png")
     assert second.status_code == 422
     assert "limited to" in second.json()["message"]
+
+
+def test_the_folder_upload_cap_is_a_setting(solo: TestClient) -> None:
+    payload = solo.get(f"{API}/settings").json()
+    field = next(f for f in payload["fields"] if f["key"] == "limits.max_folder_upload_files")
+    assert field["value"] == 20_000
 
 
 def test_only_a_manager_can_upload_a_folder_on_a_shared_server(tmp_path: Path) -> None:

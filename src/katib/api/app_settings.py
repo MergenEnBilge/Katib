@@ -204,6 +204,10 @@ def _apply_live(
         request.app.state.storage = dataclasses.replace(
             storage, max_upload_bytes=settings.limits.max_upload_mb * 1024 * 1024
         )
+    if "limits.max_folder_upload_files" in accepted:
+        request.app.state.storage = dataclasses.replace(
+            request.app.state.storage, max_folder_files=settings.limits.max_folder_upload_files
+        )
     if "storage.allowed_import_roots" in accepted:
         storage.allowed_roots[:] = [
             Path(r).expanduser() for r in settings.storage.allowed_import_roots
