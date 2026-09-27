@@ -6,13 +6,15 @@ Choose **Import images** in a project.
 
 **Upload from this device** copies the files into Katib's data folder. Files can be up to 50 MB by default (`limits.max_upload_mb`).
 
-**Connect a folder** reads images where they are, on the computer that runs Katib. Katib walks the folder and everything inside it, and adds each JPEG, PNG, WebP, BMP and TIFF file. It never copies, moves or changes your originals.
+**Upload a folder** does the same, but for a whole folder at once, subfolders included, chosen through the same picker your operating system always uses. It is what to reach for when Katib cannot see your files directly — most often because it is running in a container. Nothing needs mounting first: the browser reads the folder and sends it, so this works the same whether Katib is next to your photos or on a server across the room. Any `data.yaml`, labels, or other annotation files inside come along and are read the same way as [an existing dataset](#reading-an-existing-dataset) below.
+
+**Connect a folder** reads images where they are, on the computer that runs Katib, instead of copying them. Katib walks the folder and everything inside it, and adds each JPEG, PNG, WebP, BMP and TIFF file. It never copies, moves or changes your originals.
 
 Pictures that are already in the project, judged by their content and not their name, are skipped and reported. Files that cannot be read are skipped with a reason.
 
 !!! note "Running Katib in Docker"
 
-    A container only sees folders that were mounted into it when it started — that is what `-v` on `docker run`, or a line under `volumes` in a compose file, does. Connecting a folder from inside Katib cannot reach anything beyond that, however correct the path looks, because the container's filesystem is not your computer's. If you did not mount a photos folder when you started the container, either stop it and add one (see [Put Katib online](deploy.md)), or use **Upload from this device** instead, which sends the files over the browser and needs nothing mounted.
+    A container only sees folders that were mounted into it when it started — that is what `-v` on `docker run`, or a line under `volumes` in a compose file, does. Connecting a folder from inside Katib cannot reach anything beyond that, however correct the path looks, because the container's filesystem is not your computer's. If you did not mount a photos folder when you started the container, either stop it and add one (see [Put Katib online](deploy.md)), or choose **Upload a folder** instead, which sends everything over the browser and needs nothing mounted.
 
 ### Reading an existing dataset
 
