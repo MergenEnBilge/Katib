@@ -7,6 +7,9 @@ export const ROOT = resolve(import.meta.dirname, '..', '.e2e');
 export const DATA_DIR = join(ROOT, 'data');
 export const TEAM_DATA_DIR = join(ROOT, 'team-data');
 export const LIBRARY = join(ROOT, 'library');
+//: A small YOLO-shaped dataset, nested under its own folder the way a real one would be, so a
+//: test can pick "the folder" the way a browser's folder picker actually hands files back.
+export const UPLOAD_SET = join(ROOT, 'upload-set');
 
 function chunk(type: string, data: Buffer): Buffer {
   const body = Buffer.concat([Buffer.from(type), data]);
@@ -53,6 +56,12 @@ export function prepare(): void {
     [30, 80, 60],
   ];
   colors.forEach((rgb, i) => writeFileSync(join(LIBRARY, `street${i + 1}.png`), png(600, 400, rgb)));
+
+  mkdirSync(join(UPLOAD_SET, 'images'), { recursive: true });
+  mkdirSync(join(UPLOAD_SET, 'labels'), { recursive: true });
+  writeFileSync(join(UPLOAD_SET, 'data.yaml'), 'path: .\ntrain: images\nval: images\nnames:\n  0: car\n');
+  writeFileSync(join(UPLOAD_SET, 'labels', 'a.txt'), '0 0.5 0.5 0.2 0.2\n');
+  writeFileSync(join(UPLOAD_SET, 'images', 'a.png'), png(64, 64, [90, 40, 60]));
 }
 
 /** In the open Import dialog, connect the test library by typing its path. */
