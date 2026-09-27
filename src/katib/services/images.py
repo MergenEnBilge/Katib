@@ -49,6 +49,9 @@ class StorageContext:
     #: running it, so a picked folder arrives as an upload and is written here before it is read
     #: the same way any other connected folder is.
     folder_uploads: LocalStorage
+    #: A folder is uploaded one file at a time, so this is a backstop against one that would
+    #: never finish, not a real technical ceiling. Set from limits.max_folder_upload_files.
+    max_folder_files: int = 20_000
 
 
 @dataclass(frozen=True)
@@ -287,10 +290,6 @@ def import_upload(
 #: connecting a folder already reads. Anything else a folder picker swept up is left out.
 FOLDER_UPLOAD_TEXT_SUFFIXES = frozenset({".txt", ".json", ".xml", ".yaml", ".yml"})
 
-#: A folder is uploaded one file at a time, over one HTTP request. This is not a setting to
-#: tune, just a backstop against a request that would otherwise take forever.
-MAX_FOLDER_UPLOAD_FILES = 5000
-
 
 def _safe_relative_key(raw: str) -> str | None:
     """The path a browser's folder picker sent, made safe to use as a storage key.
@@ -336,8 +335,8 @@ def keep_uploaded_folder_file(
     the label files usually found beside them -- a folder picker sweeps up a lot of those, and
     reporting each one back would drown out anything worth knowing.
     """
-    if count_uploaded_folder_files(ctx, project_id, batch) >= MAX_FOLDER_UPLOAD_FILES:
-        raise InvalidInput(f"A folder upload is limited to {MAX_FOLDER_UPLOAD_FILES:,} files.")
+    if count_uploaded_folder_files(ctx, project_id, batch) >= ctx.max_folder_files:
+        raise InvalidInput(f"A folder upload is limited to {ctx.max_folder_files:,} files.")
     rel = _safe_relative_key(filename)
     if rel is None:
         return False

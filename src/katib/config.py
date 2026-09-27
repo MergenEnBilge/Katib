@@ -56,11 +56,15 @@ class StorageSettings(BaseModel):
 
 
 class LimitSettings(BaseModel):
-    max_upload_mb: int = 50
+    max_upload_mb: int = 100
     # Models are far larger than pictures, so they have their own ceiling.
     max_model_mb: int = 500
     max_image_pixels: int = 200_000_000
     operation_retention_days: int = 30
+    # A folder is uploaded one file at a time, so this is a backstop against a folder that would
+    # never finish rather than a real technical ceiling. 20,000 covers datasets far larger than
+    # Katib is typically used for; raise it if you regularly work with more.
+    max_folder_upload_files: int = 20_000
 
 
 class MlSettings(BaseModel):
