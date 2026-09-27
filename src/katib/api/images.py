@@ -4,8 +4,8 @@ import uuid
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, File, UploadFile
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, File, Request, UploadFile
+from fastapi.responses import FileResponse, Response
 from sqlalchemy.orm import Session
 
 from katib.api.deps import RunnerDep, SessionDep, StorageDep, UserDep, need
@@ -21,6 +21,15 @@ from katib.services.images import ImageRow, StorageContext
 router = APIRouter(tags=["images"])
 
 CACHE = {"Cache-Control": "private, max-age=3600"}
+
+
+def _file_etag(path: Path) -> str:
+    stat = path.stat()
+    return f'"{stat.st_mtime_ns}-{stat.st_size}"'
+
+
+def _not_modified(request: Request, etag: str) -> bool:
+    return request.headers.get("if-none-match") == etag
 
 
 def _out(session: Session, row: ImageRow, me: User) -> ImageOut:
@@ -159,17 +168,25 @@ def update_image(
 
 @router.get("/images/{image_id}/file")
 def image_file(
-    image_id: uuid.UUID, session: SessionDep, user: UserDep, storage: StorageDep
-) -> FileResponse:
+    image_id: uuid.UUID, request: Request, session: SessionDep, user: UserDep, storage: StorageDep
+) -> Response:
     need(session, user, access.project_of_image(session, image_id), "view")
     image = images.get_image(session, image_id)
-    return FileResponse(images.image_path(image, storage), headers=CACHE)
+    path = images.image_path(image, storage)
+    etag = _file_etag(path)
+    if _not_modified(request, etag):
+        return Response(status_code=304, headers={**CACHE, "ETag": etag})
+    return FileResponse(path, headers={**CACHE, "ETag": etag})
 
 
 @router.get("/images/{image_id}/thumb")
 def image_thumb(
-    image_id: uuid.UUID, session: SessionDep, user: UserDep, storage: StorageDep
-) -> FileResponse:
+    image_id: uuid.UUID, request: Request, session: SessionDep, user: UserDep, storage: StorageDep
+) -> Response:
     need(session, user, access.project_of_image(session, image_id), "view")
     image = images.get_image(session, image_id)
-    return FileResponse(images.thumb_path(image, storage), media_type="image/jpeg", headers=CACHE)
+    path = images.thumb_path(image, storage)
+    etag = _file_etag(path)
+    if _not_modified(request, etag):
+        return Response(status_code=304, headers={**CACHE, "ETag": etag})
+    return FileResponse(path, media_type="image/jpeg", headers={**CACHE, "ETag": etag})

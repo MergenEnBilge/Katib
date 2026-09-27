@@ -122,3 +122,16 @@ def test_crop_returns_a_small_jpeg(api: TestClient) -> None:
     with PILImage.open(io.BytesIO(res.content)) as crop:
         assert max(crop.size) <= 64
     assert api.get(f"{API}/annotations/{uuid.uuid4()}/crop").status_code == 404
+
+
+def test_a_repeated_crop_request_gets_a_304(api: TestClient) -> None:
+    _, car, images = setup_project(api)
+    ann = create(api, images[0]["id"], car["id"], {"x": 0.25, "y": 0.25, "w": 0.5, "h": 0.5})
+    first = api.get(f"{API}/annotations/{ann}/crop", params={"size": 64})
+    again = api.get(
+        f"{API}/annotations/{ann}/crop",
+        params={"size": 64},
+        headers={"if-none-match": first.headers["etag"]},
+    )
+    assert again.status_code == 304
+    assert again.content == b""

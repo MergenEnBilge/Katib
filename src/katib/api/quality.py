@@ -3,7 +3,7 @@
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Request, Response
 from pydantic import BaseModel
 
 from katib.api.deps import SessionDep, StorageDep, UserDep, need
@@ -125,6 +125,7 @@ def list_shapes(
 @router.get("/annotations/{annotation_id}/crop")
 def crop(
     annotation_id: uuid.UUID,
+    request: Request,
     session: SessionDep,
     user: UserDep,
     storage: StorageDep,
@@ -134,8 +135,11 @@ def crop(
     ann = session.get(Annotation, annotation_id)
     if ann is None:
         raise NotFound("That shape does not exist.")
+    etag = f'"{ann.id}-{ann.version}-{size}"'
+    headers = {**CACHE, "ETag": etag}
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers=headers)
     image = images.get_image(session, ann.image_id)
     x, y, w, h = geometry_bounds(ann.type, ann.geometry, (image.width, image.height))
     data = crop_jpeg(images.image_path(image, storage), x, y, w, h, max(32, min(size, 512)))
-    headers = {**CACHE, "ETag": f'"{ann.id}-{ann.version}-{size}"'}
     return Response(data, media_type="image/jpeg", headers=headers)
