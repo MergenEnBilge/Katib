@@ -82,6 +82,34 @@ test('two people work on one project: invite, presence and a read-only image', a
   await sam.close();
 });
 
+test('an owner can delete a project from its Team settings', async ({ browser }) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  await page.goto('/');
+  await page.getByLabel('Email').fill('admin@example.com');
+  await page.getByLabel('Password').fill(PASSWORD);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page.getByRole('heading', { name: 'Projects', exact: true })).toBeVisible();
+
+  await page.getByRole('button', { name: 'New project' }).first().click();
+  await page.getByLabel('Project name').fill('Throwaway');
+  await page.getByRole('button', { name: 'Create project' }).click();
+  await expect(page).toHaveURL(/\/p\/[0-9a-f-]{36}$/);
+
+  await page.getByRole('button', { name: 'Team' }).click();
+  const team = page.getByRole('dialog', { name: 'Team' });
+  await team.getByRole('tab', { name: 'Settings' }).click();
+  const confirmBox = team.getByLabel('Type "Throwaway" to confirm');
+  const deleteButton = team.getByRole('button', { name: 'Delete project' });
+  await expect(deleteButton).toBeDisabled();
+  await confirmBox.fill('Throwaway');
+  await deleteButton.click();
+
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByText('Throwaway')).toBeHidden();
+  await context.close();
+});
+
 test('signing in with the wrong password says so', async ({ browser }) => {
   const context = await browser.newContext();
   const page = await context.newPage();

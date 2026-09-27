@@ -4,6 +4,7 @@
   import { api, ApiError } from '../../lib/api/client';
   import type { Activity, Role } from '../../lib/api/types';
   import { plural, relativeTime } from '../../lib/format';
+  import { router } from '../../lib/state/router.svelte';
   import { toasts } from '../../lib/state/toast.svelte';
   import type { Workspace } from '../../lib/state/workspace.svelte';
   import Avatar from '../../lib/ui/Avatar.svelte';
@@ -20,6 +21,8 @@
   let error = $state('');
   let activity = $state<Activity[] | null>(null);
   let busy = $state(false);
+  let confirmName = $state('');
+  let deleting = $state(false);
 
   const roles: { id: Role; label: string }[] = [
     { id: 'owner', label: 'Owner' },
@@ -88,6 +91,18 @@
       ws.project = project;
     } catch (err) {
       error = err instanceof ApiError ? err.message : 'Could not change that setting.';
+    }
+  }
+
+  async function deleteProject(): Promise<void> {
+    deleting = true;
+    error = '';
+    try {
+      await api.projects.remove(ws.projectId);
+      router.navigate('/');
+    } catch (err) {
+      error = err instanceof ApiError ? err.message : 'Could not delete this project.';
+      deleting = false;
     }
   }
 
@@ -209,6 +224,32 @@
         <small>Images marked as done wait for a reviewer to approve them or send them back with a comment.</small>
       </span>
     </label>
+
+    {#if isOwner}
+      <div class="danger">
+        <p class="dangerLabel">Danger zone</p>
+        <p class="note">
+          Delete this project, its classes, labels and team. Pictures you uploaded go with it;
+          pictures in a folder you only connected are left alone, since they were never copied
+          here.
+        </p>
+        <div class="row">
+          <input
+            bind:value={confirmName}
+            aria-label={`Type "${ws.project?.name ?? ''}" to confirm`}
+            placeholder={ws.project?.name ?? ''}
+          />
+          <Button
+            variant="danger"
+            loading={deleting}
+            disabled={!ws.project || confirmName !== ws.project.name}
+            onclick={deleteProject}
+          >
+            {deleting ? 'Deleting...' : 'Delete project'}
+          </Button>
+        </div>
+      </div>
+    {/if}
   {/if}
 
   {#snippet footer()}
@@ -381,5 +422,20 @@
     height: 96px;
     background: var(--surface-1);
     border-radius: var(--radius-card);
+  }
+
+  .danger {
+    padding-block-start: var(--space-4);
+    margin-block-start: var(--space-4);
+    border-block-start: 1px solid var(--border);
+  }
+
+  .dangerLabel {
+    margin: 0 0 var(--space-1);
+    font-size: var(--text-overline);
+    font-weight: 500;
+    color: var(--danger-text);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
   }
 </style>

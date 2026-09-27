@@ -55,6 +55,11 @@ your name at the bottom of the sidebar and tell it.
 
 Owners can change roles or remove people in the same window.
 
+An owner can also delete the whole project from the **Settings** tab of that same window. It asks
+for the project's name typed back before it will run, and it cannot be undone — pictures you
+uploaded go with it, and pictures in a folder you only connected are left alone, since they were
+never copied here.
+
 ## Handing out accounts instead
 
 Invites suit people who will sign themselves up. When you would rather create the accounts
