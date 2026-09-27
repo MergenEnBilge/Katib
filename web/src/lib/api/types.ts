@@ -9,6 +9,7 @@ export type ImagePage = S['ImagePageOut'];
 export type Annotation = S['AnnotationOut'];
 export type Job = S['JobOut'];
 export type MlStatus = S['MlStatusOut'];
+export type ModelDownload = S['ModelDownloadOut'];
 export type SegmentClick = S['ClickIn'];
 export type Segmentation = S['SegmentOut'];
 export type ShareInfo = S['ShareOut'];

@@ -48,6 +48,17 @@ test('the backup tab explains what a backup holds', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'Download backup' })).toBeVisible();
 });
 
+test('model help lists downloadable models beside bringing your own file', async ({ page }) => {
+  // The actual download is not exercised here -- it is a real internet fetch, and this suite
+  // never touches the real network. The backend has its own coverage for the fetch itself,
+  // against a local server standing in for the real one.
+  await page.goto('/settings');
+  await page.getByRole('button', { name: 'Model help' }).click();
+  await expect(page.getByText('Download a model')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Download', exact: true }).first()).toBeVisible();
+  await expect(page.getByText('Or add your own files')).toBeVisible();
+});
+
 test('a factory reset needs RESET typed before it can run', async ({ page }) => {
   // The actual reset is not exercised here -- it would wipe the data every other test in this
   // run shares. This only checks the confirmation guards it correctly, then backs out.

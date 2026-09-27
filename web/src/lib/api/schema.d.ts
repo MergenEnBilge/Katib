@@ -721,6 +721,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/settings/factory-reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Preview Factory Reset */
+        get: operations["preview_factory_reset_api_v1_settings_factory_reset_get"];
+        put?: never;
+        /** Start Factory Reset */
+        post: operations["start_factory_reset_api_v1_settings_factory_reset_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/images/{image_id}/annotations": {
         parameters: {
             query?: never;
@@ -1213,6 +1231,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ml/models:download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Model Download
+         * @description Fetch a model Katib knows about from the internet and install it.
+         *
+         *     This is the one thing Katib ever asks the internet for on its own, and only when someone with
+         *     access to this asks for it by name.
+         */
+        post: operations["start_model_download_api_v1_ml_models_download_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}/images/{image_id}/segment": {
         parameters: {
             query?: never;
@@ -1391,6 +1432,11 @@ export interface components {
         BatchOut: {
             /** Results */
             results: components["schemas"]["OpResultOut"][];
+        };
+        /** Body_start_model_download_api_v1_ml_models_download_post */
+        Body_start_model_download_api_v1_ml_models_download_post: {
+            /** Model Id */
+            model_id: string;
         };
         /** Body_upload_folder_file_api_v1_projects__project_id__folders_upload_file_post */
         Body_upload_folder_file_api_v1_projects__project_id__folders_upload_file_post: {
@@ -1983,6 +2029,24 @@ export interface components {
              * @default false
              */
             can_segment: boolean;
+            /**
+             * Downloads
+             * @default []
+             */
+            downloads: components["schemas"]["ModelDownloadOut"][];
+        };
+        /** ModelDownloadOut */
+        ModelDownloadOut: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Help */
+            help: string;
+            /** Bytes */
+            bytes: number;
+            /** Installed */
+            installed: boolean;
         };
         /** NewUserIn */
         NewUserIn: {
@@ -2182,6 +2246,21 @@ export interface components {
         ReorderIn: {
             /** Class Ids */
             class_ids: string[];
+        };
+        /** ResetIn */
+        ResetIn: {
+            /**
+             * Confirm
+             * @default
+             */
+            confirm: string;
+        };
+        /** ResetPreviewOut */
+        ResetPreviewOut: {
+            /** Files */
+            files: number;
+            /** Bytes */
+            bytes: number;
         };
         /** ResolveIn */
         ResolveIn: {
@@ -4138,6 +4217,59 @@ export interface operations {
             };
         };
     };
+    preview_factory_reset_api_v1_settings_factory_reset_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResetPreviewOut"];
+                };
+            };
+        };
+    };
+    start_factory_reset_api_v1_settings_factory_reset_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResetIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Accepted"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_annotations_api_v1_images__image_id__annotations_get: {
         parameters: {
             query?: never;
@@ -5068,6 +5200,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MlModelOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_model_download_api_v1_ml_models_download_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["Body_start_model_download_api_v1_ml_models_download_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobOut"];
                 };
             };
             /** @description Validation Error */
