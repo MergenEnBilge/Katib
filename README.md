@@ -154,12 +154,6 @@ connection.
 
 To read them as a website, run `uv run --group docs mkdocs serve`.
 
-## Your logo
-
-The logo in the app and on every icon comes from two files in [`brand/`](brand/README.md). Replace
-`logo.svg` and `logo.png` with yours, run `python scripts/apply_brand.py`, and rebuild. The ones
-there now are placeholders.
-
 ## Contributing
 
 The backend is Python with FastAPI and SQLAlchemy. The front end is Svelte 5 and TypeScript, and the
