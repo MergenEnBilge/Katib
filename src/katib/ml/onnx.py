@@ -71,6 +71,10 @@ class OnnxDetector:
             raise ModelError(f"{path.name} could not be loaded as an ONNX model.") from err
         shape = self._session.get_inputs()[0].shape
         self._input = self._session.get_inputs()[0].name
+        if len(shape) != 4:
+            raise ModelError(
+                f"{path.name} does not look like a YOLO detection model exported to ONNX."
+            )
         height, width = shape[2], shape[3]
         self.size = int(height) if isinstance(height, int) and height == width else DEFAULT_SIZE
         self.class_names = _class_names(self._session.get_modelmeta().custom_metadata_map)

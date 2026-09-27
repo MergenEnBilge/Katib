@@ -75,6 +75,24 @@ def test_a_file_that_is_not_a_model_is_refused_plainly(tmp_path: Path) -> None:
         ml.OnnxDetector(bad)
 
 
+def test_a_model_whose_input_is_not_a_batched_image_is_refused_plainly(tmp_path: Path) -> None:
+    source = helper.make_tensor_value_info("input_image", TensorProto.FLOAT, [None, None, 3])
+    fixed = numpy_helper.from_array(np.zeros([1, 1, 2, 2], dtype=np.float32), name="fixed")
+    graph = helper.make_graph(
+        [helper.make_node("Constant", [], ["out"], value=fixed)],
+        "fixed",
+        [source],
+        [helper.make_tensor_value_info("out", TensorProto.FLOAT, [1, 1, 2, 2])],
+    )
+    model = helper.make_model(graph, opset_imports=[helper.make_opsetid("", 13)])
+    model.ir_version = 8
+    path = tmp_path / "not-a-detector.onnx"
+    onnx.save(model, str(path))
+
+    with pytest.raises(ml.ModelError, match="does not look like a YOLO detection model"):
+        ml.OnnxDetector(path)
+
+
 def test_only_onnx_files_are_listed(models: Path) -> None:
     (models / "notes.txt").write_text("hi")
     assert ml.list_models(models) == ["cars.onnx"]
@@ -115,6 +133,35 @@ def project_with_images(api: TestClient, tmp_path: Path, count: int = 2) -> str:
 def test_status_lists_models_with_their_class_names(api: TestClient) -> None:
     body = api.get(f"{API}/ml").json()
     assert body["enabled"] is True and body["installed"] is True
+    assert body["models"] == [{"name": "cars.onnx", "classes": ["car", "bus"]}]
+
+
+def test_a_segment_anything_encoder_does_not_break_the_model_list(
+    api: TestClient, models: Path
+) -> None:
+    """A downloaded model's own .onnx halves sit in the same folder as detection models, but
+    they take a raw image with no batch dimension -- nothing a detector could make sense of."""
+    from katib.ml import sam
+
+    source = helper.make_tensor_value_info("input_image", TensorProto.FLOAT, [None, None, 3])
+    graph = helper.make_graph(
+        [
+            helper.make_node(
+                "Constant",
+                [],
+                ["image_embeddings"],
+                value=numpy_helper.from_array(np.zeros([1, 1, 2, 2], dtype=np.float32)),
+            )
+        ],
+        "fixed",
+        [source],
+        [helper.make_tensor_value_info("image_embeddings", TensorProto.FLOAT, [1, 1, 2, 2])],
+    )
+    model = helper.make_model(graph, opset_imports=[helper.make_opsetid("", 13)])
+    model.ir_version = 8
+    onnx.save(model, str(models / sam.ENCODER_NAME))
+
+    body = api.get(f"{API}/ml").json()
     assert body["models"] == [{"name": "cars.onnx", "classes": ["car", "bus"]}]
 
 
