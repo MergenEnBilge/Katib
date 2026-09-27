@@ -42,6 +42,9 @@
   let notes = $state<Note[]>([]);
   let files: FileList | null = $state(null);
   let folderInput: HTMLInputElement | null = $state(null);
+  let picker: HTMLInputElement | null = $state(null);
+  /** The file currently going up, shown next to the progress bar during an upload. */
+  let currentFile = $state('');
   let changed = false;
 
   /** Turns a plain file input into a folder picker. Not a real HTML attribute, so TypeScript
@@ -133,17 +136,37 @@
     }
   }
 
+  function relativePath(file: File): string {
+    return (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name;
+  }
+
   async function uploadFolder(list: FileList | null): Promise<void> {
     if (!list || list.length === 0) return;
     startOver();
+    const items = [...list];
+    const batch = crypto.randomUUID();
+    let kept = 0;
     try {
-      const made = await api.folders.upload(projectId, list);
+      for (const [i, file] of items.entries()) {
+        currentFile = relativePath(file);
+        progress = i / items.length;
+        const result = await api.folders.uploadFile(projectId, batch, file);
+        if (result.kept) kept++;
+      }
+      currentFile = '';
+      progress = 1;
+      if (kept === 0) {
+        error = 'None of those files could be used. Choose a folder with pictures in it.';
+        return;
+      }
+      const made = await api.folders.uploadFinish(projectId, batch);
       await loadConnected();
       await finishImport(made.job);
     } catch (err) {
       fail(err, 'Could not upload that folder.');
     } finally {
       busy = false;
+      currentFile = '';
       if (folderInput) folderInput.value = '';
     }
   }
@@ -177,6 +200,7 @@
     const list = [...files];
     let added = 0;
     for (const [i, file] of list.entries()) {
+      currentFile = file.name;
       progress = i / list.length;
       try {
         await api.images.upload(projectId, file);
@@ -187,7 +211,10 @@
       }
     }
     progress = 1;
+    currentFile = '';
     summary = [`${plural(added, 'image')} uploaded.`, notes.length ? `${plural(notes.length, 'file')} skipped.` : ''].filter(Boolean);
+    files = null;
+    if (picker) picker.value = '';
     busy = false;
   }
 
@@ -254,8 +281,8 @@
   </div>
 
   {#if tab === 'images'}
-    <div class="section">
-      {#if connected.length > 0}
+    {#if connected.length > 0}
+      <div class="section">
         <ul class="connected" aria-label="Connected folders">
           {#each connected as f (f.id)}
             <li>
@@ -265,41 +292,63 @@
             </li>
           {/each}
         </ul>
-      {/if}
-      {#if picking}
-        <FolderPicker onpick={connectFolder} oncancel={() => (picking = false)} />
-      {:else}
-        <div><Button variant="primary" loading={busy} onclick={() => (picking = true)}><FolderOpen size={16} />Connect a folder</Button></div>
-        <p class="note">Katib reads the images where they are. Nothing is copied or changed. Connect a folder once, then use the refresh button to pick up new photos.</p>
-      {/if}
-      <details class="typed">
-        <summary>Type a folder path instead</summary>
-        <TextField label="Folder on the Katib computer" placeholder="/data/photos" bind:value={typedFolder} />
-        <div><Button disabled={busy || !typedFolder.trim()} onclick={() => connectFolder(typedFolder.trim())}>Connect</Button></div>
-      </details>
-    </div>
-    <div class="section">
-      <label class="upload">
-        <span>Or upload from this device</span>
-        <input type="file" multiple accept="image/jpeg,image/png,image/webp,image/bmp,image/tiff" bind:files />
-      </label>
-      <div><Button loading={busy} disabled={!files || files.length === 0} onclick={upload}>Upload {files && files.length ? plural(files.length, 'file') : ''}</Button></div>
-      <p class="note">
-        Have a whole folder, and Katib cannot see it directly — often because it is running in a
-        container? <button type="button" class="link" disabled={busy} onclick={() => folderInput?.click()}
-          >Upload a folder</button
-        > instead. Everything inside it, subfolders included, is sent over the browser, and any
-        classes and labels already there come with it.
-      </p>
-      <input
-        bind:this={folderInput}
-        type="file"
-        multiple
-        hidden
-        aria-label="Upload a folder"
-        use:asDirectoryPicker
-        onchange={(e) => uploadFolder(e.currentTarget.files)}
-      />
+      </div>
+    {/if}
+
+    <div class="options">
+      <div class="option">
+        <h3>On this computer</h3>
+        <p class="note">
+          Fastest, and nothing is copied — Katib reads the pictures where they already are. Only
+          works when Katib can see that folder itself, which a container usually cannot unless you
+          mounted it.
+        </p>
+        {#if picking}
+          <FolderPicker onpick={connectFolder} oncancel={() => (picking = false)} />
+        {:else}
+          <div><Button variant="primary" loading={busy} onclick={() => (picking = true)}><FolderOpen size={16} />Connect a folder</Button></div>
+        {/if}
+        <details class="typed">
+          <summary>Type a folder path instead</summary>
+          <TextField label="Folder on the Katib computer" placeholder="/data/photos" bind:value={typedFolder} />
+          <div><Button disabled={busy || !typedFolder.trim()} onclick={() => connectFolder(typedFolder.trim())}>Connect</Button></div>
+        </details>
+      </div>
+
+      <div class="option">
+        <h3>From this device</h3>
+        <p class="note">
+          Works everywhere, including in a container — the browser sends the files instead of
+          Katib reading them itself. A whole folder brings its subfolders, and any classes and
+          labels already sitting in it, along for free.
+        </p>
+        <div class="row">
+          <Button variant="primary" loading={busy} onclick={() => folderInput?.click()}
+            ><FolderOpen size={16} />Upload a folder</Button
+          >
+          <Button loading={busy} onclick={() => picker?.click()}>Upload pictures</Button>
+        </div>
+        <input
+          bind:this={folderInput}
+          type="file"
+          multiple
+          hidden
+          aria-label="Upload a folder"
+          use:asDirectoryPicker
+          onchange={(e) => uploadFolder(e.currentTarget.files)}
+        />
+        <input
+          bind:this={picker}
+          type="file"
+          multiple
+          hidden
+          accept="image/jpeg,image/png,image/webp,image/bmp,image/tiff"
+          onchange={(e) => (files = e.currentTarget.files)}
+        />
+        {#if files && files.length}
+          <p class="note">{plural(files.length, 'file')} chosen. <Button loading={busy} onclick={upload}>Upload</Button></p>
+        {/if}
+      </div>
     </div>
   {:else}
     <div class="section">
@@ -322,6 +371,7 @@
   {/if}
 
   {#if busy}
+    {#if currentFile}<p class="current mono">Uploading {currentFile}…</p>{/if}
     <div class="bar" role="progressbar" aria-label="Import progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(progress * 100)}>
       <span style:width="{Math.round(progress * 100)}%"></span>
     </div>
@@ -380,7 +430,45 @@
     margin-block-end: var(--space-4);
   }
 
-  .upload,
+  .options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+    margin-block-end: var(--space-3);
+  }
+
+  @media (max-width: 520px) {
+    .options {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .option {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    background: var(--surface-2);
+    border-radius: var(--radius-card);
+  }
+
+  .option h3 {
+    margin: 0;
+    font-size: var(--text-body);
+  }
+
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .current {
+    margin: 0 0 var(--space-2);
+    font-size: var(--text-small);
+    color: var(--text-2);
+  }
+
   .select {
     display: flex;
     flex-direction: column;
@@ -402,20 +490,6 @@
     color: var(--text-2);
   }
 
-  .link {
-    padding: 0;
-    color: var(--accent-text);
-    background: transparent;
-    border: 0;
-    font: inherit;
-    font-size: inherit;
-    cursor: pointer;
-  }
-
-  .link:disabled {
-    color: var(--text-2);
-    cursor: default;
-  }
 
   .connected {
     margin: 0;
