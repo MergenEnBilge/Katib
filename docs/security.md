@@ -17,7 +17,7 @@ This page explains what Katib protects, what it leaves to you, and what was chec
 - **First account.** Whoever creates the first administrator account owns the server, so Katib guards it with a setup code as soon as anybody else could get there first. A server listening on a network address asks everyone for it, including the person sitting at that computer; so does a request that arrives from a public address or through a proxy Katib was not told to trust. The code is printed when Katib starts and kept in `setup-code.txt`, and it stops working once the account exists. Guessing it is rate limited. A server that answers only on its own computer needs no code, because nobody else can reach it.
 - **Settings, backups and restarts** can only be used by administrators. Passwords inside a database address are never shown again after they are saved, and the files that hold them are readable only by the account that runs Katib. Backups made in the app are deleted from the server after a day.
 - **Browser features** Katib does not use, such as the camera and location, are switched off for its pages. HTTPS visits get a `Strict-Transport-Security` header.
-- **No telemetry.** Katib makes no network requests on its own.
+- **No telemetry.** The one thing Katib ever fetches from the internet on its own is a model downloaded by name under Settings, and only when an administrator asks for it. Each one is pinned to a hash of the exact bytes it had when it was added to Katib's source; a download that does not match, or answers with far more data than expected, is refused rather than installed.
 
 ## What is up to you
 
@@ -26,7 +26,7 @@ This page explains what Katib protects, what it leaves to you, and what was chec
 - **Keep the data folder private.** It holds the database, uploads and undo history.
 - **Back up** the data folder and, with Postgres, the database. See [Running a server](server.md#backups).
 - **Choose who is an administrator.** Administrators are owners of every project and can browse the server's folders.
-- **Models are code.** An ONNX model runs on your server. Only use models you trust. Only administrators can add one.
+- **Models are code.** An ONNX model runs on your server. Only use models you trust. Only administrators can add one, whether by uploading a file or downloading one of the models Katib offers.
 - **Passwords you hand out.** An administrator can create an account and set its password from **Settings**, then **People**. Katib sends no email, so you pass it on yourself; do it somewhere that is not a shared channel, and let the person change it.
 
 ## What was reviewed

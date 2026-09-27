@@ -177,6 +177,14 @@ class MlModelOut(BaseModel):
     classes: list[str] | None
 
 
+class ModelDownloadOut(BaseModel):
+    id: str
+    label: str
+    help: str
+    bytes: int
+    installed: bool
+
+
 class MlStatusOut(BaseModel):
     """Whether pre-labeling can run, and what is needed if it cannot."""
 
@@ -186,6 +194,7 @@ class MlStatusOut(BaseModel):
     models: list[MlModelOut]
     #: A Segment Anything model is loaded, so clicking an object can outline it.
     can_segment: bool = False
+    downloads: list[ModelDownloadOut] = []
 
 
 class PrelabelIn(BaseModel):

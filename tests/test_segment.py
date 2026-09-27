@@ -43,6 +43,12 @@ def write_encoder(path: Path) -> None:
     constant_model(path, [source], "embedding", np.zeros(EMBEDDING, dtype=np.float32))
 
 
+def write_hwc_encoder(path: Path) -> None:
+    """The shape every model Katib can download today actually uses: raw image in, no batch."""
+    source = helper.make_tensor_value_info("input_image", TensorProto.FLOAT, [None, None, 3])
+    constant_model(path, [source], "image_embeddings", np.zeros(EMBEDDING, dtype=np.float32))
+
+
 def write_decoder(path: Path) -> None:
     grid = np.full((MASK_SIDE, MASK_SIDE), -1.0, dtype=np.float32)
     grid[10:30, 10:30] = 1.0
@@ -120,6 +126,34 @@ def test_the_model_is_told_where_the_click_was(models: Path, tmp_path: Path) -> 
     # The picture is twice as wide as it is tall, so 1024 across and 512 down.
     assert coords[0] == pytest.approx([512.0, 128.0], abs=1.0)
     assert seen[0]["point_labels"][0].tolist() == [1.0, -1.0]
+
+
+def test_a_raw_image_encoder_is_fed_pixels_with_no_batch_or_normalising(
+    tmp_path: Path,
+) -> None:
+    folder = tmp_path / "models"
+    folder.mkdir()
+    write_hwc_encoder(folder / sam.ENCODER_NAME)
+    write_decoder(folder / sam.DECODER_NAME)
+    picture = tmp_path / "a.png"
+    PILImage.new("RGB", (800, 400), "gray").save(picture)
+
+    segmenter = sam.SamSegmenter(folder)
+    assert segmenter._hwc is True
+    real = segmenter._encoder.run
+    seen: list[Any] = []
+
+    def spy(names: Any, feed: Any) -> Any:
+        seen.append(feed)
+        return real(names, feed)
+
+    segmenter._encoder.run = spy  # type: ignore[method-assign]
+    segmenter.outline(picture, "one", [sam.Click(x=0.5, y=0.25)])
+
+    tensor = next(iter(seen[0].values()))
+    assert tensor.shape == (1024, 1024, 3)
+    # Gray is (128, 128, 128). A normalised encoder would have shifted this well away from that.
+    assert tensor[0, 0, 0] == pytest.approx(128.0, abs=1.0)
 
 
 def test_the_picture_is_only_looked_at_once(models: Path, tmp_path: Path) -> None:

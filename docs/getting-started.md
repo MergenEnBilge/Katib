@@ -10,8 +10,9 @@
 | Katib on my iPhone or iPad | [Add it to the home screen](#iphone-and-ipad) | 1 minute |
 | To change Katib itself | [From the source](#from-the-source) | 5 minutes |
 
-Whichever you choose, your images and labels stay on your own hardware. Katib makes no network
-requests of its own.
+Whichever you choose, your images and labels stay on your own hardware. The only thing Katib ever
+fetches from the internet on its own is a model downloaded by name under Settings, and only when
+someone asks it to.
 
 !!! note "Which version"
 

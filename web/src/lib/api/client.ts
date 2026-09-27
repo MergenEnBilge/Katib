@@ -294,6 +294,13 @@ export const api = {
       if (!response.ok) return fail(response);
       return (await response.json()) as { name: string; classes: string[] | null };
     },
+    download: async (modelId: string): Promise<Job> => {
+      const form = new FormData();
+      form.append('model_id', modelId);
+      const response = await send('/ml/models:download', { method: 'POST', body: form });
+      if (!response.ok) return fail(response);
+      return (await response.json()) as Job;
+    },
     segment: (projectId: string, imageId: string, points: SegmentClick[]) =>
       request<Segmentation>('POST', `/projects/${projectId}/images/${imageId}/segment`, { points }),
     prelabel: (

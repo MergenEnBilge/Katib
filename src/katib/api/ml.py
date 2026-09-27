@@ -10,11 +10,20 @@ from fastapi import APIRouter, File, Form, Request, UploadFile
 from katib.api.class_ops import OpsStorage
 from katib.api.deps import AnywhereDep, RunnerDep, SessionDep, StorageDep, UserDep, need
 from katib.api.jobs import job_out
-from katib.api.schemas import JobOut, MlModelOut, MlStatusOut, PrelabelIn, SegmentIn, SegmentOut
+from katib.api.schemas import (
+    JobOut,
+    MlModelOut,
+    MlStatusOut,
+    ModelDownloadOut,
+    PrelabelIn,
+    SegmentIn,
+    SegmentOut,
+)
 from katib.config import Settings
+from katib.jobs.runner import Progress
 from katib.ml import onnx, sam
 from katib.services import images as images_service
-from katib.services import prelabel, projects
+from katib.services import model_downloads, prelabel, projects
 from katib.services.errors import Forbidden, InvalidInput, NotFound
 
 router = APIRouter(tags=["ml"])
@@ -46,6 +55,7 @@ def status(request: Request, user: UserDep, anywhere: AnywhereDep) -> MlStatusOu
             models.append(
                 MlModelOut(name=name, classes=_class_names(str(path), path.stat().st_mtime))
             )
+    have = model_downloads.installed_id(folder)
     return MlStatusOut(
         enabled=settings.ml.enabled,
         installed=installed,
@@ -53,6 +63,12 @@ def status(request: Request, user: UserDep, anywhere: AnywhereDep) -> MlStatusOu
         models_dir=str(folder) if anywhere else "",
         models=models,
         can_segment=settings.ml.enabled and installed and sam.is_installed(folder),
+        downloads=[
+            ModelDownloadOut(
+                id=m.id, label=m.label, help=m.help, bytes=m.bytes, installed=m.id == have
+            )
+            for m in model_downloads.CATALOG
+        ],
     )
 
 
@@ -109,6 +125,35 @@ def upload_model(
         return MlModelOut(name=name, classes=None)
     classes = _class_names(str(destination), destination.stat().st_mtime)
     return MlModelOut(name=name, classes=classes)
+
+
+@router.post("/ml/models:download", response_model=JobOut, status_code=202)
+def start_model_download(
+    request: Request,
+    user: UserDep,
+    anywhere: AnywhereDep,
+    runner: RunnerDep,
+    model_id: Annotated[str, Form()],
+) -> JobOut:
+    """Fetch a model Katib knows about from the internet and install it.
+
+    This is the one thing Katib ever asks the internet for on its own, and only when someone with
+    access to this asks for it by name.
+    """
+    if not anywhere:
+        raise Forbidden("Only an administrator can download a model.")
+    source = model_downloads.find(model_id)
+    folder = _settings(request).models_dir
+
+    def work(progress: Progress) -> dict[str, object]:
+        model_downloads.download_and_install(source, folder, progress)
+        return {"id": source.id}
+
+    job_id = runner.submit("model-download", None, {"model_id": source.id}, work)
+    job = runner.get(job_id)
+    if job is None:
+        raise NotFound("The download could not be started.")
+    return job_out(job)
 
 
 @lru_cache(maxsize=1)

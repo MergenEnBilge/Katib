@@ -5,8 +5,13 @@ which is the slow part. The decoder then turns that embedding plus a click into 
 fast enough to feel immediate. Katib keeps the embedding of the picture being worked on, so the
 first click on an image costs a second or two and every click after it costs almost nothing.
 
-Both halves are the user's own files. Katib never downloads a model. onnxruntime is an optional
-extra, so it is imported only when a model is opened.
+Both halves can be the user's own files, or one of the models Katib can fetch for them (see
+model_downloads.py). Encoders come in two shapes depending on where they were exported: an older
+one that wants a normalised, channel-first batch (what this file always produced itself), and the
+one every model Katib can download today actually ships -- a raw height-by-width-by-channel image,
+which does its own resizing and normalising internally. Both are detected from the encoder's own
+declared input shape and handled here; the decoder is the same either way. onnxruntime is an
+optional extra, so it is imported only when a model is opened.
 """
 
 from collections import OrderedDict
@@ -89,6 +94,9 @@ class SamSegmenter:
                 "Katib needs the two ONNX files, the image encoder and the mask decoder."
             ) from err
         self._decoder_inputs = {i.name for i in self._decoder.get_inputs()}
+        # A batched, channel-first encoder declares four dimensions; one that takes a raw
+        # height-by-width-by-channel image and resizes and normalises internally declares three.
+        self._hwc = len(self._encoder.get_inputs()[0].shape) == 3
         self._cache: OrderedDict[str, Embedding] = OrderedDict()
 
     def _encode(self, path: Path) -> Embedding:
@@ -99,14 +107,19 @@ class SamSegmenter:
         width, height = _fit(picture.width, picture.height, ENCODER_SIDE)
         resized = picture.resize((width, height))
         pixels = np.asarray(resized, dtype=np.float32)
-        pixels = (pixels - np.array(PIXEL_MEAN, dtype=np.float32)) / np.array(
-            PIXEL_STD, dtype=np.float32
-        )
-        # The encoder wants a square. SAM pads the right and bottom with zeros, which after the
-        # normalising above is the mean colour rather than black.
+        # The encoder wants a square. SAM pads the right and bottom with zeros.
         canvas = np.zeros((ENCODER_SIDE, ENCODER_SIDE, 3), dtype=np.float32)
-        canvas[:height, :width] = pixels
-        tensor = canvas.transpose(2, 0, 1)[None]
+        if self._hwc:
+            # This encoder resizes and normalises the picture itself; raw pixels are enough.
+            canvas[:height, :width] = pixels
+            tensor: Any = canvas
+        else:
+            pixels = (pixels - np.array(PIXEL_MEAN, dtype=np.float32)) / np.array(
+                PIXEL_STD, dtype=np.float32
+            )
+            # Padding with zeros after normalising leaves the mean colour there, not black.
+            canvas[:height, :width] = pixels
+            tensor = canvas.transpose(2, 0, 1)[None]
         name = self._encoder.get_inputs()[0].name
         values: Any = self._encoder.run(None, {name: tensor})[0]
         return Embedding(values=values, width=width, height=height)

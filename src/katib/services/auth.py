@@ -59,12 +59,19 @@ def has_users(session: Session) -> bool:
 
 
 def local_user(session: Session) -> User:
-    """The implicit owner when auth is off. It is created on first use."""
+    """The implicit owner when auth is off. It is created on first use.
+
+    Committed right away rather than left for the request's own commit at the end: this runs
+    while a dependency is being resolved, before the endpoint itself does anything, so nothing
+    else could be relying on it staying part of the same transaction. Committed here, its write
+    lock is gone before the endpoint body runs -- which matters the first time this is ever
+    called, if that same request also starts a background job of its own on another connection.
+    """
     user = session.scalar(select(User).where(User.email == LOCAL_EMAIL))
     if user is None:
         user = User(email=LOCAL_EMAIL, name="You", password_hash=None, is_admin=True)
         session.add(user)
-        session.flush()
+        session.commit()
     return user
 
 
