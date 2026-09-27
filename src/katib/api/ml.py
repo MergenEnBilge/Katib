@@ -109,6 +109,9 @@ def upload_model(
     fixed = KINDS[kind]
     if fixed:
         name = fixed
+        # Replacing a half by hand means whatever was downloaded no longer matches what is on
+        # disk, so it should stop being shown as installed.
+        (folder / model_downloads.MARKER_NAME).unlink(missing_ok=True)
     destination = folder / name
     if destination.exists() and not fixed:
         raise InvalidInput(f"There is already a model called {name}. Rename it and try again.")
