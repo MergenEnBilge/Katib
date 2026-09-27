@@ -96,6 +96,21 @@ def test_bad_values_are_refused_with_a_reason(
     assert words in reply.json()["message"]
 
 
+def test_a_bad_import_root_in_a_container_explains_the_mount(
+    api: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An administrator adding a path here can only ever add one already mounted into the
+    container, so a path that "does not exist" needs to say why, not just that it is wrong."""
+    from katib import net
+
+    monkeypatch.setattr(net, "in_container", lambda: True)
+    reply = api.put(
+        f"{API}/settings", json={"values": {"storage.allowed_import_roots": ["/no/such/place"]}}
+    )
+    assert reply.status_code == 422
+    assert "-v" in reply.json()["message"]
+
+
 def test_the_public_address_may_be_typed_the_way_it_is_typed_in_a_browser(api: TestClient) -> None:
     """Nobody types a scheme into a browser, so Katib should not insist on one here."""
     reply = api.put(f"{API}/settings", json={"values": {"server.public_url": "192.168.1.20:8420"}})

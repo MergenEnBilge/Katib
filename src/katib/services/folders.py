@@ -15,9 +15,10 @@ from pathlib import Path
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from katib import net
 from katib.db.models import ProjectFolder
 from katib.services.errors import ImportNotAllowed, InvalidInput, NotFound
-from katib.services.images import StorageContext, inside, resolve_folder
+from katib.services.images import StorageContext, container_hint, inside, resolve_folder
 from katib.storage.imaging import ALLOWED_SUFFIXES
 
 # Folders with more entries than this are counted as "at least this many".
@@ -39,6 +40,8 @@ class Listing:
     folders: list[Place]
     images_here: int
     can_connect: bool
+    #: Katib is in a container, so only folders mounted at startup are reachable from here.
+    in_container: bool = False
 
 
 def load_connected(session: Session, ctx: StorageContext) -> None:
@@ -107,13 +110,14 @@ def browse(ctx: StorageContext, raw: str | None, *, unrestricted: bool) -> Listi
     `unrestricted` lets the caller look anywhere. Otherwise they stay inside the allowed folders.
     """
     places = _start_places(ctx, unrestricted)
+    in_container = net.in_container()
     if not raw:
-        return Listing(None, None, places, [], 0, unrestricted)
+        return Listing(None, None, places, [], 0, unrestricted, in_container)
 
     try:
         path = Path(raw).expanduser().resolve(strict=True)
     except (OSError, RuntimeError):
-        raise InvalidInput("That folder does not exist.") from None
+        raise InvalidInput(f"That folder does not exist.{container_hint(in_container)}") from None
     if not path.is_dir():
         raise InvalidInput("That path is not a folder.")
     if not unrestricted and not inside(path, [r.resolve() for r in ctx.allowed_roots]):
@@ -130,6 +134,7 @@ def browse(ctx: StorageContext, raw: str | None, *, unrestricted: bool) -> Listi
         folders=_subfolders(path),
         images_here=_count_images(path),
         can_connect=unrestricted or inside(path, [r.resolve() for r in ctx.allowed_roots]),
+        in_container=in_container,
     )
 
 
@@ -146,7 +151,7 @@ def connect(
         try:
             path = Path(raw).expanduser().resolve(strict=True)
         except (OSError, RuntimeError):
-            raise InvalidInput("That folder does not exist.") from None
+            raise InvalidInput(f"That folder does not exist.{container_hint()}") from None
         if not path.is_dir():
             raise InvalidInput("That path is not a folder.")
         _allow(ctx, path)

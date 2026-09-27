@@ -1,6 +1,7 @@
 """Image routes: import, list, and serving original files and thumbnails."""
 
 import uuid
+from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, File, UploadFile
@@ -13,7 +14,7 @@ from katib.api.jobs import job_out
 from katib.api.schemas import FolderImportIn, ImageOut, ImagePageOut, ImagePatch, JobOut, LockOut
 from katib.db.models import User
 from katib.jobs.runner import JobRunner
-from katib.services import access, discussion, images, projects, tasks
+from katib.services import access, discussion, exchange, images, projects, tasks
 from katib.services.errors import NotFound
 from katib.services.images import ImageRow, StorageContext
 
@@ -90,11 +91,28 @@ def start_import(
     def work(progress: images.Progress) -> dict[str, object]:
         with factory() as s:
             report = images.import_folder(s, project_id, folder, storage, progress)
-        return {
+            # A folder that is already a labelled dataset gets its classes, splits and shapes
+            # picked up in the same step, so nobody has to run Import labels by hand afterward
+            # just because the pictures happened to already have annotation files beside them.
+            dataset = exchange.detect_and_import(s, project_id, Path(folder))
+            if dataset is not None:
+                s.commit()
+        result: dict[str, object] = {
             "added": report.added,
             "skipped": [{"name": k.name, "reason": k.reason} for k in report.skipped[:200]],
             "skipped_count": len(report.skipped),
         }
+        if dataset is not None:
+            result["dataset"] = {
+                "format": dataset.format_id,
+                "images_matched": dataset.images_matched,
+                "shapes_added": dataset.shapes_added,
+                "classes_created": dataset.classes_created,
+                "splits_set": dataset.splits_set,
+                "unmatched_images": dataset.unmatched_images,
+                "notes": [{"subject": n.subject, "reason": n.reason} for n in dataset.notes[:200]],
+            }
+        return result
 
     job_id = runner.submit("import_images", project_id, {"folder": folder}, work)
     job = runner.get(job_id)

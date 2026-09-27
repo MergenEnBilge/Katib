@@ -68,6 +68,22 @@
     progress = 0;
   }
 
+  interface FolderImportResult {
+    added: number;
+    skipped_count: number;
+    skipped: { name: string; reason: string }[];
+    /** Set when the folder already looked like a labelled dataset in a format Katib reads. */
+    dataset?: {
+      format: string;
+      images_matched: number;
+      shapes_added: number;
+      classes_created: string[];
+      splits_set: number;
+      unmatched_images: number;
+      notes: { subject: string; reason: string }[];
+    };
+  }
+
   /** Follow an image import until it ends, then show what happened. */
   async function finishImport(job: Job): Promise<void> {
     const done = await waitForJob(job.id, (p) => (progress = p));
@@ -75,13 +91,24 @@
       error = done.error ?? 'The import failed.';
       return;
     }
-    const result = done.result as { added: number; skipped_count: number; skipped: { name: string; reason: string }[] };
+    const result = done.result as unknown as FolderImportResult;
     changed = true;
+    const dataset = result.dataset;
     summary = [
       `${plural(result.added, 'image')} added.`,
       result.skipped_count ? `${plural(result.skipped_count, 'file')} skipped.` : '',
+      dataset
+        ? `This folder already had labels — ${plural(dataset.shapes_added, 'shape')} picked up too${
+            dataset.classes_created.length
+              ? `, with ${plural(dataset.classes_created.length, 'new class', 'new classes')}`
+              : ''
+          }.`
+        : '',
     ].filter(Boolean);
-    notes = result.skipped.map((s) => ({ subject: s.name, reason: s.reason }));
+    notes = [
+      ...result.skipped.map((s) => ({ subject: s.name, reason: s.reason })),
+      ...(dataset?.notes ?? []),
+    ];
   }
 
   async function connectFolder(path: string): Promise<void> {

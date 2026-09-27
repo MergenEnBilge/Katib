@@ -132,6 +132,26 @@ def import_dataset(
     return summary
 
 
+def detect_and_import(session: Session, project_id: uuid.UUID, path: Path) -> ImportSummary | None:
+    """If `path` already holds a recognized dataset, read its classes, splits and shapes too.
+
+    Connecting a folder normally only adds pictures. Plenty of folders people connect are already
+    a finished dataset — a `data.yaml` next to the labels, a COCO `annotations.json`, Pascal VOC
+    XML, or LabelMe JSON — and asking them to repeat the same path through Import labels, by hand,
+    choosing the format themselves, is exactly the kind of step a good default should skip. A
+    folder of plain photos matches no format, so nothing happens for that, by far the more common
+    case: this only ever adds to what connecting the folder already did, never instead of it.
+    """
+    try:
+        return import_dataset(session, project_id, path)
+    except InvalidInput:
+        # Either nothing here looked like a dataset Katib knows, or it did and turned out to be
+        # broken. The pictures are already in either way, so there is nothing to report back:
+        # someone who does want that folder read as a dataset still has Import labels for it,
+        # with a clearer error there than a folder-connect job would give.
+        return None
+
+
 class ProjectView:
     """Streams a project's images and shapes to a format writer, a chunk at a time."""
 

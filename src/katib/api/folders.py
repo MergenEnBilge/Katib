@@ -32,6 +32,7 @@ def browse(
         folders=[PlaceOut(name=p.name, path=p.path) for p in listing.folders],
         images_here=listing.images_here,
         can_connect=listing.can_connect,
+        in_container=listing.in_container,
     )
 
 

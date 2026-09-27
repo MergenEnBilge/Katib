@@ -44,8 +44,17 @@
 
   {#if error}<p class="error" role="alert">{error}</p>{/if}
 
+  {#if listing?.in_container}
+    <p class="hint">
+      Katib is running in a container, so only folders that were mounted with <code>-v</code> when
+      it started show up here. To add another, stop the container and add it to the
+      <code>docker run</code> command or the compose file, or use <strong>Upload from this device</strong>
+      below instead.
+    </p>
+  {/if}
+
   {#if listing && listing.path === null}
-    {#if listing.places.length === 0}
+    {#if listing.places.length === 0 && !listing.in_container}
       <p class="empty">
         No folders are available yet. An administrator can add one under Settings, then Storage,
         as a folder everyone may import from.
@@ -166,6 +175,19 @@
     padding: var(--space-2) var(--space-3);
     color: var(--text-2);
     font-size: var(--text-small);
+  }
+
+  .hint {
+    margin: 0;
+    padding: var(--space-2) var(--space-3);
+    color: var(--text-2);
+    font-size: var(--text-small);
+    background: var(--surface-2);
+    border-radius: var(--radius-control);
+  }
+
+  .hint code {
+    font-family: var(--font-mono);
   }
 
   .count {

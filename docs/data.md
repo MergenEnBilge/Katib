@@ -10,6 +10,14 @@ Choose **Import images** in a project.
 
 Pictures that are already in the project, judged by their content and not their name, are skipped and reported. Files that cannot be read are skipped with a reason.
 
+!!! note "Running Katib in Docker"
+
+    A container only sees folders that were mounted into it when it started — that is what `-v` on `docker run`, or a line under `volumes` in a compose file, does. Connecting a folder from inside Katib cannot reach anything beyond that, however correct the path looks, because the container's filesystem is not your computer's. If you did not mount a photos folder when you started the container, either stop it and add one (see [Put Katib online](deploy.md)), or use **Upload from this device** instead, which sends the files over the browser and needs nothing mounted.
+
+### Reading an existing dataset
+
+Connecting a folder that already looks like a labelled dataset — a `data.yaml` and `labels` folder, a COCO `annotations.json`, Pascal VOC XML, or LabelMe JSON — picks up more than the pictures. Katib recognizes the layout, reads the split each image belongs to from the folder it is in (`train`, `val` or `test`), and imports its classes and shapes in the same step. This works for every format Katib can read, not only YOLO. Nothing is forced on you: a plain folder of photos with no annotation files behaves exactly as before, and you can always run **Import labels** yourself afterward with a specific format if the guess was wrong or you want to add a second label set.
+
 ### Keeping a folder up to date
 
 A connected folder stays connected. When you add photos to it later, open **Import images** and press the refresh button next to the folder. Only the new pictures are added. Disconnecting a folder keeps the images already in the project.

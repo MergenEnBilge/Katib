@@ -16,6 +16,7 @@ from pydantic import ValidationError
 
 from katib.config import DEFAULT_DATABASE_URL, Settings
 from katib.services.errors import InvalidInput
+from katib.services.images import container_hint
 
 Kind = str  # "bool", "int", "text", "choice", "paths"
 
@@ -322,7 +323,9 @@ def _clean(f: Field, raw: Any) -> Any:
 def _folder(raw: str, label: str) -> str:
     path = Path(raw.strip()).expanduser()
     if not path.is_dir():
-        raise InvalidInput(f"{label}: {raw.strip()} is not a folder on this computer.")
+        raise InvalidInput(
+            f"{label}: {raw.strip()} is not a folder Katib can see.{container_hint()}"
+        )
     return str(path)
 
 
