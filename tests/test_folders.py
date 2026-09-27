@@ -1,3 +1,4 @@
+import io
 import time
 from collections.abc import Iterator
 from pathlib import Path
@@ -218,3 +219,103 @@ def test_folder_names_become_splits(tmp_path: Path) -> None:
         "b.png": "val",
         "c.png": None,
     }
+
+
+def png_bytes(size: tuple[int, int] = (16, 16), color: str = "red") -> bytes:
+    buf = io.BytesIO()
+    PILImage.new("RGB", size, color).save(buf, "PNG")
+    return buf.getvalue()
+
+
+def test_uploading_a_folder_connects_it_like_a_browsed_one(solo: TestClient) -> None:
+    """The way in when Katib cannot browse the computer it runs on: the browser sends what a
+    folder picker saw, one file per part, and Katib treats the result like any connected folder."""
+    project = new_project(solo)
+    made = solo.post(
+        f"{API}/projects/{project}/folders:upload",
+        files=[
+            ("files", ("trip/a.png", png_bytes(color="red"), "image/png")),
+            ("files", ("trip/more/b.png", png_bytes(color="blue"), "image/png")),
+        ],
+    )
+    assert made.status_code == 201, made.text
+    job = wait_job(solo, made.json()["job"]["id"])
+    assert job["status"] == "done", job
+    assert job["result"]["added"] == 2
+    assert len(solo.get(f"{API}/projects/{project}/images").json()["items"]) == 2
+    assert len(solo.get(f"{API}/projects/{project}/folders").json()) == 1
+
+
+def test_an_uploaded_folder_can_carry_its_labels_too(solo: TestClient) -> None:
+    project = new_project(solo)
+    yaml_text = "path: .\ntrain: images\nval: images\nnames:\n  0: car\n"
+    made = solo.post(
+        f"{API}/projects/{project}/folders:upload",
+        files=[
+            ("files", ("set/data.yaml", yaml_text.encode(), "application/x-yaml")),
+            ("files", ("set/labels/a.txt", b"0 0.5 0.5 0.2 0.2\n", "text/plain")),
+            ("files", ("set/images/a.png", png_bytes(), "image/png")),
+        ],
+    )
+    assert made.status_code == 201, made.text
+    job = wait_job(solo, made.json()["job"]["id"])
+    assert job["status"] == "done", job
+    assert job["result"]["dataset"]["format"] == "yolo-detect"
+    assert job["result"]["dataset"]["shapes_added"] == 1
+    classes = {c["name"] for c in solo.get(f"{API}/projects/{project}/classes").json()}
+    assert classes == {"car"}
+
+
+def test_uploading_a_folder_ignores_files_it_cannot_use(solo: TestClient) -> None:
+    """A folder picker sweeps up whatever is there. Only pictures and label files matter."""
+    project = new_project(solo)
+    made = solo.post(
+        f"{API}/projects/{project}/folders:upload",
+        files=[
+            ("files", ("photos/a.png", png_bytes(), "image/png")),
+            ("files", ("photos/.DS_Store", b"junk", "application/octet-stream")),
+            ("files", ("photos/notes.docx", b"junk", "application/octet-stream")),
+        ],
+    )
+    assert made.status_code == 201, made.text
+    job = wait_job(solo, made.json()["job"]["id"])
+    assert job["result"]["added"] == 1
+
+
+def test_uploading_a_folder_rejects_path_traversal_in_a_file_name(solo: TestClient) -> None:
+    project = new_project(solo)
+    made = solo.post(
+        f"{API}/projects/{project}/folders:upload",
+        files=[("files", ("../../../etc/passwd.png", png_bytes(), "image/png"))],
+    )
+    assert made.status_code == 422
+    assert "could be used" in made.json()["message"]
+
+
+def test_uploading_an_empty_folder_is_refused(solo: TestClient) -> None:
+    project = new_project(solo)
+    made = solo.post(f"{API}/projects/{project}/folders:upload", files=[])
+    assert made.status_code == 422
+
+
+def test_only_a_manager_can_upload_a_folder_on_a_shared_server(tmp_path: Path) -> None:
+    settings = Settings(storage={"data_dir": str(tmp_path / "data")}, auth={"mode": "local"})
+    with TestClient(create_app(settings)) as api:
+        api.post(
+            f"{API}/auth/setup",
+            json={"email": "boss@example.com", "name": "Boss", "password": PASSWORD},
+        )
+        project = new_project(api)
+        token = api.post(f"{API}/invites", json={"project_id": project, "role": "viewer"}).json()[
+            "token"
+        ]
+        viewer = TestClient(api.app)
+        viewer.post(
+            f"{API}/auth/accept",
+            json={"token": token, "email": "v@example.com", "name": "V", "password": PASSWORD},
+        )
+        refused = viewer.post(
+            f"{API}/projects/{project}/folders:upload",
+            files=[("files", ("a.png", png_bytes(), "image/png"))],
+        )
+    assert refused.status_code == 403

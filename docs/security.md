@@ -11,7 +11,7 @@ This page explains what Katib protects, what it leaves to you, and what was chec
 - **Permissions** are checked on the server for every request, not only hidden in the interface. People who are not members of a project get "not found", so they cannot even tell it exists.
 - **No accounts, no network.** With `auth.mode = "none"`, Katib refuses to listen on anything but your own computer.
 - **Your files.** Katib reads connected folders and never writes to them. It only reads inside folders it was allowed to use, resolves links before checking, and checks again each time it serves a picture. Only administrators can browse the server's folders on a shared server.
-- **Uploads and pictures.** Files are limited in size and in pixel count (a defense against decompression bombs). Katib opens only the picture formats it supports, by their content, so a file's name cannot change how it is decoded. Uploaded files are stored under generated names, never a name you typed.
+- **Uploads and pictures.** Files are limited in size and in pixel count (a defense against decompression bombs). Katib opens only the picture formats it supports, by their content, so a file's name cannot change how it is decoded. A single uploaded picture is stored under a generated name, never a name you typed. A folder uploaded as a folder keeps its own layout instead, because that is what lets Katib recognize a dataset inside it — every file name in it is still checked for `..` and other tricks before it touches disk, and only file types Katib actually reads (pictures and the label formats it understands) are kept.
 - **Datasets you import.** XML is parsed with a library that refuses entity expansion attacks. Import paths must sit inside allowed folders.
 - **Pages** are served with a strict Content-Security-Policy, `X-Frame-Options: DENY` and `nosniff`. The interface never inserts untrusted text as HTML.
 - **First account.** Whoever creates the first administrator account owns the server, so Katib guards it with a setup code as soon as anybody else could get there first. A server listening on a network address asks everyone for it, including the person sitting at that computer; so does a request that arrives from a public address or through a proxy Katib was not told to trust. The code is printed when Katib starts and kept in `setup-code.txt`, and it stops working once the account exists. Guessing it is rate limited. A server that answers only on its own computer needs no code, because nobody else can reach it.
@@ -64,6 +64,14 @@ known vulnerability. The tools that build the Android icons do: `@capacitor/asse
 copies of `tar`, `sharp` and `uuid`, with no fixed version published. They run on a build machine
 and no part of them is inside the app, so the audit of what ships is clean while the full
 development audit is not.
+
+Uploading a whole folder, added after 0.1.0, was reviewed on its own since it is the one upload
+path where a name you typed reaches the filesystem rather than a name Katib generated. Every file
+name in the folder is split into segments and checked for `..`, an empty segment, and a bare
+Windows drive letter before anything is written, and the storage layer underneath checks again,
+independently, that the result still sits inside its own folder. Only file types Katib already
+reads — pictures, and the label files the format readers understand — are kept; anything else in
+the folder is left out rather than written to disk unread.
 
 ## Known limits
 

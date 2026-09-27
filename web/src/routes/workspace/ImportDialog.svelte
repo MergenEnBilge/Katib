@@ -41,7 +41,15 @@
   let summary = $state<string[]>([]);
   let notes = $state<Note[]>([]);
   let files: FileList | null = $state(null);
+  let folderInput: HTMLInputElement | null = $state(null);
   let changed = false;
+
+  /** Turns a plain file input into a folder picker. Not a real HTML attribute, so TypeScript
+   * has no idea it exists -- setting it by hand here is what browsers actually look for. */
+  function asDirectoryPicker(node: HTMLInputElement): void {
+    node.setAttribute('webkitdirectory', '');
+    node.setAttribute('directory', '');
+  }
 
   $effect(() => {
     api.formats().then((f) => (formats = f)).catch(() => undefined);
@@ -122,6 +130,21 @@
       fail(err, 'Could not connect that folder.');
     } finally {
       busy = false;
+    }
+  }
+
+  async function uploadFolder(list: FileList | null): Promise<void> {
+    if (!list || list.length === 0) return;
+    startOver();
+    try {
+      const made = await api.folders.upload(projectId, list);
+      await loadConnected();
+      await finishImport(made.job);
+    } catch (err) {
+      fail(err, 'Could not upload that folder.');
+    } finally {
+      busy = false;
+      if (folderInput) folderInput.value = '';
     }
   }
 
@@ -261,6 +284,22 @@
         <input type="file" multiple accept="image/jpeg,image/png,image/webp,image/bmp,image/tiff" bind:files />
       </label>
       <div><Button loading={busy} disabled={!files || files.length === 0} onclick={upload}>Upload {files && files.length ? plural(files.length, 'file') : ''}</Button></div>
+      <p class="note">
+        Have a whole folder, and Katib cannot see it directly — often because it is running in a
+        container? <button type="button" class="link" disabled={busy} onclick={() => folderInput?.click()}
+          >Upload a folder</button
+        > instead. Everything inside it, subfolders included, is sent over the browser, and any
+        classes and labels already there come with it.
+      </p>
+      <input
+        bind:this={folderInput}
+        type="file"
+        multiple
+        hidden
+        aria-label="Upload a folder"
+        use:asDirectoryPicker
+        onchange={(e) => uploadFolder(e.currentTarget.files)}
+      />
     </div>
   {:else}
     <div class="section">
@@ -361,6 +400,21 @@
     margin: 0;
     font-size: var(--text-small);
     color: var(--text-2);
+  }
+
+  .link {
+    padding: 0;
+    color: var(--accent-text);
+    background: transparent;
+    border: 0;
+    font: inherit;
+    font-size: inherit;
+    cursor: pointer;
+  }
+
+  .link:disabled {
+    color: var(--text-2);
+    cursor: default;
   }
 
   .connected {

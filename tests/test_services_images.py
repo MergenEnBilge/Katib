@@ -29,6 +29,7 @@ def ctx(tmp_path: Path) -> StorageContext:
         allowed_roots=[lib],
         max_upload_bytes=50_000,
         exports=LocalStorage(tmp_path / "data" / "exports"),
+        folder_uploads=LocalStorage(tmp_path / "data" / "folder-uploads"),
     )
 
 
@@ -101,7 +102,9 @@ def test_dotdot_cannot_escape_the_root(
 def test_no_allowed_folders_means_no_folder_import(
     session: Session, pid: uuid.UUID, ctx: StorageContext
 ) -> None:
-    off = StorageContext(ctx.uploads, ctx.thumbs, [], ctx.max_upload_bytes, ctx.exports)
+    off = StorageContext(
+        ctx.uploads, ctx.thumbs, [], ctx.max_upload_bytes, ctx.exports, ctx.folder_uploads
+    )
     with pytest.raises(ImportNotAllowed, match="No folder is connected"):
         images.import_folder(session, pid, ".", off)
 
@@ -138,7 +141,12 @@ def test_image_path_recheck_for_referenced_files(
     img = session.scalars(select(Image)).one()
     assert images.image_path(img, ctx) == (lib / "a.png").resolve()
     shrunk = StorageContext(
-        ctx.uploads, ctx.thumbs, [lib / "other"], ctx.max_upload_bytes, ctx.exports
+        ctx.uploads,
+        ctx.thumbs,
+        [lib / "other"],
+        ctx.max_upload_bytes,
+        ctx.exports,
+        ctx.folder_uploads,
     )
     with pytest.raises(Exception, match="allowed"):
         images.image_path(img, shrunk)

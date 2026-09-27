@@ -6,6 +6,7 @@ path is resolved and checked against the allowed import roots (ARCHITECTURE.md s
 
 import logging
 import os
+import re
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -44,6 +45,10 @@ class StorageContext:
     allowed_roots: list[Path]
     max_upload_bytes: int
     exports: LocalStorage
+    #: Where a folder chosen through the browser lands. A container cannot browse the computer
+    #: running it, so a picked folder arrives as an upload and is written here before it is read
+    #: the same way any other connected folder is.
+    folder_uploads: LocalStorage
 
 
 @dataclass(frozen=True)
@@ -276,6 +281,56 @@ def import_upload(
         raise InvalidInput(f"{Path(filename).name} is a {result}.")
     session.flush()
     return result
+
+
+#: Files that belong with pictures in an uploaded folder: label files and the sidecar formats
+#: connecting a folder already reads. Anything else a folder picker swept up is left out.
+FOLDER_UPLOAD_TEXT_SUFFIXES = frozenset({".txt", ".json", ".xml", ".yaml", ".yml"})
+
+#: A folder is uploaded one file at a time, over one HTTP request. This is not a setting to
+#: tune, just a backstop against a request that would otherwise take forever.
+MAX_FOLDER_UPLOAD_FILES = 5000
+
+
+def _safe_relative_key(raw: str) -> str | None:
+    """The path a browser's folder picker sent, made safe to use as a storage key.
+
+    A browser names every file starting with the folder someone picked, such as
+    "MyDataset/images/a.png" for a folder called MyDataset -- so that first part is dropped,
+    or a folder connected this way would sit one level below where its own files expect it,
+    and never be recognized as the dataset it is.
+
+    None for anything that is not a plain relative path: empty, containing `..`, or a bare
+    Windows drive letter. A request can claim whatever name it likes here, browser or not.
+    """
+    parts = [p for p in re.split(r"[\\/]+", raw) if p not in ("", ".")]
+    if not parts or any(p == ".." or re.fullmatch(r"[A-Za-z]:", p) for p in parts):
+        return None
+    if len(parts) > 1:
+        parts = parts[1:]
+    return "/".join(parts)
+
+
+def keep_uploaded_folder_file(
+    ctx: StorageContext, project_id: uuid.UUID, batch: uuid.UUID, filename: str, data: BinaryIO
+) -> bool:
+    """Save one file from a folder chosen in the browser, as part of `batch`.
+
+    True once the file is written. False, quietly, for anything that is not a picture or one of
+    the label files usually found beside them -- a folder picker sweeps up a lot of those, and
+    reporting each one back would drown out anything worth knowing.
+    """
+    rel = _safe_relative_key(filename)
+    if rel is None:
+        return False
+    suffix = Path(rel).suffix.lower()
+    if suffix not in ALLOWED_SUFFIXES and suffix not in FOLDER_UPLOAD_TEXT_SUFFIXES:
+        return False
+    try:
+        ctx.folder_uploads.put(f"{project_id}/{batch}/{rel}", data, ctx.max_upload_bytes)
+    except StorageTooLarge:
+        return False
+    return True
 
 
 def get_image(session: Session, image_id: uuid.UUID) -> Image:

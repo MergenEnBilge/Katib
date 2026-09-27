@@ -1,8 +1,9 @@
 """Folder routes: browse the Katib computer and connect folders to projects."""
 
 import uuid
+from typing import Annotated
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, File, Response, UploadFile
 
 from katib.api.deps import AnywhereDep, RunnerDep, SessionDep, StorageDep, UserDep, need
 from katib.api.images import start_import
@@ -14,7 +15,8 @@ from katib.api.schemas import (
     JobOut,
     PlaceOut,
 )
-from katib.services import folders, projects
+from katib.services import folders, images, projects
+from katib.services.errors import InvalidInput
 
 router = APIRouter(tags=["folders"])
 
@@ -60,6 +62,51 @@ def connect(
     need(session, user, project_id, "manage")
     projects.get_project(session, project_id)
     folder = folders.connect(session, project_id, body.path, storage, unrestricted=anywhere)
+    # The job writes from its own connection, so the folder row must be committed first.
+    session.commit()
+    job = start_import(runner, storage, project_id, folder.path)
+    return ConnectResultOut(folder=ConnectedFolderOut.model_validate(folder), job=job)
+
+
+@router.post(
+    "/projects/{project_id}/folders:upload", response_model=ConnectResultOut, status_code=201
+)
+def upload_folder(
+    project_id: uuid.UUID,
+    files: Annotated[list[UploadFile], File()],
+    session: SessionDep,
+    user: UserDep,
+    storage: StorageDep,
+    runner: RunnerDep,
+) -> ConnectResultOut:
+    """Receive a folder chosen in the browser and connect it like any other.
+
+    This is the way in when Katib cannot browse the computer it runs on -- most often because it
+    is in a container, where the filesystem the browser sees and the one Katib sees are not the
+    same thing. The browser can still see the real folder, so it sends what is in it instead of
+    a path Katib would have no way to reach.
+    """
+    need(session, user, project_id, "manage")
+    projects.get_project(session, project_id)
+    if not files:
+        raise InvalidInput("Choose a folder with at least one file in it.")
+    if len(files) > images.MAX_FOLDER_UPLOAD_FILES:
+        raise InvalidInput(
+            f"A folder upload is limited to {images.MAX_FOLDER_UPLOAD_FILES:,} files."
+        )
+
+    batch = uuid.uuid4()
+    kept = sum(
+        images.keep_uploaded_folder_file(storage, project_id, batch, f.filename or "", f.file)
+        for f in files
+    )
+    if kept == 0:
+        raise InvalidInput(
+            "None of those files could be used. Choose a folder with pictures in it."
+        )
+
+    root = storage.folder_uploads.path(f"{project_id}/{batch}")
+    folder = folders.connect(session, project_id, str(root), storage, unrestricted=True)
     # The job writes from its own connection, so the folder row must be committed first.
     session.commit()
     job = start_import(runner, storage, project_id, folder.path)
