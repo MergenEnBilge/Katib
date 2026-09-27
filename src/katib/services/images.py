@@ -15,6 +15,7 @@ from typing import BinaryIO
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from katib import net
 from katib.core.split import split_from_names
 from katib.db.ids import new_id
 from katib.db.models import Annotation, Image
@@ -65,17 +66,31 @@ def inside(path: Path, roots: list[Path]) -> bool:
     return any(root == path or root in path.parents for root in roots)
 
 
+def container_hint(in_container: bool | None = None) -> str:
+    """Why a folder that is plainly on disk can still be invisible to Katib.
+
+    Pass the answer along when the caller already asked `net.in_container()`, since that call
+    touches the filesystem and there is no reason to make it twice for one request.
+    """
+    if not (net.in_container() if in_container is None else in_container):
+        return ""
+    return (
+        " Katib is running in a container, which only sees folders that were mounted with "
+        "-v when it started. Add one and restart the container, or upload the pictures instead."
+    )
+
+
 def resolve_path(raw: str, roots: list[Path]) -> Path:
     """Resolve a user-supplied path and require it to sit inside an allowed root."""
     if not roots:
         raise ImportNotAllowed(
-            "No folder is connected yet. Ask an administrator to connect one, "
-            "or add it to storage.allowed_import_roots."
+            "No folder is connected yet. An administrator can add one under Settings, then "
+            f"Storage, as long as it is already visible to Katib.{container_hint()}"
         )
     try:
         path = Path(raw).expanduser().resolve(strict=True)
     except (OSError, RuntimeError) as err:
-        raise InvalidInput("That path does not exist.") from err
+        raise InvalidInput(f"That path does not exist.{container_hint()}") from err
     if not inside(path, [r.resolve() for r in roots]):
         raise ImportNotAllowed("That path is outside the allowed import folders.")
     return path
