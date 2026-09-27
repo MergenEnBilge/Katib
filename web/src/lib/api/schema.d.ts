@@ -1073,6 +1073,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{project_id}/folders:upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload Folder
+         * @description Receive a folder chosen in the browser and connect it like any other.
+         *
+         *     This is the way in when Katib cannot browse the computer it runs on -- most often because it
+         *     is in a container, where the filesystem the browser sees and the one Katib sees are not the
+         *     same thing. The browser can still see the real folder, so it sends what is in it instead of
+         *     a path Katib would have no way to reach.
+         */
+        post: operations["upload_folder_api_v1_projects__project_id__folders_upload_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}/folders/{folder_id}:rescan": {
         parameters: {
             query?: never;
@@ -1345,6 +1370,11 @@ export interface components {
         BatchOut: {
             /** Results */
             results: components["schemas"]["OpResultOut"][];
+        };
+        /** Body_upload_folder_api_v1_projects__project_id__folders_upload_post */
+        Body_upload_folder_api_v1_projects__project_id__folders_upload_post: {
+            /** Files */
+            files: string[];
         };
         /** Body_upload_image_api_v1_projects__project_id__images_post */
         Body_upload_image_api_v1_projects__project_id__images_post: {
@@ -4773,6 +4803,41 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ConnectFolderIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectResultOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_folder_api_v1_projects__project_id__folders_upload_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_folder_api_v1_projects__project_id__folders_upload_post"];
             };
         };
         responses: {

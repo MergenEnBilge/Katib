@@ -319,6 +319,22 @@ export const api = {
       request<Job>('POST', `/projects/${projectId}/folders/${folderId}:rescan`),
     disconnect: (projectId: string, folderId: string) =>
       request<void>('DELETE', `/projects/${projectId}/folders/${folderId}`),
+    upload: async (projectId: string, files: FileList | File[]): Promise<ConnectResult> => {
+      const form = new FormData();
+      for (const file of files) {
+        // webkitRelativePath is what makes this a folder rather than a pile of loose files: the
+        // server rebuilds the same layout from it, which is how it can still notice a data.yaml
+        // or a labels folder sitting inside.
+        const withPath = file as File & { webkitRelativePath?: string };
+        form.append('files', file, withPath.webkitRelativePath || file.name);
+      }
+      const response = await send(`/projects/${projectId}/folders:upload`, {
+        method: 'POST',
+        body: form,
+      });
+      if (!response.ok) return fail(response);
+      return (await response.json()) as ConnectResult;
+    },
   },
 
   images: {
