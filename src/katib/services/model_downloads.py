@@ -7,7 +7,6 @@ nobody checked. This is the one place Katib reaches onto the network on its own;
 it does stays on the machine that runs it.
 """
 
-import hashlib
 import shutil
 import tempfile
 import urllib.request
@@ -18,6 +17,7 @@ from pathlib import Path
 
 from katib.ml import sam
 from katib.services.errors import InvalidInput
+from katib.storage.imaging import sha256_of
 
 Progress = Callable[[float], None]
 
@@ -112,17 +112,9 @@ def fetch(url: str, dest: Path, max_bytes: int, progress: Progress | None = None
         raise InvalidInput(f"Could not reach {url}: {err}") from err
 
 
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as f:
-        while chunk := f.read(1024 * 1024):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
 def install_from_archive(source: ModelSource, archive: Path, folder: Path) -> None:
     """Verify a downloaded zip against `source` and unpack the files it names into `folder`."""
-    if _sha256(archive) != source.sha256:
+    if sha256_of(archive) != source.sha256:
         raise InvalidInput(
             "That file did not match what Katib expected. It was not installed, in case the "
             "download was incomplete or the file at the source has changed."
