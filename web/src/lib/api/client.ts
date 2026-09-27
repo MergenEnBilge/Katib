@@ -319,16 +319,28 @@ export const api = {
       request<Job>('POST', `/projects/${projectId}/folders/${folderId}:rescan`),
     disconnect: (projectId: string, folderId: string) =>
       request<void>('DELETE', `/projects/${projectId}/folders/${folderId}`),
-    upload: async (projectId: string, files: FileList | File[]): Promise<ConnectResult> => {
+    // A folder goes up one file at a time rather than in a single request, which is what lets
+    // the person watch it happen: a progress bar and the name of whatever is going up right now,
+    // instead of a spinner that gives no sign of life until a folder of any real size finishes.
+    uploadFile: async (projectId: string, batch: string, file: File): Promise<{ kept: boolean }> => {
       const form = new FormData();
-      for (const file of files) {
-        // webkitRelativePath is what makes this a folder rather than a pile of loose files: the
-        // server rebuilds the same layout from it, which is how it can still notice a data.yaml
-        // or a labels folder sitting inside.
-        const withPath = file as File & { webkitRelativePath?: string };
-        form.append('files', file, withPath.webkitRelativePath || file.name);
-      }
-      const response = await send(`/projects/${projectId}/folders:upload`, {
+      form.append('batch', batch);
+      // webkitRelativePath is what makes this a folder rather than a pile of loose files: the
+      // server rebuilds the same layout from it, which is how it can still notice a data.yaml
+      // or a labels folder sitting inside.
+      const withPath = file as File & { webkitRelativePath?: string };
+      form.append('file', file, withPath.webkitRelativePath || file.name);
+      const response = await send(`/projects/${projectId}/folders:upload-file`, {
+        method: 'POST',
+        body: form,
+      });
+      if (!response.ok) return fail(response);
+      return (await response.json()) as { kept: boolean };
+    },
+    uploadFinish: async (projectId: string, batch: string): Promise<ConnectResult> => {
+      const form = new FormData();
+      form.append('batch', batch);
+      const response = await send(`/projects/${projectId}/folders:upload-finish`, {
         method: 'POST',
         body: form,
       });
