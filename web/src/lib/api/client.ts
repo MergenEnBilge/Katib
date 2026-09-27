@@ -246,6 +246,10 @@ export const api = {
       request<{ ok: boolean; message: string }>('POST', '/settings/test-database', { url }),
     restart: () => request<{ restarting: boolean }>('POST', '/settings/restart'),
     backup: () => request<Job>('POST', '/settings/backup'),
+    factoryResetPreview: () =>
+      request<{ files: number; bytes: number }>('GET', '/settings/factory-reset'),
+    factoryReset: (confirm: string) =>
+      request<{ restarting: boolean }>('POST', '/settings/factory-reset', { confirm }),
   },
 
   operations: {

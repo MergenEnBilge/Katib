@@ -47,3 +47,22 @@ test('the backup tab explains what a backup holds', async ({ page }) => {
   await page.getByRole('button', { name: 'Make a backup' }).click();
   await expect(page.getByRole('link', { name: 'Download backup' })).toBeVisible();
 });
+
+test('a factory reset needs RESET typed before it can run', async ({ page }) => {
+  // The actual reset is not exercised here -- it would wipe the data every other test in this
+  // run shares. This only checks the confirmation guards it correctly, then backs out.
+  await page.goto('/settings');
+  await page.getByRole('button', { name: 'Storage' }).click();
+  await page.getByRole('button', { name: 'Reset everything…' }).click();
+
+  const dialog = page.getByRole('dialog');
+  const confirm = dialog.getByRole('button', { name: 'Reset everything' });
+  await expect(confirm).toBeDisabled();
+  await dialog.getByLabel('Type "RESET" to confirm').fill('please');
+  await expect(confirm).toBeDisabled();
+  await dialog.getByLabel('Type "RESET" to confirm').fill('reset');
+  await expect(confirm).toBeEnabled();
+
+  await dialog.getByRole('button', { name: 'Cancel' }).click();
+  await expect(dialog).toBeHidden();
+});
