@@ -63,6 +63,21 @@ def write_decoder(path: Path) -> None:
     constant_model(path, inputs, "masks", grid[None, None])
 
 
+def write_whole_image_decoder(path: Path) -> None:
+    """A decoder that answers every click with the entire picture, the way a model with nothing
+    confident to say sometimes does."""
+    grid = np.full((MASK_SIDE, MASK_SIDE), 1.0, dtype=np.float32)
+    inputs = [
+        helper.make_tensor_value_info("image_embeddings", TensorProto.FLOAT, EMBEDDING),
+        helper.make_tensor_value_info("point_coords", TensorProto.FLOAT, [1, None, 2]),
+        helper.make_tensor_value_info("point_labels", TensorProto.FLOAT, [1, None]),
+        helper.make_tensor_value_info("mask_input", TensorProto.FLOAT, [1, 1, 256, 256]),
+        helper.make_tensor_value_info("has_mask_input", TensorProto.FLOAT, [1]),
+        helper.make_tensor_value_info("orig_im_size", TensorProto.FLOAT, [2]),
+    ]
+    constant_model(path, inputs, "masks", grid[None, None])
+
+
 @pytest.fixture
 def models(tmp_path: Path) -> Path:
     folder = tmp_path / "models"
@@ -104,6 +119,21 @@ def test_a_click_comes_back_as_an_outline(api: TestClient, tmp_path: Path) -> No
     assert len(points) >= 4
     # The stand-in marks the middle of the picture, so the outline has to sit there too.
     assert all(0.2 < x < 0.8 and 0.2 < y < 0.8 for x, y in points)
+
+
+def test_a_mask_covering_the_whole_picture_is_treated_as_no_answer(tmp_path: Path) -> None:
+    """A model with nothing confident to say about a click sometimes answers with the entire
+    picture rather than admitting it. That is never a real object, so it should not be drawn."""
+    folder = tmp_path / "models"
+    folder.mkdir()
+    write_encoder(folder / sam.ENCODER_NAME)
+    write_whole_image_decoder(folder / sam.DECODER_NAME)
+    picture = tmp_path / "a.png"
+    PILImage.new("RGB", (800, 400), "gray").save(picture)
+
+    segmenter = sam.SamSegmenter(folder)
+    outline = segmenter.outline(picture, "one", [sam.Click(x=0.5, y=0.5)])
+    assert outline is None
 
 
 def test_the_model_is_told_where_the_click_was(models: Path, tmp_path: Path) -> None:
