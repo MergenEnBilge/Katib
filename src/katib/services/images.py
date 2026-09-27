@@ -74,6 +74,11 @@ def inside(path: Path, roots: list[Path]) -> bool:
     return any(root == path or root in path.parents for root in roots)
 
 
+def resolved_roots(roots: list[Path]) -> list[Path]:
+    """Roots as they exist on disk, for comparing against a resolved path with `inside()`."""
+    return [r.resolve() for r in roots]
+
+
 def container_hint(in_container: bool | None = None) -> str:
     """Why a folder that is plainly on disk can still be invisible to Katib.
 
@@ -99,7 +104,7 @@ def resolve_path(raw: str, roots: list[Path]) -> Path:
         path = Path(raw).expanduser().resolve(strict=True)
     except (OSError, RuntimeError) as err:
         raise InvalidInput(f"That path does not exist.{container_hint()}") from err
-    if not inside(path, [r.resolve() for r in roots]):
+    if not inside(path, resolved_roots(roots)):
         raise ImportNotAllowed("That path is outside the allowed import folders.")
     return path
 
@@ -115,7 +120,7 @@ def image_path(image: Image, ctx: StorageContext) -> Path:
     """Where the original file for an image lives. Re-checks roots for referenced files."""
     if image.storage_key.startswith(FILE_PREFIX):
         path = Path(image.storage_key[len(FILE_PREFIX) :]).resolve()
-        if not inside(path, [r.resolve() for r in ctx.allowed_roots]):
+        if not inside(path, resolved_roots(ctx.allowed_roots)):
             raise NotFound("That image is no longer in an allowed folder.")
         return path
     return ctx.uploads.path(image.storage_key)
@@ -198,7 +203,7 @@ def import_folder(
 ) -> ImportReport:
     """Index every supported image under `folder` in place. Commits every few images."""
     root = resolve_folder(folder, ctx.allowed_roots)
-    resolved_roots = [r.resolve() for r in ctx.allowed_roots]
+    roots = resolved_roots(ctx.allowed_roots)
     files: list[Path] = []
     for dirpath, _dirs, names in os.walk(root):
         for name in names:
@@ -214,7 +219,7 @@ def import_folder(
     position = _next_position(session, project_id)
     for i, candidate in enumerate(files, start=1):
         real = candidate.resolve()
-        if not inside(real, resolved_roots):
+        if not inside(real, roots):
             report.skipped.append(Skipped(candidate.name, "links outside the allowed folders"))
         else:
             try:
