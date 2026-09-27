@@ -4,7 +4,7 @@ import globals from 'globals';
 import ts from 'typescript-eslint';
 
 export default ts.config(
-  { ignores: ['node_modules', '../src/katib/static', 'src/lib/api/schema.d.ts'] },
+  { ignores: ['node_modules', '../src/katib/static', 'src/lib/api/schema.d.ts', 'test-results'] },
   js.configs.recommended,
   ...ts.configs.recommended,
   ...svelte.configs['flat/recommended'],
