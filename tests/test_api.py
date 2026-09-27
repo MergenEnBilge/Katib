@@ -114,6 +114,19 @@ def test_folder_import_list_and_serve(api: TestClient, library: Path) -> None:
     assert api.get(f"{API}/projects/{p['id']}").json()["image_count"] == 3
 
 
+def test_a_repeated_image_or_thumb_request_gets_a_304(api: TestClient, library: Path) -> None:
+    p = make_project(api)
+    import_library(api, p, library)
+    image_id = api.get(f"{API}/projects/{p['id']}/images").json()["items"][0]["id"]
+
+    for path in (f"{API}/images/{image_id}/file", f"{API}/images/{image_id}/thumb"):
+        first = api.get(path)
+        etag = first.headers["etag"]
+        again = api.get(path, headers={"if-none-match": etag})
+        assert again.status_code == 304
+        assert again.content == b""
+
+
 def test_folder_outside_allowed_roots_is_403(api: TestClient, tmp_path: Path) -> None:
     p = make_project(api)
     res = api.post(f"{API}/projects/{p['id']}/images:import-folder", json={"folder": str(tmp_path)})
