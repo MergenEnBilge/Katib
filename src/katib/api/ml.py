@@ -51,6 +51,9 @@ def status(request: Request, user: UserDep, anywhere: AnywhereDep) -> MlStatusOu
     models: list[MlModelOut] = []
     if settings.ml.enabled and installed:
         for name in onnx.list_models(folder):
+            # The two halves of a Segment Anything model are not something to pre-label with.
+            if name in (sam.ENCODER_NAME, sam.DECODER_NAME):
+                continue
             path = folder / name
             models.append(
                 MlModelOut(name=name, classes=_class_names(str(path), path.stat().st_mtime))
