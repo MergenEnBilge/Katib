@@ -44,8 +44,10 @@ Your data goes in and comes back out. YOLO, COCO, Pascal VOC, LabelMe and JSON L
 directions, with train/validation/test splits preserved. Import the same annotation file twice and
 nothing doubles.
 
-And it is quiet. Katib makes no network requests of its own — no account to create, no telemetry, no
-licence check, nothing to switch off.
+And it is quiet. No account to create, no telemetry, no licence check, nothing to switch off. The
+only thing Katib ever fetches from the internet on its own is a model you asked it to download by
+name under Settings, and even that is optional — bring your own file instead and it never reaches
+the network at all.
 
 ## Install
 

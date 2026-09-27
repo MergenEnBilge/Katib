@@ -1,6 +1,8 @@
 # Model help
 
-Katib has three ways to draw less by hand. None of them sends anything off your computer.
+Katib has three ways to draw less by hand. All the actual work happens on your own server; the
+only thing that ever leaves it is a request to fetch a model you asked Katib to download by name,
+and only that.
 
 ## Magic wand
 
@@ -11,8 +13,8 @@ Press **]** to accept a wider range of colors, or **[** for a narrower one. It w
 ## Click to select
 
 Where the magic wand follows colour, this follows shapes. Click a dog on a lawn and you get the
-dog, not the patch of brown fur the wand would have found. It needs a Segment Anything model, which
-you supply.
+dog, not the patch of brown fur the wand would have found. It needs a Segment Anything model,
+which you can download by name or bring yourself.
 
 Press **S**, then click the middle of an object. The first click on a picture takes a second or
 two while the model reads it; every click after that on the same picture is quick. If the outline
@@ -26,13 +28,15 @@ decoder**, which turns your click into an outline. Both have to be ONNX exports 
 
 1. Install the extra package: `uv sync --extra ml`. The Docker image already has it.
 2. Turn model help on under **Settings**, then **Model help**.
-3. Still under Model help, choose a file for each half. Katib stores them on the server, so you do
-   this once and everyone on that Katib can click to select.
+3. Still under Model help, choose **Download** beside one of the models Katib knows about, or
+   choose a file for each half yourself if you already have one. Either way Katib stores it on the
+   server, so you do this once and everyone on that Katib can click to select.
 
 **Which model.** MobileSAM is the one to start with: its encoder is about 25 MB and it is quick
-enough on an ordinary laptop. The original SAM models work too and are better at awkward edges,
-but the largest of them will keep you waiting several seconds per picture without a graphics card.
-Get the ONNX exports from the model's own project — Katib never downloads anything.
+enough on an ordinary laptop. The ViT-B model works too and is better at awkward edges, but at
+about seven times the size it will keep you waiting longer per picture without a graphics card.
+A download is checked against the exact bytes Katib expected before it is installed; bring your
+own file instead if you would rather Katib not reach the internet at all.
 
 **Where the work happens.** On the server, not in your browser. A phone or an old laptop gets the
 same results as the machine Katib runs on, and no picture leaves it.
