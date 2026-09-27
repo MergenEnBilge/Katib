@@ -1613,6 +1613,11 @@ export interface components {
             images_here: number;
             /** Can Connect */
             can_connect: boolean;
+            /**
+             * In Container
+             * @default false
+             */
+            in_container: boolean;
         };
         /** FormatOut */
         FormatOut: {
