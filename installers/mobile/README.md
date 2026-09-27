@@ -68,9 +68,3 @@ The `mobile` workflow does the same steps. It always builds an APK, and it signs
 `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and
 `ANDROID_KEY_PASSWORD` are set in the repository's secrets. It also builds the iOS app unsigned, to
 prove it still compiles; that build cannot be installed on a phone.
-
-## Changing the logo
-
-Replace `brand/logo.png` and `brand/logo.svg` in the repository root and run
-`python scripts/apply_brand.py`. It rewrites `resources/` and `www/logo.svg` here. Then run
-`npm run assets` again.
