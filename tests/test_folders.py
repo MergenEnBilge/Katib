@@ -7,6 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 from PIL import Image as PILImage
 
+from katib import net
 from katib.api.app import create_app
 from katib.config import Settings
 
@@ -105,6 +106,45 @@ def test_a_missing_folder_is_a_clear_error(solo: TestClient, tmp_path: Path) -> 
     res = solo.post(f"{API}/projects/{project}/folders", json={"path": str(tmp_path / "nope")})
     assert res.status_code == 422
     assert res.json()["message"] == "That folder does not exist."
+
+
+def test_a_missing_folder_in_a_container_explains_the_mount(
+    solo: TestClient, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A path that is simply wrong and one that was never mounted look identical from here, so
+    the message has to cover the reason someone in Docker is actually going to hit."""
+    monkeypatch.setattr(net, "in_container", lambda: True)
+    project = new_project(solo)
+    res = solo.post(f"{API}/projects/{project}/folders", json={"path": str(tmp_path / "nope")})
+    assert res.status_code == 422
+    assert "container" in res.json()["message"]
+    assert "-v" in res.json()["message"]
+
+
+def test_browsing_says_whether_katib_is_in_a_container(
+    solo: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    assert solo.get(f"{API}/folders").json()["in_container"] is False
+    monkeypatch.setattr(net, "in_container", lambda: True)
+    assert solo.get(f"{API}/folders").json()["in_container"] is True
+
+
+def test_no_allowed_folders_in_a_container_explains_the_mount(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A shared server with nothing in storage.allowed_import_roots looks the same in Docker as
+    on a bare machine, but only one of those is fixed by asking an administrator to add a path."""
+    settings = Settings(storage={"data_dir": str(tmp_path / "data")}, auth={"mode": "local"})
+    monkeypatch.setattr(net, "in_container", lambda: True)
+    with TestClient(create_app(settings)) as api:
+        api.post(
+            f"{API}/auth/setup",
+            json={"email": "a@example.com", "name": "A", "password": PASSWORD},
+        )
+        project = new_project(api)
+        res = api.post(f"{API}/projects/{project}/images:import-folder", json={"folder": "/x"})
+    assert res.status_code == 403
+    assert "container" in res.json()["message"]
 
 
 def test_connected_folders_survive_a_restart(tmp_path: Path, library: Path) -> None:
