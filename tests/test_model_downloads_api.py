@@ -74,6 +74,16 @@ def test_a_finished_download_shows_up_as_installed(
     assert downloaded["installed"] is True
     assert status["can_segment"] is True
 
+    # Replacing a half by hand means it no longer matches the download, so it should stop
+    # claiming to be that model.
+    api.post(
+        f"{API}/ml/models",
+        files={"file": ("mine.onnx", b"a different encoder", "application/onnx")},
+        data={"kind": "sam-encoder"},
+    )
+    after = api.get(f"{API}/ml").json()
+    assert next(d for d in after["downloads"] if d["id"] == entry.id)["installed"] is False
+
 
 def test_only_an_administrator_can_download_a_model_on_a_shared_server(tmp_path: Path) -> None:
     settings = Settings(
