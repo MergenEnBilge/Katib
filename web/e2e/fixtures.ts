@@ -10,6 +10,11 @@ export const LIBRARY = join(ROOT, 'library');
 //: A small YOLO-shaped dataset, nested under its own folder the way a real one would be, so a
 //: test can pick "the folder" the way a browser's folder picker actually hands files back.
 export const UPLOAD_SET = join(ROOT, 'upload-set');
+//: The same dataset's files, as individual paths -- for picking them loose, with no folder
+//: involved, the way a flat multi-file picker hands files back.
+export const UPLOAD_SET_YAML = join(UPLOAD_SET, 'data.yaml');
+export const UPLOAD_SET_IMAGE = join(UPLOAD_SET, 'images', 'a.png');
+export const UPLOAD_SET_LABEL = join(UPLOAD_SET, 'labels', 'a.txt');
 
 function chunk(type: string, data: Buffer): Buffer {
   const body = Buffer.concat([Buffer.from(type), data]);

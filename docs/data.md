@@ -15,14 +15,16 @@ container only sees folders that were mounted into it when it started, which is 
 Katib cannot reach anything beyond that, however correct the path looks, because the container's
 filesystem is not your computer's.
 
-**Upload a folder**, or its neighbour **Upload pictures** for a handful of loose files, sends
-everything over the browser instead, and copies it into Katib's data folder. This is what to
+**Upload a folder**, or its neighbour **Upload pictures and labels** for a handful of loose files,
+sends everything over the browser instead, and copies it into Katib's data folder. This is what to
 reach for when Katib cannot see your files directly — there is no way around the copy in that
 case, because the browser and the server genuinely do not share a filesystem; sending the bytes is
 the only path between them. It works everywhere, though, which "Connect a folder" cannot promise.
 A whole folder brings its subfolders, and any `data.yaml`, labels or other annotation files
-inside, along with it, read the same way as [an existing dataset](#reading-an-existing-dataset)
-below. Either way, the upload goes up one file at a time, so you can watch it happen and see which
+inside, along with it. Pick loose files instead of a folder and the same thing happens without
+one: a picture and its label file are matched up by name whether or not they shared a folder,
+read the same way as [an existing dataset](#reading-an-existing-dataset) below. Either way, the
+upload goes up one file at a time, so you can watch it happen and see which
 file is going up right now, rather than stare at a spinner that gives no sign of life until a
 folder of any real size finishes. Files can be up to 100 MB by default (`limits.max_upload_mb`),
 and a folder up to 20,000 files (`limits.max_folder_upload_files`) — both are settings, so raise
