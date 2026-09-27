@@ -123,6 +123,14 @@ Everything Katib stores is in its data folder, plus the database if you use Post
 
 - **SQLite:** stop Katib and copy the data folder. Or, while it runs, copy the folder including the `katib.db-wal` file next to `katib.db`.
 - **Postgres:** use `pg_dump` for the database, and copy the data folder for uploads and undo history.
+
+## Starting over
+
+**Settings**, then **Storage**, has a **Reset everything** button in its danger zone. It deletes
+the whole data folder — every project, uploaded picture and saved setting — and Katib restarts
+into the same first-run screen it shows on a brand new install. Folders you only connected are
+untouched, since those pictures were never copied here. It needs the word `RESET` typed to run,
+and there is no undo, so make a backup first if anything in there is worth keeping.
 - **Connected folders** are your own photos. Back them up the way you already do.
 
 Thumbnails are cached and can be deleted safely. Katib makes them again when needed.

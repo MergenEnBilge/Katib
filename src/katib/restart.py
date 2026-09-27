@@ -4,6 +4,7 @@ import os
 import subprocess
 import sys
 import threading
+from collections.abc import Callable
 
 DELAY_SECONDS = 0.7
 
@@ -24,6 +25,13 @@ def restart_now() -> None:
     os.execv(args[0], args)  # noqa: S606
 
 
-def restart_soon() -> None:
-    """Restart after the reply has gone out."""
-    threading.Timer(DELAY_SECONDS, restart_now).start()
+def restart_soon(before: Callable[[], None] | None = None) -> None:
+    """Restart after the reply has gone out. `before`, if given, runs just ahead of it -- while
+    the request that asked for the connections it needs closed has already finished with them."""
+
+    def go() -> None:
+        if before is not None:
+            before()
+        restart_now()
+
+    threading.Timer(DELAY_SECONDS, go).start()
