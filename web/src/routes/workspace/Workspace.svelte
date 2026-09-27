@@ -138,6 +138,15 @@
       .catch(() => (canSegment = false));
   });
 
+  // Opening from a project card's "Manage team" action skips straight to that dialog, rather
+  // than making someone find the Team button again once they land in the workspace.
+  onMount(() => {
+    if (new URLSearchParams(location.search).get('open') === 'team') {
+      dialog = 'team';
+      history.replaceState(null, '', location.pathname);
+    }
+  });
+
   // Only show the tools this project can save shapes for.
   const tools = $derived(
     allTools.filter(

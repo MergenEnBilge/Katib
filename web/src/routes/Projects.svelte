@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Layers, Plus, Search } from '@lucide/svelte';
+  import { EllipsisVertical, Layers, Plus, Search } from '@lucide/svelte';
   import { api, ApiError } from '../lib/api/client';
   import type { Project } from '../lib/api/types';
   import { relativeTime } from '../lib/format';
@@ -10,6 +10,8 @@
   import Button from '../lib/ui/Button.svelte';
   import Callout from '../lib/ui/Callout.svelte';
   import EmptyState from '../lib/ui/EmptyState.svelte';
+  import Modal from '../lib/ui/Modal.svelte';
+  import TextField from '../lib/ui/TextField.svelte';
   import GetStarted from './GetStarted.svelte';
   import NewProjectDialog from './NewProjectDialog.svelte';
 
@@ -60,6 +62,38 @@
     if (event.metaKey || event.ctrlKey || event.shiftKey) return;
     event.preventDefault();
     router.navigate(`/p/${project.id}`);
+  }
+
+  let actionsFor = $state<Project | null>(null);
+  let confirmName = $state('');
+  let deleting = $state(false);
+  let deleteError = $state('');
+
+  function openActions(event: MouseEvent, project: Project): void {
+    event.preventDefault();
+    event.stopPropagation();
+    confirmName = '';
+    deleteError = '';
+    actionsFor = project;
+  }
+
+  function manageTeam(): void {
+    if (actionsFor) router.navigate(`/p/${actionsFor.id}?open=team`);
+  }
+
+  async function deleteProject(): Promise<void> {
+    if (!actionsFor) return;
+    deleting = true;
+    deleteError = '';
+    try {
+      await api.projects.remove(actionsFor.id);
+      projects = (projects ?? []).filter((p) => p.id !== actionsFor?.id);
+      actionsFor = null;
+    } catch (err) {
+      deleteError = err instanceof ApiError ? err.message : 'Could not delete this project.';
+    } finally {
+      deleting = false;
+    }
   }
 </script>
 
@@ -113,6 +147,16 @@
           {#if project.cover_image_id}
             <img src={api.images.thumbUrl(project.cover_image_id)} alt="" loading="lazy" />
           {/if}
+          {#if project.role === 'owner' || project.role === 'manager'}
+            <button
+              type="button"
+              class="actions"
+              aria-label="More actions for {project.name}"
+              onclick={(e) => openActions(e, project)}
+            >
+              <EllipsisVertical size={16} />
+            </button>
+          {/if}
         </div>
         <div class="info">
           <h2 title={project.name}>{project.name}</h2>
@@ -149,6 +193,43 @@
       router.navigate(`/p/${project.id}`);
     }}
   />
+{/if}
+
+{#if actionsFor}
+  <Modal title={actionsFor.name} onclose={() => (actionsFor = null)}>
+    <div class="action-list">
+      <Button onclick={manageTeam}>Manage team</Button>
+    </div>
+
+    {#if actionsFor.role === 'owner'}
+      <div class="danger">
+        <p class="dangerLabel">Danger zone</p>
+        <p class="note">
+          Delete this project, its classes, labels and team. Pictures you uploaded go with it;
+          pictures in a folder you only connected are left alone.
+        </p>
+        <div class="row">
+          <TextField
+            label={`Type "${actionsFor.name}" to confirm`}
+            bind:value={confirmName}
+          />
+          <Button
+            variant="danger"
+            loading={deleting}
+            disabled={confirmName !== actionsFor.name}
+            onclick={deleteProject}
+          >
+            {deleting ? 'Deleting...' : 'Delete project'}
+          </Button>
+        </div>
+        {#if deleteError}<Callout tone="danger">{deleteError}</Callout>{/if}
+      </div>
+    {/if}
+
+    {#snippet footer()}
+      <Button variant="primary" onclick={() => (actionsFor = null)}>Done</Button>
+    {/snippet}
+  </Modal>
 {/if}
 
 <style>
@@ -219,6 +300,7 @@
   /* The first picture in the project, so a card is recognisable at a glance. An empty project
      keeps the stripes. */
   .cover {
+    position: relative;
     height: 128px;
     background: repeating-linear-gradient(135deg, var(--stripe) 0 8px, transparent 8px 16px),
       var(--image-bg);
@@ -229,6 +311,62 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+  }
+
+  .actions {
+    position: absolute;
+    top: var(--space-2);
+    right: var(--space-2);
+    display: grid;
+    place-items: center;
+    width: var(--h-icon-sm);
+    height: var(--h-icon-sm);
+    color: #fff;
+    background: rgb(0 0 0 / 0.45);
+    border: 0;
+    border-radius: var(--radius-control);
+    cursor: pointer;
+  }
+
+  .actions:hover {
+    background: rgb(0 0 0 / 0.65);
+  }
+
+  .action-list {
+    display: flex;
+    gap: var(--space-2);
+    margin-block-end: var(--space-2);
+  }
+
+  .danger {
+    padding-block-start: var(--space-4);
+    margin-block-start: var(--space-4);
+    border-block-start: 1px solid var(--border);
+  }
+
+  .dangerLabel {
+    margin: 0 0 var(--space-1);
+    font-size: var(--text-overline);
+    font-weight: 500;
+    color: var(--danger-text);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .danger .note {
+    margin: 0 0 var(--space-2);
+    color: var(--text-2);
+    max-width: 68ch;
+  }
+
+  .danger .row {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--space-2);
+  }
+
+  .danger .row > :global(:first-child) {
+    flex: 1;
   }
 
   .info {
