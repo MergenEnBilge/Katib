@@ -11,7 +11,7 @@
 
 set -eu
 
-IMAGE="${KATIB_IMAGE:-ghcr.io/mergenenbilge/katib:v0.1.0}"
+IMAGE="${KATIB_IMAGE:-ghcr.io/mergenenbilge/katib:v0.2.0}"
 NAME="katib"
 PORT="8420"
 PHOTOS=""
