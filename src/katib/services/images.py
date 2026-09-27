@@ -311,15 +311,33 @@ def _safe_relative_key(raw: str) -> str | None:
     return "/".join(parts)
 
 
+def upload_batch_path(ctx: StorageContext, project_id: uuid.UUID, batch: uuid.UUID) -> Path:
+    """Where one folder's uploaded files land, whether or not any have arrived yet."""
+    return ctx.folder_uploads.path(f"{project_id}/{batch}")
+
+
+def count_uploaded_folder_files(
+    ctx: StorageContext, project_id: uuid.UUID, batch: uuid.UUID
+) -> int:
+    root = upload_batch_path(ctx, project_id, batch)
+    return sum(1 for p in root.rglob("*") if p.is_file()) if root.is_dir() else 0
+
+
 def keep_uploaded_folder_file(
     ctx: StorageContext, project_id: uuid.UUID, batch: uuid.UUID, filename: str, data: BinaryIO
 ) -> bool:
     """Save one file from a folder chosen in the browser, as part of `batch`.
 
+    A folder arrives as many small requests, one per file, rather than one that carries
+    everything -- that is what lets the person watch it happen instead of staring at a spinner
+    for a folder of any real size.
+
     True once the file is written. False, quietly, for anything that is not a picture or one of
     the label files usually found beside them -- a folder picker sweeps up a lot of those, and
     reporting each one back would drown out anything worth knowing.
     """
+    if count_uploaded_folder_files(ctx, project_id, batch) >= MAX_FOLDER_UPLOAD_FILES:
+        raise InvalidInput(f"A folder upload is limited to {MAX_FOLDER_UPLOAD_FILES:,} files.")
     rel = _safe_relative_key(filename)
     if rel is None:
         return False

@@ -220,6 +220,12 @@ class ConnectResultOut(BaseModel):
     job: JobOut
 
 
+class UploadFileOut(BaseModel):
+    #: False for a file that was neither a picture nor one of the label files read alongside
+    #: them. Not an error -- a folder picker sweeps up plenty of those.
+    kept: bool
+
+
 class AnnotationOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

@@ -3,7 +3,7 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, File, Response, UploadFile
+from fastapi import APIRouter, File, Form, Response, UploadFile
 
 from katib.api.deps import AnywhereDep, RunnerDep, SessionDep, StorageDep, UserDep, need
 from katib.api.images import start_import
@@ -14,6 +14,7 @@ from katib.api.schemas import (
     FolderListingOut,
     JobOut,
     PlaceOut,
+    UploadFileOut,
 )
 from katib.services import folders, images, projects
 from katib.services.errors import InvalidInput
@@ -68,44 +69,50 @@ def connect(
     return ConnectResultOut(folder=ConnectedFolderOut.model_validate(folder), job=job)
 
 
-@router.post(
-    "/projects/{project_id}/folders:upload", response_model=ConnectResultOut, status_code=201
-)
-def upload_folder(
+@router.post("/projects/{project_id}/folders:upload-file", response_model=UploadFileOut)
+def upload_folder_file(
     project_id: uuid.UUID,
-    files: Annotated[list[UploadFile], File()],
+    batch: Annotated[uuid.UUID, Form()],
+    file: Annotated[UploadFile, File()],
+    session: SessionDep,
+    user: UserDep,
+    storage: StorageDep,
+) -> UploadFileOut:
+    """Save one file of a folder chosen in the browser. Call once per file, then :upload-finish.
+
+    This is the way in when Katib cannot browse the computer it runs on -- most often because it
+    is in a container, where the filesystem the browser sees and the one Katib sees are not the
+    same thing. The browser can still see the real folder, so it sends what is in it instead of a
+    path Katib would have no way to reach. One request per file, rather than the whole folder in
+    one, is what lets the person watch it happen instead of staring at a spinner.
+    """
+    need(session, user, project_id, "manage")
+    kept = images.keep_uploaded_folder_file(
+        storage, project_id, batch, file.filename or "", file.file
+    )
+    return UploadFileOut(kept=kept)
+
+
+@router.post(
+    "/projects/{project_id}/folders:upload-finish", response_model=ConnectResultOut, status_code=201
+)
+def upload_folder_finish(
+    project_id: uuid.UUID,
+    batch: Annotated[uuid.UUID, Form()],
     session: SessionDep,
     user: UserDep,
     storage: StorageDep,
     runner: RunnerDep,
 ) -> ConnectResultOut:
-    """Receive a folder chosen in the browser and connect it like any other.
-
-    This is the way in when Katib cannot browse the computer it runs on -- most often because it
-    is in a container, where the filesystem the browser sees and the one Katib sees are not the
-    same thing. The browser can still see the real folder, so it sends what is in it instead of
-    a path Katib would have no way to reach.
-    """
+    """Connect the folder a set of :upload-file calls just built and start reading it."""
     need(session, user, project_id, "manage")
     projects.get_project(session, project_id)
-    if not files:
-        raise InvalidInput("Choose a folder with at least one file in it.")
-    if len(files) > images.MAX_FOLDER_UPLOAD_FILES:
-        raise InvalidInput(
-            f"A folder upload is limited to {images.MAX_FOLDER_UPLOAD_FILES:,} files."
-        )
-
-    batch = uuid.uuid4()
-    kept = sum(
-        images.keep_uploaded_folder_file(storage, project_id, batch, f.filename or "", f.file)
-        for f in files
-    )
-    if kept == 0:
+    root = images.upload_batch_path(storage, project_id, batch)
+    if not root.is_dir() or images.count_uploaded_folder_files(storage, project_id, batch) == 0:
         raise InvalidInput(
             "None of those files could be used. Choose a folder with pictures in it."
         )
 
-    root = storage.folder_uploads.path(f"{project_id}/{batch}")
     folder = folders.connect(session, project_id, str(root), storage, unrestricted=True)
     # The job writes from its own connection, so the folder row must be committed first.
     session.commit()

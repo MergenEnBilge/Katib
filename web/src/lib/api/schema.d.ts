@@ -1073,7 +1073,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/projects/{project_id}/folders:upload": {
+    "/api/v1/projects/{project_id}/folders:upload-file": {
         parameters: {
             query?: never;
             header?: never;
@@ -1083,15 +1083,36 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Upload Folder
-         * @description Receive a folder chosen in the browser and connect it like any other.
+         * Upload Folder File
+         * @description Save one file of a folder chosen in the browser. Call once per file, then :upload-finish.
          *
          *     This is the way in when Katib cannot browse the computer it runs on -- most often because it
          *     is in a container, where the filesystem the browser sees and the one Katib sees are not the
-         *     same thing. The browser can still see the real folder, so it sends what is in it instead of
-         *     a path Katib would have no way to reach.
+         *     same thing. The browser can still see the real folder, so it sends what is in it instead of a
+         *     path Katib would have no way to reach. One request per file, rather than the whole folder in
+         *     one, is what lets the person watch it happen instead of staring at a spinner.
          */
-        post: operations["upload_folder_api_v1_projects__project_id__folders_upload_post"];
+        post: operations["upload_folder_file_api_v1_projects__project_id__folders_upload_file_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/folders:upload-finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload Folder Finish
+         * @description Connect the folder a set of :upload-file calls just built and start reading it.
+         */
+        post: operations["upload_folder_finish_api_v1_projects__project_id__folders_upload_finish_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1371,10 +1392,23 @@ export interface components {
             /** Results */
             results: components["schemas"]["OpResultOut"][];
         };
-        /** Body_upload_folder_api_v1_projects__project_id__folders_upload_post */
-        Body_upload_folder_api_v1_projects__project_id__folders_upload_post: {
-            /** Files */
-            files: string[];
+        /** Body_upload_folder_file_api_v1_projects__project_id__folders_upload_file_post */
+        Body_upload_folder_file_api_v1_projects__project_id__folders_upload_file_post: {
+            /**
+             * Batch
+             * Format: uuid
+             */
+            batch: string;
+            /** File */
+            file: string;
+        };
+        /** Body_upload_folder_finish_api_v1_projects__project_id__folders_upload_finish_post */
+        Body_upload_folder_finish_api_v1_projects__project_id__folders_upload_finish_post: {
+            /**
+             * Batch
+             * Format: uuid
+             */
+            batch: string;
         };
         /** Body_upload_image_api_v1_projects__project_id__images_post */
         Body_upload_image_api_v1_projects__project_id__images_post: {
@@ -2434,6 +2468,11 @@ export interface components {
             last_used_at: string | null;
             /** Token */
             token?: string | null;
+        };
+        /** UploadFileOut */
+        UploadFileOut: {
+            /** Kept */
+            kept: boolean;
         };
         /** UserOut */
         UserOut: {
@@ -4826,7 +4865,7 @@ export interface operations {
             };
         };
     };
-    upload_folder_api_v1_projects__project_id__folders_upload_post: {
+    upload_folder_file_api_v1_projects__project_id__folders_upload_file_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -4837,7 +4876,42 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "multipart/form-data": components["schemas"]["Body_upload_folder_api_v1_projects__project_id__folders_upload_post"];
+                "multipart/form-data": components["schemas"]["Body_upload_folder_file_api_v1_projects__project_id__folders_upload_file_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadFileOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_folder_finish_api_v1_projects__project_id__folders_upload_finish_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["Body_upload_folder_finish_api_v1_projects__project_id__folders_upload_finish_post"];
             };
         };
         responses: {

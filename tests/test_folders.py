@@ -1,5 +1,6 @@
 import io
 import time
+import uuid
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
@@ -227,19 +228,33 @@ def png_bytes(size: tuple[int, int] = (16, 16), color: str = "red") -> bytes:
     return buf.getvalue()
 
 
+def upload_file(
+    api: TestClient, project: str, batch: str, name: str, content: bytes, content_type: str
+) -> Any:
+    return api.post(
+        f"{API}/projects/{project}/folders:upload-file",
+        data={"batch": batch},
+        files={"file": (name, content, content_type)},
+    )
+
+
+def upload_finish(api: TestClient, project: str, batch: str) -> Any:
+    return api.post(f"{API}/projects/{project}/folders:upload-finish", data={"batch": batch})
+
+
 def test_uploading_a_folder_connects_it_like_a_browsed_one(solo: TestClient) -> None:
     """The way in when Katib cannot browse the computer it runs on: the browser sends what a
-    folder picker saw, one file per part, and Katib treats the result like any connected folder."""
+    folder picker saw, one file per request, and Katib treats the result like any connected
+    folder once every file has arrived."""
     project = new_project(solo)
-    made = solo.post(
-        f"{API}/projects/{project}/folders:upload",
-        files=[
-            ("files", ("trip/a.png", png_bytes(color="red"), "image/png")),
-            ("files", ("trip/more/b.png", png_bytes(color="blue"), "image/png")),
-        ],
-    )
-    assert made.status_code == 201, made.text
-    job = wait_job(solo, made.json()["job"]["id"])
+    batch = str(uuid.uuid4())
+    for name, color in [("trip/a.png", "red"), ("trip/more/b.png", "blue")]:
+        made = upload_file(solo, project, batch, name, png_bytes(color=color), "image/png")
+        assert made.status_code == 200 and made.json()["kept"] is True, made.text
+
+    finished = upload_finish(solo, project, batch)
+    assert finished.status_code == 201, finished.text
+    job = wait_job(solo, finished.json()["job"]["id"])
     assert job["status"] == "done", job
     assert job["result"]["added"] == 2
     assert len(solo.get(f"{API}/projects/{project}/images").json()["items"]) == 2
@@ -248,17 +263,15 @@ def test_uploading_a_folder_connects_it_like_a_browsed_one(solo: TestClient) -> 
 
 def test_an_uploaded_folder_can_carry_its_labels_too(solo: TestClient) -> None:
     project = new_project(solo)
+    batch = str(uuid.uuid4())
     yaml_text = "path: .\ntrain: images\nval: images\nnames:\n  0: car\n"
-    made = solo.post(
-        f"{API}/projects/{project}/folders:upload",
-        files=[
-            ("files", ("set/data.yaml", yaml_text.encode(), "application/x-yaml")),
-            ("files", ("set/labels/a.txt", b"0 0.5 0.5 0.2 0.2\n", "text/plain")),
-            ("files", ("set/images/a.png", png_bytes(), "image/png")),
-        ],
-    )
-    assert made.status_code == 201, made.text
-    job = wait_job(solo, made.json()["job"]["id"])
+    upload_file(solo, project, batch, "set/data.yaml", yaml_text.encode(), "application/x-yaml")
+    upload_file(solo, project, batch, "set/labels/a.txt", b"0 0.5 0.5 0.2 0.2\n", "text/plain")
+    upload_file(solo, project, batch, "set/images/a.png", png_bytes(), "image/png")
+
+    finished = upload_finish(solo, project, batch)
+    assert finished.status_code == 201, finished.text
+    job = wait_job(solo, finished.json()["job"]["id"])
     assert job["status"] == "done", job
     assert job["result"]["dataset"]["format"] == "yolo-detect"
     assert job["result"]["dataset"]["shapes_added"] == 1
@@ -269,33 +282,46 @@ def test_an_uploaded_folder_can_carry_its_labels_too(solo: TestClient) -> None:
 def test_uploading_a_folder_ignores_files_it_cannot_use(solo: TestClient) -> None:
     """A folder picker sweeps up whatever is there. Only pictures and label files matter."""
     project = new_project(solo)
-    made = solo.post(
-        f"{API}/projects/{project}/folders:upload",
-        files=[
-            ("files", ("photos/a.png", png_bytes(), "image/png")),
-            ("files", ("photos/.DS_Store", b"junk", "application/octet-stream")),
-            ("files", ("photos/notes.docx", b"junk", "application/octet-stream")),
-        ],
-    )
-    assert made.status_code == 201, made.text
-    job = wait_job(solo, made.json()["job"]["id"])
+    batch = str(uuid.uuid4())
+    kept = upload_file(solo, project, batch, "photos/a.png", png_bytes(), "image/png")
+    assert kept.json()["kept"] is True
+    for name in ("photos/.DS_Store", "photos/notes.docx"):
+        ignored = upload_file(solo, project, batch, name, b"junk", "application/octet-stream")
+        assert ignored.json()["kept"] is False
+
+    finished = upload_finish(solo, project, batch)
+    job = wait_job(solo, finished.json()["job"]["id"])
     assert job["result"]["added"] == 1
 
 
 def test_uploading_a_folder_rejects_path_traversal_in_a_file_name(solo: TestClient) -> None:
     project = new_project(solo)
-    made = solo.post(
-        f"{API}/projects/{project}/folders:upload",
-        files=[("files", ("../../../etc/passwd.png", png_bytes(), "image/png"))],
-    )
-    assert made.status_code == 422
-    assert "could be used" in made.json()["message"]
+    batch = str(uuid.uuid4())
+    kept = upload_file(solo, project, batch, "../../../etc/passwd.png", png_bytes(), "image/png")
+    assert kept.status_code == 200 and kept.json()["kept"] is False
+
+    finished = upload_finish(solo, project, batch)
+    assert finished.status_code == 422
+    assert "could be used" in finished.json()["message"]
 
 
-def test_uploading_an_empty_folder_is_refused(solo: TestClient) -> None:
+def test_finishing_an_upload_nothing_was_sent_for_is_refused(solo: TestClient) -> None:
     project = new_project(solo)
-    made = solo.post(f"{API}/projects/{project}/folders:upload", files=[])
-    assert made.status_code == 422
+    finished = upload_finish(solo, project, str(uuid.uuid4()))
+    assert finished.status_code == 422
+
+
+def test_a_folder_upload_is_capped(solo: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    from katib.services import images as images_service
+
+    monkeypatch.setattr(images_service, "MAX_FOLDER_UPLOAD_FILES", 1)
+    project = new_project(solo)
+    batch = str(uuid.uuid4())
+    first = upload_file(solo, project, batch, "a.png", png_bytes(), "image/png")
+    assert first.status_code == 200 and first.json()["kept"] is True
+    second = upload_file(solo, project, batch, "b.png", png_bytes(color="blue"), "image/png")
+    assert second.status_code == 422
+    assert "limited to" in second.json()["message"]
 
 
 def test_only_a_manager_can_upload_a_folder_on_a_shared_server(tmp_path: Path) -> None:
@@ -314,8 +340,5 @@ def test_only_a_manager_can_upload_a_folder_on_a_shared_server(tmp_path: Path) -
             f"{API}/auth/accept",
             json={"token": token, "email": "v@example.com", "name": "V", "password": PASSWORD},
         )
-        refused = viewer.post(
-            f"{API}/projects/{project}/folders:upload",
-            files=[("files", ("a.png", png_bytes(), "image/png"))],
-        )
+        refused = upload_file(viewer, project, str(uuid.uuid4()), "a.png", png_bytes(), "image/png")
     assert refused.status_code == 403
