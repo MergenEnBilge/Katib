@@ -62,7 +62,7 @@ the network at all.
 With Docker, the whole install is one line:
 
 ```bash
-docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.3.0
+docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.3.1
 ```
 
 Open <http://localhost:8420>. Katib asks for a setup code before it will make the first account,
@@ -172,18 +172,22 @@ pnpm --dir web dev            # front end on :5173, proxies /api to the backend
 
 ## Status
 
-This is 0.3.0. Everything described here works today, and the checks run on every push: the
+This is 0.3.1. Everything described here works today, and the checks run on every push: the
 Python tests against both SQLite and Postgres, the browser tests at desktop and phone sizes with
 an automated accessibility pass, a Docker build, and speed budgets. Every export format is
 exercised by a test that sends a project out through the API and reads it back in again.
 
-Since 0.2.0: the desktop app's own window can now actually be shared on your network — turning
-that on used to be accepted and saved but silently ignored. Click to select can fetch a Segment
-Anything model by name instead of asking you to bring your own file, and a project can be deleted,
-or its team managed, straight from its card in the project list. The guided tour, which used to
-lose track of what it was pointing at on a phone, opens whatever panel it needs to point at
-instead. A handful of other bugs, on the network and off it, are listed in
-[Security](docs/security.md).
+Since 0.3.0: the desktop app can now connect to a Katib someone else is already running, instead
+of only ever starting one of its own, and the address its own Share window hands out is the one
+it is actually listening on — sharing had been fixed to bind the right network address, but not
+the right port, so the address it handed out reached nothing. A handful of security fixes are
+listed in [Security](docs/security.md).
+
+Since 0.2.0: the desktop app's own window can share on your network at all — turning that on used
+to be accepted and saved but silently ignored. Click to select can fetch a Segment Anything model
+by name instead of asking you to bring your own file, and a project can be deleted, or its team
+managed, straight from its card in the project list. The guided tour, which used to lose track of
+what it was pointing at on a phone, opens whatever panel it needs to point at instead.
 
 Being honest about what that number does and does not promise:
 
