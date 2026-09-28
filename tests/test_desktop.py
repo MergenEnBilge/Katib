@@ -1,3 +1,4 @@
+import socket
 import sys
 import types
 import urllib.request
@@ -11,7 +12,19 @@ from katib.desktop.window import DesktopUnavailable, free_port, run_desktop, win
 
 
 def test_free_port_is_usable() -> None:
-    assert 1024 <= free_port("127.0.0.1") <= 65535
+    assert 1024 <= free_port("127.0.0.1", 0) <= 65535
+
+
+def test_free_port_prefers_the_configured_port() -> None:
+    port = free_port("127.0.0.1", 0)
+    assert free_port("127.0.0.1", port) == port
+
+
+def test_free_port_falls_back_when_the_configured_port_is_taken() -> None:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as busy:
+        busy.bind(("127.0.0.1", 0))
+        taken = busy.getsockname()[1]
+        assert free_port("127.0.0.1", taken) != taken
 
 
 @pytest.mark.parametrize(
@@ -80,6 +93,27 @@ def test_sharing_on_the_network_actually_binds_that_address(
     run_desktop(settings)
 
     assert seen_config["host"] == "0.0.0.0"  # noqa: S104
+
+
+def test_the_share_window_is_told_the_port_actually_bound(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The bug this pins: the desktop window used to always pick a random port and never tell
+    Settings, so the Share window kept handing out the port from Settings -- one nothing was
+    actually listening on."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as busy:
+        busy.bind(("127.0.0.1", 0))
+        taken = busy.getsockname()[1]
+
+        monkeypatch.setitem(
+            sys.modules,
+            "webview",
+            types.SimpleNamespace(create_window=lambda *a, **k: None, start=lambda: None),
+        )
+        settings = Settings(storage={"data_dir": str(tmp_path)}, server={"port": taken})
+        run_desktop(settings)
+
+        assert settings.server.port != taken
 
 
 def test_missing_toolkit_gives_a_plain_message(

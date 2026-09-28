@@ -22,10 +22,16 @@ class DesktopUnavailable(Exception):
     """The window toolkit is not installed."""
 
 
-def free_port(host: str) -> int:
-    """A port nothing is using right now, on the interface the server will actually bind."""
+def free_port(host: str, preferred: int) -> int:
+    """The configured port, if nothing on this interface is already using it -- so a device
+    told to reach this window at that port, such as from the Share window, actually finds it
+    there. Falls back to whatever port is free, same as before Sharing existed, rather than
+    refusing to start."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
-        probe.bind((host, 0))
+        try:
+            probe.bind((host, preferred))
+        except OSError:
+            probe.bind((host, 0))
         return int(probe.getsockname()[1])
 
 
@@ -45,7 +51,8 @@ def run_desktop(settings: Settings) -> None:
         ) from err
 
     host = settings.server.host
-    port = free_port(host)
+    port = free_port(host, settings.server.port)
+    settings.server.port = port  # so the Share window hands out the address that actually answers
     api = create_app(settings)
     api.state.can_restart = False  # the window would be left pointing at a server that is gone
     server = uvicorn.Server(uvicorn.Config(api, host=host, port=port, log_level="warning"))
