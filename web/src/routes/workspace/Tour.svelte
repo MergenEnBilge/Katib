@@ -5,8 +5,24 @@
   import { placeCard, type Rect, type TourStep } from '../../lib/tour/steps';
   import Button from '../../lib/ui/Button.svelte';
 
-  /** `ws` is only needed by tours with a step that waits for the person to draw. */
-  let { steps, ws, onclose }: { steps: TourStep[]; ws?: Workspace; onclose: () => void } = $props();
+  /** `ws` is only needed by tours with a step that waits for the person to draw.
+   * `onbeforestep`, if given, is a chance to reveal the target before it is measured -- a step
+   * that lives in a slide-over panel on a narrow screen needs that panel opened first. */
+  let {
+    steps,
+    ws,
+    onclose,
+    onbeforestep,
+  }: {
+    steps: TourStep[];
+    ws?: Workspace;
+    onclose: () => void;
+    onbeforestep?: (target: string | null) => void;
+  } = $props();
+
+  /** Toolbar buttons that a narrow screen hides outright, with nothing to open in their place. */
+  const HIDE_ON_NARROW = new Set(['import', 'export', 'split', 'team', 'help']);
+  const NARROW_WIDTH = 699;
 
   let index = $state(0);
   let target = $state<Rect | null>(null);
@@ -37,9 +53,17 @@
   }
 
   $effect(() => {
-    void step;
+    const wanted = step?.target ?? null;
     drew = false;
-    void arrange();
+    if (wanted && HIDE_ON_NARROW.has(wanted) && innerWidth <= NARROW_WIDTH) {
+      next();
+      return;
+    }
+    // Revealing the target (opening a slide-over panel, say) is a one-time reaction to the step
+    // itself changing -- not something to redo on every poll of arrange() below, which would
+    // otherwise fight anyone who closed that panel back up again while reading this step.
+    onbeforestep?.(wanted);
+    void tick().then(arrange);
     card?.querySelector<HTMLElement>('[data-next]')?.focus({ preventScroll: true });
   });
 
