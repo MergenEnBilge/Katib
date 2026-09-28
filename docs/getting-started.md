@@ -16,7 +16,7 @@ someone asks it to.
 
 !!! note "Which version"
 
-    The commands here name `0.2.0`, the current release. Later versions are on the
+    The commands here name `0.3.0`, the current release. Later versions are on the
     [releases page](https://github.com/MergenEnBilge/Katib/releases); swap the number and
     everything else stays the same.
 
@@ -108,7 +108,7 @@ Mac with Xcode, you can also build and install the real app — see
 One line, on any machine with Docker:
 
 ```bash
-docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.2.0
+docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.3.0
 ```
 
 Naming the version, as above, means an upgrade happens when you ask for it rather than the next

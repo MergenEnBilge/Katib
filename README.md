@@ -62,7 +62,7 @@ the network at all.
 With Docker, the whole install is one line:
 
 ```bash
-docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.2.0
+docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.3.0
 ```
 
 Open <http://localhost:8420>. Katib asks for a setup code before it will make the first account,
@@ -172,15 +172,18 @@ pnpm --dir web dev            # front end on :5173, proxies /api to the backend
 
 ## Status
 
-This is 0.2.0. Everything described here works today, and the checks run on every push: the
+This is 0.3.0. Everything described here works today, and the checks run on every push: the
 Python tests against both SQLite and Postgres, the browser tests at desktop and phone sizes with
 an automated accessibility pass, a Docker build, and speed budgets. Every export format is
 exercised by a test that sends a project out through the API and reads it back in again.
 
-Since 0.1.0, a folder can be uploaded through the browser and not only connected on the server —
-the way in when Katib runs in a container and cannot see your files directly — with a progress
-bar and every upload limit adjustable in Settings. Connecting or uploading a folder that already
-looks like a labelled dataset now picks up its classes, splits and shapes in the same step.
+Since 0.2.0: the desktop app's own window can now actually be shared on your network — turning
+that on used to be accepted and saved but silently ignored. Click to select can fetch a Segment
+Anything model by name instead of asking you to bring your own file, and a project can be deleted,
+or its team managed, straight from its card in the project list. The guided tour, which used to
+lose track of what it was pointing at on a phone, opens whatever panel it needs to point at
+instead. A handful of other bugs, on the network and off it, are listed in
+[Security](docs/security.md).
 
 Being honest about what that number does and does not promise:
 
@@ -189,9 +192,11 @@ Being honest about what that number does and does not promise:
   a Mac.
 - Installers are not code-signed, so Windows and macOS warn you the first time. The APK is signed
   with a debug key unless you configure a release keystore.
-- Click to select is covered end to end by tests that run a stand-in model, which proves the
-  plumbing, the click arithmetic and the outlining. It has not been run here against real SAM
-  weights.
+- Click to select has been run end to end against a real downloaded Segment Anything model, not
+  only the stand-in used in tests — that is also how a real failure mode of the smallest model
+  turned up and got a guard against it, rather than something found later by someone relying on it.
+- The Android app is a WebView around the same interface as the browser, not a native app. Making
+  it one is a larger piece of work than fits in one release.
 - Your data is safe to keep: every schema change ships with a migration, and upgrading a container
   runs them at startup.
 
