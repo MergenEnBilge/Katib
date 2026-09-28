@@ -175,6 +175,15 @@ def write_data_dir_choice(data_dir: str) -> None:
     _write_json(config_dir() / "location.json", {"data_dir": data_dir})
 
 
+def read_remote_choice() -> str:
+    """The address of another Katib server last typed into the desktop launcher, if any."""
+    return str(_read_json(config_dir() / "remote.json").get("url", ""))
+
+
+def write_remote_choice(url: str) -> None:
+    _write_json(config_dir() / "remote.json", {"url": url})
+
+
 def read_saved(data_dir: Path) -> dict[str, dict[str, Any]]:
     """Settings saved from inside the app, as {section: {key: value}}."""
     raw = _read_json(data_dir / SAVED_FILE)

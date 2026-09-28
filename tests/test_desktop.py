@@ -8,7 +8,39 @@ import pytest
 import uvicorn
 
 from katib.config import Settings
-from katib.desktop.window import DesktopUnavailable, free_port, run_desktop, window_host
+from katib.desktop.window import (
+    DesktopUnavailable,
+    free_port,
+    remote_address,
+    run_desktop,
+    window_host,
+)
+
+
+class FakeWindow:
+    """Stands in for the pywebview window handle ``create_window`` returns."""
+
+    def __init__(self) -> None:
+        self.loaded: str | None = None
+
+    def load_url(self, url: str) -> None:
+        self.loaded = url
+
+
+def fake_webview(on_start: object) -> types.SimpleNamespace:
+    """A ``webview`` module whose window records the launcher it was given and, once started,
+    runs ``on_start(api, window)`` -- standing in for whatever the person clicks in the launcher."""
+    seen: dict[str, object] = {}
+
+    def create_window(title: str, **kwargs: object) -> FakeWindow:
+        seen["title"], seen["html"], seen["api"] = title, kwargs.get("html"), kwargs.get("js_api")
+        seen["window"] = FakeWindow()
+        return seen["window"]  # type: ignore[return-value]
+
+    def start() -> None:
+        on_start(seen["api"], seen["window"])  # type: ignore[operator]
+
+    return types.SimpleNamespace(create_window=create_window, start=start), seen
 
 
 def test_free_port_is_usable() -> None:
@@ -40,28 +72,44 @@ def test_the_window_points_at_something_that_will_answer(host: str, expected: st
     assert window_host(host) == expected
 
 
-def test_window_shows_a_running_server_and_stops_it(
+@pytest.mark.parametrize(
+    ("typed", "expected"),
+    [
+        ("", ""),
+        ("   ", ""),
+        ("katib.example.com", "http://katib.example.com"),
+        ("http://katib.example.com", "http://katib.example.com"),
+        ("https://katib.example.com:8420", "https://katib.example.com:8420"),
+    ],
+)
+def test_remote_address_fills_in_a_scheme_like_a_browser_bar_would(
+    typed: str, expected: str
+) -> None:
+    assert remote_address(typed) == expected
+
+
+def test_opening_your_own_starts_a_server_and_stops_it(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    seen: dict[str, str] = {}
+    checked: dict[str, str] = {}
 
-    def create_window(title: str, url: str, **_: object) -> None:
-        seen["title"], seen["url"] = title, url
+    def click_open_local(api: object, window: FakeWindow) -> None:
+        api.open_local()  # type: ignore[attr-defined]
+        url = window.loaded
+        assert url is not None
+        with urllib.request.urlopen(f"{url}/api/v1/health", timeout=5) as res:
+            checked["health"] = res.read().decode()
+        checked["url"] = url
 
-    def start() -> None:
-        with urllib.request.urlopen(f"{seen['url']}/api/v1/health", timeout=5) as res:
-            seen["health"] = res.read().decode()
-
-    fake = types.SimpleNamespace(create_window=create_window, start=start)
+    fake, _seen = fake_webview(click_open_local)
     monkeypatch.setitem(sys.modules, "webview", fake)
 
     run_desktop(Settings(storage={"data_dir": str(tmp_path)}))
 
-    assert seen["title"] == "Katib"
-    assert seen["url"].startswith("http://127.0.0.1:")
-    assert '"status":"ok"' in seen["health"]
+    assert checked["url"].startswith("http://127.0.0.1:")
+    assert '"status":"ok"' in checked["health"]
     with pytest.raises(OSError):
-        urllib.request.urlopen(f"{seen['url']}/api/v1/health", timeout=2)
+        urllib.request.urlopen(f"{checked['url']}/api/v1/health", timeout=2)
 
 
 def test_sharing_on_the_network_actually_binds_that_address(
@@ -79,11 +127,12 @@ def test_sharing_on_the_network_actually_binds_that_address(
         return real_config(app, **kwargs)  # type: ignore[arg-type]
 
     monkeypatch.setattr(uvicorn, "Config", spy_config)
-    monkeypatch.setitem(
-        sys.modules,
-        "webview",
-        types.SimpleNamespace(create_window=lambda *a, **k: None, start=lambda: None),
-    )
+
+    def click_open_local(api: object, window: FakeWindow) -> None:
+        api.open_local()  # type: ignore[attr-defined]
+
+    fake, _seen = fake_webview(click_open_local)
+    monkeypatch.setitem(sys.modules, "webview", fake)
 
     settings = Settings(
         storage={"data_dir": str(tmp_path)},
@@ -105,15 +154,62 @@ def test_the_share_window_is_told_the_port_actually_bound(
         busy.bind(("127.0.0.1", 0))
         taken = busy.getsockname()[1]
 
-        monkeypatch.setitem(
-            sys.modules,
-            "webview",
-            types.SimpleNamespace(create_window=lambda *a, **k: None, start=lambda: None),
-        )
+        def click_open_local(api: object, window: FakeWindow) -> None:
+            api.open_local()  # type: ignore[attr-defined]
+
+        fake, _seen = fake_webview(click_open_local)
+        monkeypatch.setitem(sys.modules, "webview", fake)
+
         settings = Settings(storage={"data_dir": str(tmp_path)}, server={"port": taken})
         run_desktop(settings)
 
         assert settings.server.port != taken
+
+
+def test_connecting_to_a_server_never_starts_one_of_your_own(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def click_connect(api: object, window: FakeWindow) -> None:
+        result = api.open_remote("team.example.com")  # type: ignore[attr-defined]
+        assert result == {"ok": True}
+
+    fake, seen = fake_webview(click_connect)
+    monkeypatch.setitem(sys.modules, "webview", fake)
+
+    run_desktop(Settings(storage={"data_dir": str(tmp_path)}))
+
+    assert seen["window"].loaded == "http://team.example.com"  # type: ignore[union-attr]
+
+
+def test_connecting_with_nothing_typed_is_rejected(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def click_connect(api: object, window: FakeWindow) -> None:
+        result = api.open_remote("   ")  # type: ignore[attr-defined]
+        assert result["ok"] is False
+
+    fake, seen = fake_webview(click_connect)
+    monkeypatch.setitem(sys.modules, "webview", fake)
+
+    run_desktop(Settings(storage={"data_dir": str(tmp_path)}))
+
+    assert seen["window"].loaded is None  # type: ignore[union-attr]
+
+
+def test_the_launcher_remembers_the_last_server_you_typed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from katib.config import write_remote_choice
+
+    monkeypatch.setenv("KATIB_CONFIG_DIR", str(tmp_path / "config"))
+    write_remote_choice("http://team.example.com")
+
+    fake, seen = fake_webview(lambda api, window: None)
+    monkeypatch.setitem(sys.modules, "webview", fake)
+
+    run_desktop(Settings(storage={"data_dir": str(tmp_path / "data")}))
+
+    assert "team.example.com" in str(seen["html"])
 
 
 def test_missing_toolkit_gives_a_plain_message(

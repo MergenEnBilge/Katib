@@ -35,7 +35,9 @@ someone asks it to.
    Choose **More info**, then **Run anyway**.
 4. Start Katib from the Start menu or the desktop shortcut.
 
-Katib opens in its own window, closing which stops it. By default the server behind that window
+Katib opens on a small launcher: run one of your own, or type the address of a Katib someone else
+is already running and open that instead, the same way a browser tab would. Running one of your
+own opens in its own window, closing which stops it. By default the server behind that window
 only answers on your own computer, same as everywhere else Katib runs — turn on **Settings**,
 then **Sharing**, then **Everyone on my network**, and close and reopen Katib to let phones and
 colleagues reach this window's server too.
