@@ -10,7 +10,6 @@
   },
   "backgroundColor": "#0b0e0c",
   "android": {
-    "allowMixedContent": true,
     "backgroundColor": "#0b0e0c"
   },
   "ios": {
