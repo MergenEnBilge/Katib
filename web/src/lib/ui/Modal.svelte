@@ -115,6 +115,7 @@
   .body {
     padding: var(--space-3) 20px 20px;
     overflow: auto;
+    overscroll-behavior: contain;
   }
 
   footer {

@@ -81,6 +81,7 @@
     position: absolute;
     inset: 0;
     overflow: hidden;
+    touch-action: none;
     background: var(--image-bg);
   }
 

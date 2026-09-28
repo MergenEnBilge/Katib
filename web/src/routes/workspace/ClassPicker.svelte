@@ -105,6 +105,7 @@
     margin: var(--space-1) 0 0;
     padding: 0;
     overflow-y: auto;
+    overscroll-behavior: contain;
     list-style: none;
   }
 
