@@ -177,3 +177,12 @@ def test_login_limiter_blocks_then_recovers() -> None:
     limiter.fail("a")
     limiter.reset("a")
     assert limiter.retry_after("a") == 0
+
+
+def test_checking_a_key_with_no_failures_never_grows_the_table() -> None:
+    """Every attempt calls retry_after, not only failed ones -- an attacker cycling through many
+    addresses or emails must not be able to leave one entry behind per address just by trying."""
+    limiter = LoginLimiter(max_failures=3, window=60, clock=lambda: 0.0)
+    for n in range(1000):
+        limiter.retry_after(f"probe-{n}")
+    assert limiter._failures == {}
