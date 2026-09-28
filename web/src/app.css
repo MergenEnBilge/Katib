@@ -12,6 +12,9 @@ html,
 body,
 #app {
   height: 100%;
+  /* Without this, a WebView's own bounce/glow and pull-to-refresh show through at the edges of
+     any scrollable area, reading as browser chrome rather than part of the app. */
+  overscroll-behavior: none;
 }
 
 /* Keep the whole app clear of the phone's own furniture. Anything positioned against the viewport

@@ -35,8 +35,10 @@ someone asks it to.
    Choose **More info**, then **Run anyway**.
 4. Start Katib from the Start menu or the desktop shortcut.
 
-Katib opens in its own window. It runs a server on your computer only, on a port nothing else can
-reach, and closing the window stops it.
+Katib opens in its own window, closing which stops it. By default the server behind that window
+only answers on your own computer, same as everywhere else Katib runs — turn on **Settings**,
+then **Sharing**, then **Everyone on my network**, and close and reopen Katib to let phones and
+colleagues reach this window's server too.
 
 Prefer no installer? The archive of `dist\Katib` from a build works as a portable folder: run
 `Katib.exe` inside it.

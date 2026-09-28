@@ -109,6 +109,30 @@
     layout.openTab(next);
   }
 
+  // On a narrow screen the picture list and the classes panel are slide-overs, closed by
+  // default. The tour needs whichever one holds its next target open to point at it at all --
+  // on a wider screen this is a no-op, since nothing there depends on these being true.
+  const RAIL_TARGETS = new Set(['images']);
+  const PANEL_TARGETS = new Set(['classes', 'class-input', 'done', 'text']);
+
+  function revealTourTarget(target: string | null): void {
+    if (target && RAIL_TARGETS.has(target)) {
+      railOpen = true;
+      panelOpen = false;
+    } else if (target && PANEL_TARGETS.has(target)) {
+      panelOpen = true;
+      railOpen = false;
+      // Only the class-input step needs the Classes tab itself open; "classes" points at the
+      // whole panel, which data-tour="classes" marks regardless of which tab is showing.
+      if (target === 'class-input' && tab !== 'classes') openTab('classes');
+    } else {
+      // A slide-over left open from an earlier step would otherwise sit over whatever this one
+      // points at instead, on a screen narrow enough for either to cover much of it.
+      railOpen = false;
+      panelOpen = false;
+    }
+  }
+
   // A tool's tip waits until the person picks a tool themselves, so it never crowds the first screen.
   let toolPicked = $state(false);
   let firstTool = true;
@@ -582,6 +606,7 @@
       shared,
     })}
     onclose={() => (touring = false)}
+    onbeforestep={revealTourTarget}
   />
 {/if}
 
@@ -868,6 +893,7 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+    overscroll-behavior: contain;
   }
 
   .fail {
