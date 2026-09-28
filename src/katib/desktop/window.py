@@ -11,6 +11,7 @@ to that server over loopback when that reaches it, since that is simplest for th
 needs: showing the page to the person sitting at this computer. Closing the window stops it.
 """
 
+import html
 import socket
 import threading
 import time
@@ -168,7 +169,7 @@ def run_desktop(settings: Settings) -> None:
 
     window = webview.create_window(
         "Katib",
-        html=LAUNCHER_HTML.format(remote=read_remote_choice()),
+        html=LAUNCHER_HTML.format(remote=html.escape(read_remote_choice())),
         js_api=Api(),
         width=1400,
         height=900,

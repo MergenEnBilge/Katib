@@ -212,6 +212,24 @@ def test_the_launcher_remembers_the_last_server_you_typed(
     assert "team.example.com" in str(seen["html"])
 
 
+def test_a_remembered_address_cannot_break_out_of_the_launcher_page(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A remembered address is untrusted -- it was typed once and saved to disk. It must not be
+    able to inject markup into a page whose script can call back into pywebview.api."""
+    from katib.config import write_remote_choice
+
+    monkeypatch.setenv("KATIB_CONFIG_DIR", str(tmp_path / "config"))
+    write_remote_choice('"><script>evil()</script>')
+
+    fake, seen = fake_webview(lambda api, window: None)
+    monkeypatch.setitem(sys.modules, "webview", fake)
+
+    run_desktop(Settings(storage={"data_dir": str(tmp_path / "data")}))
+
+    assert "<script>evil()</script>" not in str(seen["html"])
+
+
 def test_missing_toolkit_gives_a_plain_message(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
