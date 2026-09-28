@@ -86,7 +86,7 @@ jobs:
           name: katib-android
           path: installers/mobile/Katib-android.apk
           if-no-files-found: error
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         if: startsWith(github.ref, 'refs/tags/v')
         with:
           files: installers/mobile/Katib-android.apk
@@ -96,6 +96,8 @@ jobs:
     # Apple will not let an app onto a phone without a signing certificate, so this only proves the
     # project still builds. To put it on your own iPhone, open it in Xcode. See mobile/README.md.
     runs-on: macos-latest
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: installers/mobile
