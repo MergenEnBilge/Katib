@@ -50,3 +50,19 @@ if (manifest.includes('custom_url_scheme')) {
   await writeFile(MANIFEST, manifest.replace(launcher, filter));
   console.log(`${MANIFEST}: ${SCHEME}:// links now open the app`);
 }
+
+// Left to its own default, different phones' WebViews resize the page for the on-screen
+// keyboard differently -- some shove the whole layout up, some leave it alone and let the
+// keyboard cover whatever was focused. Capacitor does not set this itself.
+const manifestNow = await readFile(MANIFEST, 'utf8');
+if (manifestNow.includes('windowSoftInputMode')) {
+  console.log(`${MANIFEST} already sets windowSoftInputMode`);
+} else {
+  const activity = '<activity\n            android:configChanges=';
+  if (!manifestNow.includes(activity)) throw new Error(`${MANIFEST} has no <activity> to patch`);
+  await writeFile(
+    MANIFEST,
+    manifestNow.replace(activity, `<activity\n            android:windowSoftInputMode="adjustResize"\n            android:configChanges=`),
+  );
+  console.log(`${MANIFEST}: the window now resizes for the keyboard`);
+}
