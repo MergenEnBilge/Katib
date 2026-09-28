@@ -73,6 +73,16 @@ independently, that the result still sits inside its own folder. Only file types
 reads — pictures, and the label files the format readers understand — are kept; anything else in
 the folder is left out rather than written to disk unread.
 
+A fourth review, before 0.3.1, covered the desktop app's new launcher and the Android app's
+connection to a server. It found and fixed:
+
+| Finding | Fix |
+|---------|-----|
+| A remembered server address was written into the desktop launcher's page without escaping it | The address is escaped before it reaches the page |
+| Checking whether an address or account was locked out of sign-in created an entry for it even with no failed attempts, so the count of watched addresses grew with every attempt, not only failed ones | Nothing is recorded until there is an actual failure to remember |
+| Restoring a backup extracted it before checking whether it would fit on disk | The claimed size is checked against free space first |
+| The Android app allowed a secure connection's page to load insecure subresources | Mixed content is no longer allowed |
+
 ## Known limits
 
 - The database connection test in Settings connects to whatever address an administrator types, like any tool that can talk to a database. Only administrators can use it.
