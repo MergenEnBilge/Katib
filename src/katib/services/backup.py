@@ -6,6 +6,7 @@ outside the data folder.
 """
 
 import json
+import shutil
 import sqlite3
 import tempfile
 import zipfile
@@ -119,6 +120,13 @@ def restore(archive_path: Path, data_dir: Path, replace: bool = False) -> Backup
             target = (root / name).resolve()
             if root != target and root not in target.parents:
                 raise InvalidInput("That backup holds files outside its folder, so it was refused.")
+        total = sum(i.file_size for i in archive.infolist())
+        existing_disk = root if root.is_dir() else root.parent
+        if existing_disk.is_dir() and total > shutil.disk_usage(existing_disk).free:
+            raise InvalidInput(
+                "That backup claims to hold more than fits on this disk, so it was refused "
+                "before writing anything."
+            )
         existing = root / DB_NAME
         if existing.exists():
             if not replace:
@@ -129,5 +137,4 @@ def restore(archive_path: Path, data_dir: Path, replace: bool = False) -> Backup
             existing.replace(root / f"{DB_NAME}.before-restore")
         root.mkdir(parents=True, exist_ok=True)
         archive.extractall(root)
-        total = sum(i.file_size for i in archive.infolist())
     return BackupReport(len(names) - 1, total)

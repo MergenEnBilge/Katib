@@ -63,6 +63,28 @@ def test_a_zip_that_writes_outside_the_folder_is_refused(tmp_path: Path) -> None
     assert not (tmp_path / "escaped.txt").exists()
 
 
+def test_a_backup_bigger_than_the_disk_is_refused_before_writing_anything(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    url = make_data(tmp_path / "data")
+    zip_path = tmp_path / "backup.zip"
+    backup.create(tmp_path / "data", url, zip_path)
+
+    import shutil
+
+    real_disk_usage = shutil.disk_usage
+
+    def tiny_disk(path: object) -> object:
+        usage = real_disk_usage(path)
+        return usage._replace(free=1)
+
+    monkeypatch.setattr(backup.shutil, "disk_usage", tiny_disk)
+    target = tmp_path / "fresh"
+    with pytest.raises(InvalidInput, match="more than fits on this disk"):
+        backup.restore(zip_path, target)
+    assert not target.exists()
+
+
 def test_something_that_is_not_a_backup_is_refused(tmp_path: Path) -> None:
     junk = tmp_path / "notes.zip"
     with zipfile.ZipFile(junk, "w") as z:
