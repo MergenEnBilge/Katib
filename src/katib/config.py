@@ -38,7 +38,6 @@ class ServerSettings(BaseModel):
 
 class AuthSettings(BaseModel):
     mode: Literal["none", "local"] = "none"
-    secret_key: str = ""
 
 
 #: The built-in database. ``{data_dir}`` is filled in when the settings are read.

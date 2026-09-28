@@ -495,7 +495,6 @@ port = 8420
 
 [auth]
 mode = "none"            # "none" (loopback only) or "local"
-secret_key = ""          # generated on first run if empty
 
 [database]
 url = "sqlite:///{data_dir}/katib.db"
