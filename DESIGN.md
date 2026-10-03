@@ -1,6 +1,6 @@
 # Katib design
 
-How Katib looks and behaves. The visual direction comes from `KATIB_Prototype.html` (keep a copy in `docs/design/`). This file is the source of truth for tokens and rules. Where the prototype and this file disagree, this file wins, and the differences are listed in [Changes from the prototype](#15-changes-from-the-prototype).
+How Katib looks and behaves. The visual direction comes from an early clickable prototype, which is no longer kept in the repository. This file is the source of truth for tokens and rules. Where the prototype and this file disagree, this file wins, and the differences are listed in [Changes from the prototype](#15-changes-from-the-prototype).
 
 ## Contents
 

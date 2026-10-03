@@ -114,7 +114,6 @@ katib/
   sdk/             katib-client, the Python SDK.
   docs/
     adr/           Architecture decision records.
-    design/        Reference prototype (not shipped).
   docker/
   scripts/         bench.py, seed.py, release helpers.
   tests/
