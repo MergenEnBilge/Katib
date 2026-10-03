@@ -49,7 +49,7 @@
       Katib is running in a container, so only folders that were mounted with <code>-v</code> when
       it started show up here. To add another, stop the container and add it to the
       <code>docker run</code> command or the compose file, or close this and choose
-      <strong>Upload a folder</strong> instead.
+      <strong>Copy a folder</strong> instead.
     </p>
   {/if}
 

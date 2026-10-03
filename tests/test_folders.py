@@ -258,7 +258,10 @@ def test_uploading_a_folder_connects_it_like_a_browsed_one(solo: TestClient) -> 
     assert job["status"] == "done", job
     assert job["result"]["added"] == 2
     assert len(solo.get(f"{API}/projects/{project}/images").json()["items"]) == 2
-    assert len(solo.get(f"{API}/projects/{project}/folders").json()) == 1
+    listed = solo.get(f"{API}/projects/{project}/folders").json()
+    assert len(listed) == 1
+    # A copy inside Katib, not a folder read in place, and the list says so.
+    assert listed[0]["copied"] is True
 
 
 def test_an_uploaded_folder_can_carry_its_labels_too(solo: TestClient) -> None:
@@ -349,3 +352,24 @@ def test_only_a_manager_can_upload_a_folder_on_a_shared_server(tmp_path: Path) -
         )
         refused = upload_file(viewer, project, str(uuid.uuid4()), "a.png", png_bytes(), "image/png")
     assert refused.status_code == 403
+
+
+def test_a_rescan_notices_pictures_that_left_the_folder(solo: TestClient, library: Path) -> None:
+    project = new_project(solo)
+    first = solo.post(f"{API}/projects/{project}/folders", json={"path": str(library)}).json()
+    wait_job(solo, first["job"]["id"])
+    folder_id = first["folder"]["id"]
+    assert first["folder"]["copied"] is False
+
+    (library / "trips" / "b.png").unlink()
+    job = wait_job(
+        solo, solo.post(f"{API}/projects/{project}/folders/{folder_id}:rescan").json()["id"]
+    )
+    assert job["result"]["missing"] == 1
+
+    forgot = solo.post(f"{API}/projects/{project}/folders/{folder_id}:forget-missing")
+    assert forgot.status_code == 200, forgot.text
+    assert forgot.json() == {"removed": 1}
+    assert solo.get(f"{API}/projects/{project}").json()["image_count"] == 1
+    # The pictures still there are untouched, and so are the files themselves.
+    assert (library / "a.png").is_file()

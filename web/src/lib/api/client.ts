@@ -343,6 +343,9 @@ export const api = {
       request<ConnectResult>('POST', `/projects/${projectId}/folders`, { path }),
     rescan: (projectId: string, folderId: string) =>
       request<Job>('POST', `/projects/${projectId}/folders/${folderId}:rescan`),
+    /** Take pictures whose files have left a connected folder out of the project. */
+    forgetMissing: (projectId: string, folderId: string) =>
+      request<{ removed: number }>('POST', `/projects/${projectId}/folders/${folderId}:forget-missing`),
     disconnect: (projectId: string, folderId: string) =>
       request<void>('DELETE', `/projects/${projectId}/folders/${folderId}`),
     // A folder goes up one file at a time rather than in a single request, which is what lets

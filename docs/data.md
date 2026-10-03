@@ -15,8 +15,9 @@ container only sees folders that were mounted into it when it started, which is 
 Katib cannot reach anything beyond that, however correct the path looks, because the container's
 filesystem is not your computer's.
 
-**Upload a folder**, or its neighbour **Upload pictures and labels** for a handful of loose files,
-sends everything over the browser instead, and copies it into Katib's data folder. This is what to
+**Copy a folder**, or its neighbour **Copy pictures and labels** for a handful of loose files,
+sends everything over the browser instead, and keeps a copy in Katib's data folder, where it
+takes up space of its own. This is what to
 reach for when Katib cannot see your files directly — there is no way around the copy in that
 case, because the browser and the server genuinely do not share a filesystem; sending the bytes is
 the only path between them. It works everywhere, though, which "Connect a folder" cannot promise.
@@ -31,6 +32,12 @@ and a folder up to 20,000 files (`limits.max_folder_upload_files`) — both are 
 them under **Settings**, then **Limits**, if your pictures or your datasets are bigger than that.
 
 Pictures that are already in the project, judged by their content and not their name, are skipped and reported. Files that cannot be read are skipped with a reason.
+
+The list of folders above the two options says which is which: **Read in place** for a connected
+folder, **Copy in Katib** for one that was copied over. Looking at a connected folder again, with
+the refresh button beside it, adds pictures that appeared since and counts any that are gone
+because they were deleted, renamed or moved. Katib then offers to take those out of the project,
+with whatever was drawn on them. Nothing on disk is touched either way.
 
 !!! tip "In Docker, mounting is worth doing"
 

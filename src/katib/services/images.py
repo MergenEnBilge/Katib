@@ -251,6 +251,25 @@ def import_folder(
     return report
 
 
+def missing_in_folder(session: Session, project_id: uuid.UUID, folder: str) -> list[Image]:
+    """Pictures read from `folder` whose file is no longer there: deleted, renamed or moved."""
+    prefix = FILE_PREFIX + str(Path(folder).resolve()) + os.sep
+    rows = session.scalars(
+        select(Image).where(Image.project_id == project_id, Image.storage_key.startswith(prefix))
+    )
+    return [img for img in rows if not Path(img.storage_key[len(FILE_PREFIX) :]).is_file()]
+
+
+def forget_images(session: Session, ctx: StorageContext, gone: list[Image]) -> int:
+    """Take pictures out of the project, with their shapes and comments. Only Katib's own records
+    and thumbnails go; whatever file a picture came from is not touched."""
+    for image in gone:
+        ctx.thumbs.delete(_thumb_key(image.id))
+        session.delete(image)
+    session.flush()
+    return len(gone)
+
+
 def import_upload(
     session: Session,
     project_id: uuid.UUID,

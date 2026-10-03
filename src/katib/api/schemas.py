@@ -147,6 +147,13 @@ class ConnectedFolderOut(BaseModel):
     id: uuid.UUID
     path: str
     created_at: datetime
+    #: A copy uploaded from another device into Katib's own data folder, not a folder read in
+    #: place. Rescanning one finds nothing new: nothing else ever writes there.
+    copied: bool = False
+
+
+class ForgotMissingOut(BaseModel):
+    removed: int
 
 
 class JobOut(BaseModel):

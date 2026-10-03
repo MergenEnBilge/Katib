@@ -106,8 +106,12 @@ def start_import(
             dataset = exchange.detect_and_import(s, project_id, Path(folder))
             if dataset is not None:
                 s.commit()
+            # Files deleted or moved since the last scan, so nobody is left with broken pictures
+            # and no idea why.
+            missing = len(images.missing_in_folder(s, project_id, folder))
         result: dict[str, object] = {
             "added": report.added,
+            "missing": missing,
             "skipped": [{"name": k.name, "reason": k.reason} for k in report.skipped[:200]],
             "skipped_count": len(report.skipped),
         }

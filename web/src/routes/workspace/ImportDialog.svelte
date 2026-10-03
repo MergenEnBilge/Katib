@@ -1,6 +1,6 @@
 <script lang="ts">
   import TipCard from '../../lib/ui/TipCard.svelte';
-  import { FolderOpen, RefreshCw, X } from '@lucide/svelte';
+  import { FolderOpen, RefreshCw, Upload, X } from '@lucide/svelte';
   import { api, ApiError, waitForJob } from '../../lib/api/client';
   import type { ConnectedFolder, FormatInfo, Job } from '../../lib/api/types';
   import { plural } from '../../lib/format';
@@ -83,8 +83,13 @@
     progress = 0;
   }
 
+  /** Pictures a scan found gone from their folder, waiting for a yes to take them out. */
+  let missing = $state<{ folder: ConnectedFolder; count: number } | null>(null);
+
   interface FolderImportResult {
     added: number;
+    /** Pictures read from this folder before whose files are no longer there. */
+    missing?: number;
     skipped_count: number;
     skipped: { name: string; reason: string }[];
     /** Set when the folder already looked like a labelled dataset in a format Katib reads. */
@@ -100,7 +105,8 @@
   }
 
   /** Follow an image import until it ends, then show what happened. */
-  async function finishImport(job: Job): Promise<void> {
+  async function finishImport(job: Job, folder?: ConnectedFolder): Promise<void> {
+    missing = null;
     const done = await waitForJob(job.id, (p) => (progress = p));
     if (done.status === 'failed') {
       error = done.error ?? 'The import failed.';
@@ -109,6 +115,7 @@
     const result = done.result as unknown as FolderImportResult;
     changed = true;
     const dataset = result.dataset;
+    if (folder && result.missing) missing = { folder, count: result.missing };
     summary = [
       `${plural(result.added, 'image')} added.`,
       result.skipped_count ? `${plural(result.skipped_count, 'file')} skipped.` : '',
@@ -132,7 +139,7 @@
     try {
       const made = await api.folders.connect(projectId, path);
       await loadConnected();
-      await finishImport(made.job);
+      await finishImport(made.job, made.folder);
     } catch (err) {
       fail(err, 'Could not connect that folder.');
     } finally {
@@ -179,9 +186,25 @@
   async function rescan(folder: ConnectedFolder): Promise<void> {
     startOver();
     try {
-      await finishImport(await api.folders.rescan(projectId, folder.id));
+      await finishImport(await api.folders.rescan(projectId, folder.id), folder);
     } catch (err) {
       fail(err, 'Could not scan that folder.');
+    } finally {
+      busy = false;
+    }
+  }
+
+  async function forgetMissing(): Promise<void> {
+    if (!missing) return;
+    const { folder } = missing;
+    busy = true;
+    try {
+      const { removed } = await api.folders.forgetMissing(projectId, folder.id);
+      changed = true;
+      summary = [...summary, `${plural(removed, 'missing picture')} taken out of the project.`];
+      missing = null;
+    } catch (err) {
+      fail(err, 'Could not take those pictures out.');
     } finally {
       busy = false;
     }
@@ -265,21 +288,35 @@
           {#each connected as f (f.id)}
             <li>
               <span class="path" title={f.path}>{f.path}</span>
-              <button type="button" class="tool" disabled={busy} aria-label="Look for new images in {f.path}" title="Look for new images" onclick={() => rescan(f)}><RefreshCw size={14} /></button>
-              <button type="button" class="tool" disabled={busy} aria-label="Disconnect {f.path}" title="Disconnect. Images stay in the project." onclick={() => disconnect(f)}><X size={14} /></button>
+              {#if f.copied}
+                <span class="tag" title="Uploaded from another device and kept in Katib's own data folder">Copy in Katib</span>
+              {:else}
+                <span class="tag read" title="Katib reads the pictures where they are">Read in place</span>
+                <button type="button" class="tool" disabled={busy} aria-label="Look for new or missing images in {f.path}" title="Look for new or missing images" onclick={() => rescan(f)}><RefreshCw size={14} /></button>
+              {/if}
+              <button type="button" class="tool" disabled={busy} aria-label="Disconnect {f.path}" title="Take off this list. Images stay in the project." onclick={() => disconnect(f)}><X size={14} /></button>
             </li>
           {/each}
         </ul>
       </div>
     {/if}
 
+    {#if missing}
+      <Callout tone="danger">
+        {plural(missing.count, 'picture')} in this project {missing.count === 1 ? 'is' : 'are'} no longer in
+        {missing.folder.path} — deleted, renamed or moved. Take {missing.count === 1 ? 'it' : 'them'} out of
+        the project, with any shapes drawn on {missing.count === 1 ? 'it' : 'them'}? Nothing on disk is touched.
+        {#snippet action()}<Button variant="danger" loading={busy} onclick={forgetMissing}>Take them out</Button>{/snippet}
+      </Callout>
+    {/if}
+
     <div class="options">
       <div class="option">
-        <h3>On this computer</h3>
+        <h3>Connect a folder</h3>
         <p class="note">
-          Fastest, and nothing is copied — Katib reads the pictures where they already are. Only
-          works when Katib can see that folder itself, which a container usually cannot unless you
-          mounted it.
+          Nothing is copied: Katib reads the pictures where they already are, and finds new ones
+          when you look again. Best on the computer Katib runs on. A container can only see folders
+          you mounted into it.
         </p>
         {#if picking}
           <FolderPicker onpick={connectFolder} oncancel={() => (picking = false)} />
@@ -294,26 +331,25 @@
       </div>
 
       <div class="option">
-        <h3>From this device</h3>
+        <h3>Copy from this device</h3>
         <p class="note">
-          Works everywhere, including in a container — the browser sends the files instead of
-          Katib reading them itself. A whole folder brings its subfolders, and any classes and
-          labels already sitting in it, along for free. Pick loose files instead and any label
-          file among them — a data.yaml, a COCO .json, YOLO .txt files — is matched up the same
-          way, with no folder needed.
+          For a phone, another computer, or a Katib in a container: the browser sends copies of the
+          files, which Katib keeps in its own data folder, so they take up space there too. A whole
+          folder brings its subfolders, splits and labels along. Loose files work too, with any
+          label files among them matched up the same way.
         </p>
         <div class="row">
-          <Button variant="primary" loading={busy} onclick={() => folderInput?.click()}
-            ><FolderOpen size={16} />Upload a folder</Button
+          <Button loading={busy} onclick={() => folderInput?.click()}
+            ><Upload size={16} />Copy a folder</Button
           >
-          <Button loading={busy} onclick={() => picker?.click()}>Upload pictures and labels</Button>
+          <Button loading={busy} onclick={() => picker?.click()}>Copy pictures and labels</Button>
         </div>
         <input
           bind:this={folderInput}
           type="file"
           multiple
           hidden
-          aria-label="Upload a folder"
+          aria-label="Copy a folder"
           use:asDirectoryPicker
           onchange={(e) => uploadFolder(e.currentTarget.files)}
         />
@@ -322,7 +358,7 @@
           type="file"
           multiple
           hidden
-          aria-label="Upload pictures and labels"
+          aria-label="Copy pictures and labels"
           accept="image/jpeg,image/png,image/webp,image/bmp,image/tiff,.txt,.json,.xml,.yaml,.yml"
           onchange={(e) => uploadFolder(e.currentTarget.files)}
         />
@@ -497,6 +533,21 @@
     font-size: var(--text-small);
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .tag {
+    flex: none;
+    padding: 1px var(--space-2);
+    color: var(--text-2);
+    background: var(--surface-2);
+    border-radius: var(--radius-control);
+    font-size: var(--text-small);
+    white-space: nowrap;
+  }
+
+  .tag.read {
+    color: var(--accent-text);
+    background: var(--accent-muted);
   }
 
   .tool {

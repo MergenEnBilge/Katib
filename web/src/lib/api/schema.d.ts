@@ -1252,6 +1252,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{project_id}/folders/{folder_id}:forget-missing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Forget Missing
+         * @description Take pictures whose files have left this folder out of the project, shapes and all.
+         */
+        post: operations["forget_missing_api_v1_projects__project_id__folders__folder_id__forget_missing_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}/folders/{folder_id}": {
         parameters: {
             query?: never;
@@ -1718,6 +1738,11 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /**
+             * Copied
+             * @default false
+             */
+            copied: boolean;
         };
         /** DatabaseTestIn */
         DatabaseTestIn: {
@@ -1823,6 +1848,11 @@ export interface components {
              * @default false
              */
             in_container: boolean;
+        };
+        /** ForgotMissingOut */
+        ForgotMissingOut: {
+            /** Removed */
+            removed: number;
         };
         /** FormatOut */
         FormatOut: {
@@ -5370,6 +5400,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    forget_missing_api_v1_projects__project_id__folders__folder_id__forget_missing_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                folder_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForgotMissingOut"];
                 };
             };
             /** @description Validation Error */

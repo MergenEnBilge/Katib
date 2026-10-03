@@ -1,6 +1,7 @@
 """Folder routes: browse the Katib computer and connect folders to projects."""
 
 import uuid
+from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, File, Form, Response, UploadFile
@@ -12,14 +13,28 @@ from katib.api.schemas import (
     ConnectFolderIn,
     ConnectResultOut,
     FolderListingOut,
+    ForgotMissingOut,
     JobOut,
     PlaceOut,
     UploadFileOut,
 )
+from katib.db.models import ProjectFolder
 from katib.services import folders, images, projects
 from katib.services.errors import InvalidInput
+from katib.services.images import StorageContext
 
 router = APIRouter(tags=["folders"])
+
+
+def _out(folder: ProjectFolder, storage: StorageContext) -> ConnectedFolderOut:
+    uploads = storage.folder_uploads.path("").resolve()
+    where = Path(folder.path).resolve()
+    return ConnectedFolderOut(
+        id=folder.id,
+        path=folder.path,
+        created_at=folder.created_at,
+        copied=where == uploads or uploads in where.parents,
+    )
 
 
 @router.get("/folders", response_model=FolderListingOut)
@@ -41,12 +56,10 @@ def browse(
 
 @router.get("/projects/{project_id}/folders", response_model=list[ConnectedFolderOut])
 def list_connected(
-    project_id: uuid.UUID, session: SessionDep, user: UserDep
+    project_id: uuid.UUID, session: SessionDep, user: UserDep, storage: StorageDep
 ) -> list[ConnectedFolderOut]:
     need(session, user, project_id, "view")
-    return [
-        ConnectedFolderOut.model_validate(f) for f in folders.list_connected(session, project_id)
-    ]
+    return [_out(f, storage) for f in folders.list_connected(session, project_id)]
 
 
 @router.post("/projects/{project_id}/folders", response_model=ConnectResultOut, status_code=201)
@@ -66,7 +79,7 @@ def connect(
     # The job writes from its own connection, so the folder row must be committed first.
     session.commit()
     job = start_import(runner, storage, project_id, folder.path)
-    return ConnectResultOut(folder=ConnectedFolderOut.model_validate(folder), job=job)
+    return ConnectResultOut(folder=_out(folder, storage), job=job)
 
 
 @router.post("/projects/{project_id}/folders:upload-file", response_model=UploadFileOut)
@@ -117,7 +130,7 @@ def upload_folder_finish(
     # The job writes from its own connection, so the folder row must be committed first.
     session.commit()
     job = start_import(runner, storage, project_id, folder.path)
-    return ConnectResultOut(folder=ConnectedFolderOut.model_validate(folder), job=job)
+    return ConnectResultOut(folder=_out(folder, storage), job=job)
 
 
 @router.post(
@@ -135,6 +148,23 @@ def rescan(
     need(session, user, project_id, "manage")
     folder = folders.get_connected(session, project_id, folder_id)
     return start_import(runner, storage, project_id, folder.path)
+
+
+@router.post(
+    "/projects/{project_id}/folders/{folder_id}:forget-missing", response_model=ForgotMissingOut
+)
+def forget_missing(
+    project_id: uuid.UUID,
+    folder_id: uuid.UUID,
+    session: SessionDep,
+    user: UserDep,
+    storage: StorageDep,
+) -> ForgotMissingOut:
+    """Take pictures whose files have left this folder out of the project, shapes and all."""
+    need(session, user, project_id, "manage")
+    folder = folders.get_connected(session, project_id, folder_id)
+    gone = images.missing_in_folder(session, project_id, folder.path)
+    return ForgotMissingOut(removed=images.forget_images(session, storage, gone))
 
 
 @router.delete("/projects/{project_id}/folders/{folder_id}", status_code=204)
