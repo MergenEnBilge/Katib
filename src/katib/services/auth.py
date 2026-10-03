@@ -18,6 +18,7 @@ from katib.auth.passwords import (
 )
 from katib.db.base import utcnow
 from katib.db.models import ApiToken, AuthSession, Invite, Project, ProjectMember, User
+from katib.services import access
 from katib.services.errors import (
     EmailTaken,
     InvalidInput,
@@ -164,7 +165,24 @@ def _invite(session: Session, token: str) -> Invite:
     invite = session.scalar(select(Invite).where(Invite.token_hash == hash_token(token)))
     if invite is None or invite.used_at is not None or invite.expires_at <= utcnow():
         raise InviteInvalid("This invite link has expired or was already used.")
+    if not _sender_still_may(session, invite):
+        raise InviteInvalid(
+            "This invite no longer works, because whoever sent it can no longer add people. "
+            "Ask for a new one."
+        )
     return invite
+
+
+def _sender_still_may(session: Session, invite: Invite) -> bool:
+    """An invite carries its sender's say-so, so it lapses when they lose it -- a manager who is
+    demoted, removed or shut out should not leave working invites behind."""
+    sender = session.get(User, invite.created_by) if invite.created_by else None
+    if sender is None or sender.disabled_at is not None:
+        return False
+    if invite.project_id is None:
+        return sender.is_admin
+    role = access.role_of(session, sender, invite.project_id)
+    return role is not None and access.can_assign(role, None, invite.role)
 
 
 def invite_info(session: Session, token: str) -> dict[str, str | None]:

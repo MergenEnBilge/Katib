@@ -5,6 +5,7 @@
   import type { Activity, Member, PersonBrief, Project, Role } from '../../lib/api/types';
   import { plural, relativeTime } from '../../lib/format';
   import { assignableRoles, canAssign, roleLabel } from '../../lib/roles';
+  import { session } from '../../lib/state/session.svelte';
   import { toasts } from '../../lib/state/toast.svelte';
   import Avatar from '../../lib/ui/Avatar.svelte';
   import Button from '../../lib/ui/Button.svelte';
@@ -55,17 +56,32 @@
   let addRole = $state<Role>('annotator');
   let adding = $state<string | null>(null);
 
+  // Administrators can browse everyone. Anyone else finds a person by their whole email address,
+  // so making a project of your own is not a way to list every account on the server.
+  const browseAll = $derived(session.mode === 'local' && session.user?.is_admin === true);
+  let searchError = $state('');
+
   $effect(() => {
     if (!canManage) return;
     const q = search.trim();
+    if (!browseAll && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(q)) {
+      found = [];
+      searched = false;
+      return;
+    }
     const timer = setTimeout(() => {
+      searchError = '';
       api.members
         .addable(project.id, q)
         .then((people) => {
           found = people;
           searched = true;
         })
-        .catch(() => (found = []));
+        .catch((err: unknown) => {
+          found = [];
+          searched = false;
+          searchError = err instanceof ApiError ? err.message : 'Could not look for people.';
+        });
     }, 200);
     return () => clearTimeout(timer);
   });
@@ -197,11 +213,20 @@
       <section class="add" aria-labelledby="add-title">
         <p class="label" id="add-title">Add people who already have an account</p>
         <div class="row">
-          <input type="search" placeholder="Search by name or email" aria-label="Search people to add" bind:value={search} />
+          <input
+            type="search"
+            placeholder={browseAll ? 'Search by name or email' : 'Their email address'}
+            aria-label="Search people to add"
+            bind:value={search}
+          />
           <select aria-label="Role for the people you add" bind:value={addRole}>
             {#each handOut as r (r.id)}<option value={r.id}>{r.label}</option>{/each}
           </select>
         </div>
+        {#if !browseAll && !searched && !searchError}
+          <p class="note">Type the whole email address they signed up with.</p>
+        {/if}
+        {#if searchError}<p class="error" role="alert">{searchError}</p>{/if}
         {#if found.length}
           <ul class="found">
             {#each found as person (person.id)}
@@ -216,9 +241,11 @@
           </ul>
         {:else if searched}
           <p class="note">
-            {search.trim()
-              ? 'Nobody else matches. Invite them below if they have no account yet.'
-              : 'Everyone with an account is already on this project.'}
+            {!browseAll
+              ? 'Nobody here has that email, or they are already on this project. Invite them below if they have no account yet.'
+              : search.trim()
+                ? 'Nobody else matches. Invite them below if they have no account yet.'
+                : 'Everyone with an account is already on this project.'}
           </p>
         {/if}
       </section>

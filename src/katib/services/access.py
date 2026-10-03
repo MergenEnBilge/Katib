@@ -116,9 +116,19 @@ def remove_member(session: Session, project_id: uuid.UUID, user_id: uuid.UUID) -
 
 
 def addable_people(
-    session: Session, project_id: uuid.UUID, query: str = "", limit: int = 20
+    session: Session,
+    project_id: uuid.UUID,
+    query: str = "",
+    limit: int = 20,
+    *,
+    exact_email: bool = False,
 ) -> list[User]:
-    """Active accounts not yet in the project, matching `query` by name or email."""
+    """Active accounts not yet in the project, matching `query` by name or email.
+
+    With `exact_email` only an account whose email is exactly `query` is returned. That is what
+    everyone but administrators gets: anyone may make a project and so become its owner, and a
+    partial search would let them list every account on the server, one letter at a time.
+    """
     members = select(ProjectMember.user_id).where(ProjectMember.project_id == project_id)
     stmt = select(User).where(
         User.id.not_in(members),
@@ -127,7 +137,11 @@ def addable_people(
         User.password_hash.is_not(None),
     )
     text = query.strip().lower()
-    if text:
+    if exact_email:
+        if not text:
+            return []
+        stmt = stmt.where(User.email == text)
+    elif text:
         like = f"%{text}%"
         stmt = stmt.where(User.name.ilike(like) | User.email.ilike(like))
     return list(session.scalars(stmt.order_by(User.name).limit(limit)))

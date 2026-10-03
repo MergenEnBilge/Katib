@@ -419,11 +419,12 @@ def remove_member(
 def addable_people(
     project_id: uuid.UUID, session: SessionDep, user: UserDep, q: str = ""
 ) -> list[PersonOut]:
-    """Accounts on this server that could be added to the project."""
+    """Accounts on this server that could be added to the project. Administrators can search
+    everyone; anyone else finds a person only by typing their whole email address."""
     need(session, user, project_id, "manage")
     return [
         PersonOut(id=p.id, name=p.name, email=p.email)
-        for p in access.addable_people(session, project_id, q)
+        for p in access.addable_people(session, project_id, q, exact_email=not user.is_admin)
     ]
 
 

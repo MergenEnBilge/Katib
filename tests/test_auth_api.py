@@ -430,3 +430,44 @@ def test_an_admin_sees_which_projects_someone_is_on(admin: TestClient) -> None:
         {"project_id": pid, "name": "Birds", "role": "viewer"}
     ]
     assert bob.get(f"{API}/users/{bob_id}/projects").status_code == 403
+
+
+def account_for(admin: TestClient, email: str) -> TestClient:
+    admin.post(f"{API}/users", json={"email": email, "name": email, "password": PASSWORD})
+    browser = TestClient(admin.app)
+    browser.post(f"{API}/auth/login", json={"email": email, "password": PASSWORD})
+    return browser
+
+
+def test_only_administrators_can_list_accounts_by_searching(admin: TestClient) -> None:
+    account_for(admin, "bob@example.com")
+    owner = account_for(admin, "olga@example.com")
+    pid = owner.post(f"{API}/projects", json={"name": "Mine"}).json()["id"]
+
+    # Anyone can make a project and own it; that must not open the account list to them.
+    assert owner.get(f"{API}/projects/{pid}/people", params={"q": "b"}).json() == []
+    exact = owner.get(f"{API}/projects/{pid}/people", params={"q": "Bob@Example.com"}).json()
+    assert [p["email"] for p in exact] == ["bob@example.com"]
+    partial = admin.get(f"{API}/projects/{pid}/people", params={"q": "b"}).json()
+    assert [p["email"] for p in partial] == ["bob@example.com"]
+
+
+def test_an_invite_lapses_when_its_sender_can_no_longer_add_people(admin: TestClient) -> None:
+    pid = admin.post(f"{API}/projects", json={"name": "P"}).json()["id"]
+    mia = account_for(admin, "mia@example.com")
+    mia_id = next(
+        u["id"] for u in admin.get(f"{API}/users").json() if u["email"] == "mia@example.com"
+    )
+    admin.put(f"{API}/projects/{pid}/members/{mia_id}", json={"role": "manager"})
+    token = mia.post(f"{API}/invites", json={"project_id": pid, "role": "annotator"}).json()[
+        "token"
+    ]
+    assert TestClient(admin.app).get(f"{API}/auth/invites/{token}").status_code == 200
+
+    admin.put(f"{API}/projects/{pid}/members/{mia_id}", json={"role": "viewer"})
+    lapsed = TestClient(admin.app).post(
+        f"{API}/auth/accept",
+        json={"token": token, "email": "new@example.com", "name": "New", "password": PASSWORD},
+    )
+    assert lapsed.status_code == 410
+    assert "no longer works" in lapsed.json()["message"]
