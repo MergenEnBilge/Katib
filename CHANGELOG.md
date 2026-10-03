@@ -3,6 +3,24 @@
 All notable changes to Katib are listed here, newest first. Each release is also on the
 [releases page](https://github.com/MergenEnBilge/Katib/releases).
 
+## 0.5.1
+
+### Fixed
+
+- Uploading a model whose class names were stored in an unusual form could fail with an error. Katib
+  now ignores names it cannot read and carries on with the model.
+
+### Security
+
+- A review of uploads, sign-in, folder import, file serving and the dependencies found no further
+  problems.
+
+### Documentation
+
+- The README and the guides have been rewritten in plainer language, with the steps for each task
+  set out in order.
+- Each release now has an entry in this changelog.
+
 ## 0.5.0
 
 ### Security
