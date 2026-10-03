@@ -14,6 +14,7 @@ from katib.core.detect import Detection, Layout, Letterbox, detect_boxes
 
 DEFAULT_SIZE = 640
 GRAY = (114, 114, 114)
+MAX_NAMES_CHARS = 20_000
 
 
 class MlUnavailable(RuntimeError):
@@ -42,16 +43,17 @@ def list_models(folder: Path) -> list[str]:
 def _class_names(metadata: dict[str, str]) -> list[str] | None:
     """Class names as exported by common YOLO tools, or None when the model carries none."""
     raw = metadata.get("names")
-    if not raw:
+    # A real list of names is a few hundred characters. Anything much longer is not worth parsing.
+    if not raw or len(raw) > MAX_NAMES_CHARS:
         return None
     try:
         parsed: Any = ast.literal_eval(raw)
-    except (ValueError, SyntaxError):
+        if isinstance(parsed, dict):
+            return [str(parsed[k]) for k in sorted(parsed, key=int)]
+        if isinstance(parsed, list):
+            return [str(n) for n in parsed]
+    except (ValueError, SyntaxError, TypeError, RecursionError, MemoryError):
         return None
-    if isinstance(parsed, dict):
-        return [str(parsed[k]) for k in sorted(parsed, key=int)]
-    if isinstance(parsed, list):
-        return [str(n) for n in parsed]
     return None
 
 
