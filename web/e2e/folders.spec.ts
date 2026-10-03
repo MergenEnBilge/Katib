@@ -50,7 +50,7 @@ test('upload a folder that already has labels', async ({ page }) => {
   await dialog.getByLabel('Copy a folder').setInputFiles(UPLOAD_SET);
 
   await expect(dialog.getByText('1 image added.')).toBeVisible();
-  await expect(dialog.getByText(/already had labels/)).toBeVisible();
+  await expect(dialog.getByText(/Labels loaded from/)).toBeVisible();
   await dialog.getByRole('button', { name: 'Done' }).click();
 
   test.skip(test.info().project.name === 'phone', 'The class panel is a slide-over on a phone.');
@@ -73,7 +73,7 @@ test('upload loose pictures and a label file together, with no folder', async ({
     .setInputFiles([UPLOAD_SET_YAML, UPLOAD_SET_IMAGE, UPLOAD_SET_LABEL]);
 
   await expect(dialog.getByText('1 image added.')).toBeVisible();
-  await expect(dialog.getByText(/already had labels/)).toBeVisible();
+  await expect(dialog.getByText(/Labels loaded from/)).toBeVisible();
 });
 
 test('shows which file is uploading while a folder goes up', async ({ page }) => {

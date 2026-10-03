@@ -24,7 +24,8 @@ from katib.core.dataset import (
 from katib.core.types import GeometryError, validate_geometry
 from katib.db.ids import new_id
 from katib.db.models import Annotation, Class, Image, Project
-from katib.formats import FormatError, detect_format, get_format
+from katib.formats import UNRECOGNISED, FormatError, detect_format, get_format
+from katib.formats.yolo import yaml_covers
 from katib.services import classes, splits
 from katib.services.errors import InvalidInput, NotFound
 from katib.services.images import FILE_PREFIX, StorageContext, image_path
@@ -176,24 +177,64 @@ def _pick(candidates: list[Image], labels: ImageLabels) -> Image | None:
     return ranked[0]
 
 
-def detect_and_import(session: Session, project_id: uuid.UUID, path: Path) -> ImportSummary | None:
+@dataclass
+class DatasetOutcome:
+    """What connecting a folder found: a dataset that was read, no dataset, or one that failed."""
+
+    state: str  # "read", "none" or "failed"
+    format: str | None = None
+    reason: str | None = None
+    images_matched: int = 0
+    shapes_added: int = 0
+    classes_created: list[str] = field(default_factory=list[str])
+    splits_set: int = 0
+    unmatched_images: int = 0
+    notes: list[dict[str, str]] = field(default_factory=list[dict[str, str]])
+
+
+def _dataset_folders(path: Path) -> list[Path]:
+    """The chosen folder, then the two above it: a dataset's data.yaml can sit higher up."""
+    return [path, *list(path.parents)[:2]]
+
+
+def detect_and_import(session: Session, project_id: uuid.UUID, path: Path) -> DatasetOutcome:
     """If `path` already holds a recognized dataset, read its classes, splits and shapes too.
 
     Connecting a folder normally only adds pictures. Plenty of folders people connect are already
-    a finished dataset — a `data.yaml` next to the labels, a COCO `annotations.json`, Pascal VOC
-    XML, or LabelMe JSON — and asking them to repeat the same path through Import labels, by hand,
-    choosing the format themselves, is exactly the kind of step a good default should skip. A
-    folder of plain photos matches no format, so nothing happens for that, by far the more common
-    case: this only ever adds to what connecting the folder already did, never instead of it.
+    a finished dataset: a `data.yaml` next to the labels, a COCO `annotations.json`, Pascal VOC
+    XML, or LabelMe JSON. This only ever adds to what connecting the folder already did, never
+    instead of it. The outcome says which of three things happened, so the job can show it.
+
+    A YOLO `data.yaml` in a folder above the chosen one is used only when it lists the chosen
+    folder as one of its splits, so an unrelated file higher up is never picked up.
     """
-    try:
-        return import_dataset(session, project_id, path)
-    except InvalidInput:
-        # Either nothing here looked like a dataset Katib knows, or it did and turned out to be
-        # broken. The pictures are already in either way, so there is nothing to report back:
-        # someone who does want that folder read as a dataset still has Import labels for it,
-        # with a clearer error there than a folder-connect job would give.
-        return None
+    problem: str | None = None
+    for candidate in _dataset_folders(path):
+        if candidate != path and not yaml_covers(candidate, path):
+            continue
+        try:
+            fmt = detect_format(candidate)
+        except FormatError as err:
+            if str(err) != UNRECOGNISED:
+                problem = problem or str(err)
+            continue
+        try:
+            summary = import_dataset(session, project_id, candidate, fmt.id)
+        except InvalidInput as err:
+            return DatasetOutcome("failed", fmt.id, err.message)
+        return DatasetOutcome(
+            "read",
+            summary.format_id,
+            images_matched=summary.images_matched,
+            shapes_added=summary.shapes_added,
+            classes_created=summary.classes_created,
+            splits_set=summary.splits_set,
+            unmatched_images=summary.unmatched_images,
+            notes=[{"subject": n.subject, "reason": n.reason} for n in summary.notes[:200]],
+        )
+    if problem is not None:
+        return DatasetOutcome("failed", reason=problem)
+    return DatasetOutcome("none")
 
 
 class ProjectView:

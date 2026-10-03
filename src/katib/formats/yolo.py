@@ -225,6 +225,34 @@ def _dataset_root(path: Path) -> Path:
     return found[0].parent if found else path
 
 
+def yaml_covers(root: Path, folder: Path) -> bool:
+    """True when the data.yaml directly in `root` lists `folder` as a split, or as part of one.
+
+    A person often connects the picture folder itself, such as `images/train`, while data.yaml
+    sits above it. This tells Katib that the file really describes that folder.
+    """
+    file = root / "data.yaml"
+    if not file.is_file():
+        return False
+    try:
+        data = yaml.safe_load(file.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, yaml.YAMLError):
+        return False
+    if not isinstance(data, dict):
+        return False
+    base = (root / str(data.get("path") or ".")).resolve()
+    target = folder.resolve()
+    for key in ("train", "val", "valid", "test"):
+        value = data.get(key)
+        for entry in value if isinstance(value, list) else [value]:
+            if not isinstance(entry, str):
+                continue
+            where = (base / entry).resolve()
+            if where == target or where in target.parents or target in where.parents:
+                return True
+    return False
+
+
 def _has_yolo_layout(path: Path) -> bool:
     if not path.is_dir():
         return False

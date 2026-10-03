@@ -126,7 +126,7 @@ def test_a_plain_folder_of_photos_gets_no_dataset(solo: TestClient, tmp_path: Pa
 
     assert job["status"] == "done", job
     assert job["result"]["added"] == 2
-    assert "dataset" not in job["result"]
+    assert job["result"]["dataset"]["state"] == "none"
     assert solo.get(f"{API}/projects/{project}/classes").json() == []
 
 
@@ -139,7 +139,7 @@ def test_rescanning_a_connected_folder_also_catches_up_on_labels(
     photo(lib / "a.png")
     project = solo.post(f"{API}/projects", json={"name": "P"}).json()["id"]
     first = connect(solo, project, lib)
-    assert "dataset" not in first["result"]
+    assert first["result"]["dataset"]["state"] == "none"
 
     (lib / "data.yaml").write_text(
         yaml.safe_dump({"path": ".", "train": "images", "val": "images", "names": {0: "car"}}),

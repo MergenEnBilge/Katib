@@ -1,6 +1,7 @@
 """Image routes: import, list, and serving original files and thumbnails."""
 
 import uuid
+from dataclasses import asdict
 from pathlib import Path
 from typing import Annotated
 
@@ -104,28 +105,17 @@ def start_import(
             # picked up in the same step, so nobody has to run Import labels by hand afterward
             # just because the pictures happened to already have annotation files beside them.
             dataset = exchange.detect_and_import(s, project_id, Path(folder))
-            if dataset is not None:
-                s.commit()
+            s.commit()
             # Files deleted or moved since the last scan, so nobody is left with broken pictures
             # and no idea why.
             missing = len(images.missing_in_folder(s, project_id, folder))
-        result: dict[str, object] = {
+        return {
             "added": report.added,
             "missing": missing,
             "skipped": [{"name": k.name, "reason": k.reason} for k in report.skipped[:200]],
             "skipped_count": len(report.skipped),
+            "dataset": asdict(dataset),
         }
-        if dataset is not None:
-            result["dataset"] = {
-                "format": dataset.format_id,
-                "images_matched": dataset.images_matched,
-                "shapes_added": dataset.shapes_added,
-                "classes_created": dataset.classes_created,
-                "splits_set": dataset.splits_set,
-                "unmatched_images": dataset.unmatched_images,
-                "notes": [{"subject": n.subject, "reason": n.reason} for n in dataset.notes[:200]],
-            }
-        return result
 
     job_id = runner.submit("import_images", project_id, {"folder": folder}, work)
     job = runner.get(job_id)
