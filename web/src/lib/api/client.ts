@@ -25,6 +25,7 @@ import type {
   OperationInfo,
   OpResult,
   Person,
+  PersonBrief,
   SegmentClick,
   Segmentation,
   Project,
@@ -35,6 +36,7 @@ import type {
   ShuffleResult,
   SplitState,
   ShareInfo,
+  UserProject,
 } from './types';
 
 const BASE = '/api/v1';
@@ -132,6 +134,7 @@ export const api = {
       request<InviteInfo>('GET', `/auth/invites/${token}`),
     accept: (token: string, email: string, name: string, password: string) =>
       request<Person>('POST', '/auth/accept', { token, email, name, password }),
+    join: (token: string) => request<{ project_id: string }>('POST', `/auth/invites/${token}:join`),
     createInvite: (projectId: string | null, role: Exclude<Role, 'owner'>) =>
       request<Invite>('POST', '/invites', {
         project_id: projectId,
@@ -152,10 +155,14 @@ export const api = {
       request<Person>('POST', `/users/${userId}:admin`, { is_admin: isAdmin }),
     setDisabled: (userId: string, disabled: boolean) =>
       request<Person>('POST', `/users/${userId}:${disabled ? 'disable' : 'enable'}`),
+    projects: (userId: string) => request<UserProject[]>('GET', `/users/${userId}/projects`),
   },
 
   members: {
     list: (projectId: string) => request<Member[]>('GET', `/projects/${projectId}/members`),
+    /** Accounts on this server that are not in the project yet. */
+    addable: (projectId: string, q = '') =>
+      request<PersonBrief[]>('GET', `/projects/${projectId}/people${query({ q })}`),
     set: (projectId: string, userId: string, role: Role) =>
       request<Member[]>('PUT', `/projects/${projectId}/members/${userId}`, { role }),
     remove: (projectId: string, userId: string) =>

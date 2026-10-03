@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { Snippet } from 'svelte';
   import { ApiError } from '../../lib/api/client';
   import { t } from '../../lib/i18n/index.svelte';
   import { router } from '../../lib/state/router.svelte';
@@ -12,7 +13,14 @@
     kind,
     token = '',
     inviteText = '',
-  }: { kind: 'setup' | 'signin' | 'invite'; token?: string; inviteText?: string } = $props();
+    footer,
+  }: {
+    kind: 'setup' | 'signin' | 'invite';
+    token?: string;
+    /** What the invite is for. Shown on the invite form, and on sign-in when signing in to join. */
+    inviteText?: string;
+    footer?: Snippet;
+  } = $props();
 
   let email = $state('');
   let name = $state('');
@@ -33,7 +41,7 @@
       ? t('auth.setup.lead')
       : kind === 'invite'
         ? inviteText
-        : t('auth.signin.lead'),
+        : inviteText || t('auth.signin.lead'),
   );
 
   async function submit(): Promise<void> {
@@ -89,6 +97,7 @@
       >{kind === 'signin' ? t('auth.signin.submit') : kind === 'setup' ? t('auth.setup.submit') : t('auth.invite.submit')}</Button
     >
     <button type="submit" class="hidden" tabindex="-1" aria-hidden="true">Submit</button>
+    {#if footer}<div class="footer">{@render footer()}</div>{/if}
   </form>
 </main>
 
@@ -161,6 +170,12 @@
 
   .card :global(.button) {
     justify-content: center;
+  }
+
+  .footer {
+    font-size: var(--text-small);
+    color: var(--text-2);
+    text-align: center;
   }
 
   .hidden {
