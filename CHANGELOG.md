@@ -1,0 +1,258 @@
+# Changelog
+
+All notable changes to Katib are listed here, newest first. Each release is also on the
+[releases page](https://github.com/MergenEnBilge/Katib/releases).
+
+## 0.5.0
+
+### Security
+
+Update if you run Katib on a computer you also use for browsing.
+
+- Other websites could reach a Katib running on your own computer and send it requests, such as
+  a restart or a factory reset. Katib now refuses requests that come from other sites, whether or
+  not you are signed in.
+- A remote Katib opened in the desktop window could reach the window's own controls and stop the
+  server on your computer. Those controls now work only on the window's start page.
+- Anyone who owned a project could list the email address of every account. Searching for people
+  to add is now limited to administrators. Everyone else types the full email address.
+- An invite kept working after the person who sent it lost the right to add people. It now stops
+  working.
+
+### Datasets come in as they are
+
+Connect a folder that already holds a dataset, and its pictures, classes, shapes and splits come
+in with it. More layouts are recognised now:
+
+- **YOLO:** `data.yaml` files that point at image folders or list files, Roboflow's
+  `train/images` and `train/labels` layout, and the older Darknet layout with `obj.data`,
+  `obj.names` and `train.txt`. Pose datasets come in as keypoints, and rotated boxes are no longer
+  mistaken for polygons.
+- **COCO:** one file per split folder, and masks stored as run-length data.
+- **Pascal VOC:** `VOCdevkit` folders, with `trainval.txt` used as the training split.
+- **LabelMe:** split folders, circles and points.
+- **New formats:** CVAT XML, CreateML JSON, mask pictures and class-per-folder image sets.
+
+A file name that appears in two splits, such as `train/a.jpg` and `val/a.jpg`, keeps its labels
+in both.
+
+### Connected or copied
+
+Connecting a folder has never copied anything. Uploading a folder does copy it into Katib's own
+data folder, and the two used to look the same in the list. Now:
+
+- Each folder is labelled **Read in place** or **Copy in Katib**.
+- The upload buttons say **Copy**.
+- If pictures are deleted or moved after you connect a folder, Katib tells you and offers to
+  take them out of the project.
+
+### Clearer errors
+
+- When the server stops answering, a bar tells you on every page. Your changes are kept, and the
+  bar clears itself when the server is back.
+- The desktop window goes back to its start page and says why when the server it was showing goes
+  away. The start page and the tray both open the server log.
+- The tray asks before it stops the server, and shows a message if the server will not start.
+- A factory reset that could not delete something now says so in Settings.
+- `katib stop` explains when stopping takes a while instead of reporting a failure.
+
+### Setup code
+
+On the computer Katib runs on, the setup code now fills itself in. You can get it from the Katib
+window, the tray menu item **Finish setting up Katib**, or `katib setup-code`. Only your own
+account can read it on that computer. Anyone setting up from another device still types it in.
+
+### Known limits
+
+- The tray icon on Linux needs AppIndicator support.
+- The macOS build has not yet been opened on a Mac.
+- The installers are not code-signed, so Windows and macOS warn you the first time.
+- The Android app is a WebView around the same interface as the browser.
+- Mask pictures can be imported but not exported. Export masks as COCO instead.
+
+## 0.4.0
+
+### The server keeps running when you close the window
+
+On the desktop, the server is now its own program, **Katib Server**. It shows an icon in the
+system tray while it runs.
+
+- The window is one way to use it. It finds the running server, or starts one in the background,
+  the same way a browser tab or the phone app would.
+- Closing the window leaves the server running, so phones and colleagues stay connected.
+- Stop the server from the tray menu, from the launcher, or with `katib stop`.
+- **Start when I sign in** is in the tray menu. It is off until you turn it on.
+- **Restart to apply** works on the desktop now, so you no longer need to close and reopen Katib.
+
+Only one server can run per data folder. A second one will not start, and `katib status` shows
+where the first one is answering.
+
+### Teams
+
+- Owners and managers can add someone who already has an account to a project, from the project's
+  Team window. You no longer need to send an invite link to a person who has an account.
+- Invite links work for people who already have an account. Signed in, the link offers to join you
+  to the project. Signed out, it asks you to sign in first.
+- Managers can add, change and remove annotators, reviewers and viewers. Owners and managers stay
+  with owners.
+- Settings, then People, shows which projects each person is on.
+- Annotators, reviewers and viewers no longer see Import, Export or the new-class box.
+- If you have no projects yet, Katib tells you to ask whoever runs the server to add you.
+- A project can no longer lose its last owner.
+
+### Other changes
+
+- About credits the author and links to the source code. Everyone can open it now, not only
+  administrators.
+- Deleting a project is done from its card in the project list.
+
+### Known limits
+
+- On Linux the tray icon needs AppIndicator support. GNOME gets it through an extension. Without
+  it the server still runs, and the launcher can stop it.
+- The macOS build has not yet been opened on a Mac.
+- The installers are not code-signed.
+- The Android app is a WebView around the same interface as the browser.
+
+## 0.3.1
+
+A small release that fixes the Share window and tightens a few security checks.
+
+### Fixed
+
+- The desktop Share window gave out a port that nothing was listening on. It now uses the port
+  shown in Settings.
+- The desktop app can connect to a Katib that someone else is already running. The launcher offers
+  **Run my own** or a server address, the same way a browser would.
+
+### Security
+
+- A saved server address in the desktop launcher was not escaped, so a crafted address could have
+  run a script. It is escaped now.
+- Checking whether an account was locked out could leave a record behind even with no failed
+  attempts. Those records are no longer kept.
+- Restoring a backup checked for free disk space only after unpacking part of it. It now checks
+  first.
+- The Android app allowed a secure page to load insecure content. It no longer does.
+- The build pipeline's third-party actions are pinned to exact versions, and its workflow asks for
+  the smallest permissions it needs.
+- A `secret_key` setting that was never used has been removed.
+
+These were found in a review of the code, not by anyone running into them. The details are in the
+[security notes](docs/security.md).
+
+## 0.3.0
+
+### Fixed
+
+- Turning on **Everyone on my network** in the desktop app's Settings had no effect. The window now
+  listens on the address you chose.
+- The guided tour lost track on a phone, where some steps point at things hidden in a side panel.
+  It opens the panel it needs, and skips a step when there is nothing to point at.
+- Click to select could return the whole picture when it was not sure of anything. That now counts
+  as no answer.
+- A downloaded model's files could confuse the model list. Replacing a model file by hand also left
+  the old download marked as installed.
+- A factory reset could report success while a locked file, usually the database, was left in
+  place.
+- On a phone, scrolling to the end of a list could show the browser's own bounce effect, and the
+  keyboard resized the window unpredictably.
+
+### Added
+
+- **Download a Segment Anything model by name** from Settings, then Model help. MobileSAM and ViT-B
+  are checked against a fixed hash before they are used.
+- **Delete a project or manage its team** from its card in the project list.
+- **Factory reset** under Settings, then Storage. It asks you to type RESET and shows what it will
+  remove first.
+
+### Known limits
+
+- The Android app is a WebView around the same interface as the browser.
+- The installers are not code-signed.
+
+## 0.2.0
+
+This release is about getting your pictures into Katib when it runs somewhere that cannot see
+them directly, such as Docker.
+
+### Added
+
+- **Upload a folder.** Next to **Connect a folder**, you can send a whole folder from the browser,
+  including its subfolders and any label files. Each file uploads on its own, so you can watch the
+  progress. If the folder already holds a dataset, its classes, splits and shapes are read at the
+  same time.
+- Two limits are now settings under Settings, then Limits: the largest single file (100 MB by
+  default) and the largest folder upload (20,000 files by default).
+
+### Fixed
+
+- When Katib could not see a folder, the error told you to ask an administrator. It now explains
+  that the folder is not visible to the server and shows the `-v` flag to add when starting Docker.
+
+### Known limits
+
+- Click to select has not been run against real SAM weights in this release.
+- The installers are not code-signed.
+
+## 0.1.0
+
+The first full release. Katib labels images for computer vision on hardware you control. It starts
+with one command on a laptop, and it grows into a server that a team can sign into.
+
+### What is in it
+
+- Six kinds of shape: boxes, polygons, rotated boxes, keypoints with skeletons, brush masks and
+  whole-image tags, plus text for captions.
+- Keyboard shortcuts for almost everything. Changes save as you make them.
+- Class tools that rename, merge and delete across a project, with a preview first and 30 days of
+  undo.
+- Dataset health checks for tiny shapes, duplicate shapes, near-identical photos and unbalanced
+  classes.
+- Import and export for YOLO, COCO, Pascal VOC, LabelMe and JSON Lines, with train, validation and
+  test splits kept.
+- Accounts, invite links, five roles, review, and per-image locks.
+- Settings for everything, with backups and restore.
+- A practice project and a guided tour for new users.
+- Draft boxes from your own ONNX detection model.
+- A layout that works on a phone, including an Android app.
+
+### Click to select
+
+Give Katib a Segment Anything model, and clicking an object outlines it. Shift-click adds to the
+selection, and Ctrl-click takes away. You supply the two ONNX files under Settings, then Model help.
+
+### Accounts you create yourself
+
+Under Settings, then People, administrators can add someone with an email address and a password,
+make them an administrator, reset a password, or turn an account off. Everyone can change their own
+password, which also signs out their other devices.
+
+### Known limits
+
+- The installers are not code-signed.
+- The Android app is signed with a debug key unless you configure a release keystore.
+- There is no iPhone app. Add your server to the home screen from Safari.
+- The interface is in English.
+
+## 0.1.0-rc3
+
+- The Android app can connect to a server on your network over plain http.
+- In Docker, Katib shows the address your browser used, not the container's address.
+- Invite links use an address other people can open, not `localhost`.
+- A message after saving in Settings no longer blocks the Save button on a phone.
+- Project cards show the first picture in the project.
+- The Android app needs Android 8 or newer.
+
+## 0.1.0-rc2
+
+- Project cards show the first picture in the project.
+- The Linux build runs on Ubuntu 22.04, Debian 12 and Raspberry Pi OS (bookworm). The `.deb` checks
+  its C library version, so apt refuses to install it where it cannot run.
+- The Linux app opens its window. The first pre-release could install but not open a window.
+- Side panels can be folded away with a button or a key, and stay folded next time.
+- The zoom readout on the canvas has one place now.
+
+## 0.1.0-rc1
+
+The first pre-release build.
