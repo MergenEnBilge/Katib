@@ -98,8 +98,17 @@ class ManagedServer:
         app.state.control = Control(token=self.token, stop=self.stop)
         # log_config=None: uvicorn's own setup writes to the console, which a background server
         # does not have. Its messages reach Katib's handlers instead, a file or the terminal.
+        # proxy_headers=False: Katib reads X-Forwarded-For itself, and only when server.behind_proxy
+        # says to; uvicorn would otherwise believe it from any local caller.
         server = uvicorn.Server(
-            uvicorn.Config(app, host=host, port=port, log_level="warning", log_config=None)
+            uvicorn.Config(
+                app,
+                host=host,
+                port=port,
+                log_level="warning",
+                log_config=None,
+                proxy_headers=False,
+            )
         )
         self._server = server
         self.info = instance.ServerInfo(

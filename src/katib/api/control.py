@@ -23,9 +23,11 @@ def stop_server(request: Request, x_katib_control: Annotated[str, Header()] = ""
     control: Any = getattr(request.app.state, "control", None)
     if control is None:
         raise NotFound("This server cannot be stopped from here.")
-    # The raw peer, deliberately not the address a proxy claims to be forwarding for.
+    # The raw peer, deliberately not the address a proxy claims to be forwarding for: the server
+    # runs with uvicorn's proxy-header rewriting off. A server pinned to one of this computer's
+    # network addresses is reached on that address, by programs on this computer, too.
     peer = request.client.host if request.client else ""
-    if not is_loopback(peer):
+    if not (is_loopback(peer) or peer == request.app.state.settings.server.host):
         raise Forbidden("A server can only be stopped from the computer it runs on.")
     if not secrets.compare_digest(x_katib_control.encode(), str(control.token).encode()):
         raise Forbidden("That is not this server's control token.")
