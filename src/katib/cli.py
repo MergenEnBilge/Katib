@@ -52,6 +52,16 @@ def desktop_app(
         raise typer.BadParameter(str(err)) from err
 
 
+@app.command(name="tray-server", hidden=True)
+def tray_server(
+    config: Annotated[Path | None, typer.Option(help="Path to katib.toml.")] = None,
+) -> None:
+    """The background server the Katib window starts, with its icon in the system tray."""
+    from katib.desktop.tray import run as run_tray
+
+    raise typer.Exit(run_tray(load_settings(config)))
+
+
 @app.command()
 def status(
     config: Annotated[Path | None, typer.Option(help="Path to katib.toml.")] = None,

@@ -1,25 +1,22 @@
-"""Run Katib in its own window instead of a browser tab.
+"""Katib in its own window: a client, like a browser tab, for a server that runs on its own.
 
-The window opens on a small launcher, same idea as a browser's home page: run Katib on this
-computer, or type the address of a Katib someone else is already running and open that instead.
-Only the first choice starts a server of its own -- connecting elsewhere is exactly what a
-browser tab would do, and needs nothing more than the address.
-
-Running one of your own binds whatever address Settings, then Sharing says, same as every other
-way of running Katib -- "Everyone on my network" works here too. The window itself always talks
-to that server over loopback when that reaches it, since that is simplest for the one thing it
-needs: showing the page to the person sitting at this computer. Closing the window stops it.
+The window opens on a small launcher. "Open my own" finds the Katib server already running for
+this computer's data folder, or starts one in the background, and shows it. That server does not
+belong to the window: it keeps running after the window closes, so phones and colleagues keep
+their connection, and it lives on in the system tray until someone stops it there, here, or with
+`katib stop`. "Connect" opens a Katib someone else is running instead, exactly as a browser would.
 """
 
+from __future__ import annotations
+
 import html
-import socket
-import threading
-import time
+import os
+import subprocess
+from typing import Any
 
-import uvicorn
-
-from katib.api.app import create_app
-from katib.config import Settings, is_loopback, read_remote_choice, write_remote_choice
+from katib.config import Settings, read_remote_choice, write_remote_choice
+from katib.desktop.autostart import server_command
+from katib.server import instance
 
 START_TIMEOUT_SECONDS = 30
 
@@ -37,8 +34,8 @@ LAUNCHER_HTML = """<!doctype html>
     color: #edefea;
     font-family: system-ui, sans-serif;
   }}
-  main {{ width: 320px; }}
-  h1 {{ font-size: 1.1rem; font-weight: 600; margin: 0 0 1.5rem; }}
+  main {{ width: 340px; }}
+  h1 {{ font-size: 1.1rem; font-weight: 600; margin: 0 0 1.25rem; }}
   button, input {{
     width: 100%;
     box-sizing: border-box;
@@ -54,28 +51,76 @@ LAUNCHER_HTML = """<!doctype html>
     font-weight: 600;
     cursor: pointer;
   }}
-  #connect {{ background: transparent; color: #edefea; margin-top: 0.5rem; }}
+  button.quiet {{ background: transparent; color: #edefea; margin-top: 0.5rem; }}
+  button:disabled {{ opacity: 0.6; cursor: default; }}
   input {{
     padding: 0.55rem;
     border-radius: 6px;
     border: 1px solid #2a322b;
     background: #161a16;
     color: #edefea;
-    margin: 1rem 0 0.5rem;
+    margin: 0.75rem 0 0.5rem;
   }}
-  p {{ font-size: 0.8rem; color: #9aa39b; margin: 1.5rem 0 0.25rem; }}
-  #error {{ color: #e2734f; min-height: 1.2em; }}
+  p {{ font-size: 0.8rem; color: #9aa39b; margin: 0.4rem 0; }}
+  #status {{ min-height: 1.2em; }}
+  .error {{ color: #e2734f; min-height: 1.2em; }}
+  hr {{ border: 0; border-top: 1px solid #2a322b; margin: 1.25rem 0; }}
+  footer {{ margin-top: 1.5rem; font-size: 0.75rem; color: #6f786f; }}
+  footer a {{ color: #4bcb8b; }}
 </style>
 <main>
   <h1>Katib</h1>
-  <button onclick="openLocal()">Open my own</button>
-  <p>Or connect to a server someone else is already running:</p>
+  <p id="status">Checking this computer...</p>
+  <button id="open" onclick="openLocal()">Open my own</button>
+  <button id="stop" class="quiet" onclick="stopLocal()" hidden>
+    Stop the server on this computer
+  </button>
+  <p class="error" id="local-error"></p>
+  <hr>
+  <p>Or connect to a Katib someone else is running:</p>
   <input id="url" placeholder="katib.example.com" value="{remote}">
-  <button id="connect" onclick="openRemote()">Connect</button>
-  <p id="error"></p>
+  <button id="connect" class="quiet" onclick="openRemote()">Connect</button>
+  <p class="error" id="error"></p>
+  <footer>
+    Built by
+    <a href="https://github.com/MergenEnBilge" target="_blank"
+      >M. Abdullah K. Mughal (MergenEnBilge)</a>
+  </footer>
 </main>
 <script>
-  function openLocal() {{ pywebview.api.open_local(); }}
+  function show(state) {{
+    document.getElementById('status').textContent = state.running
+      ? 'Running on this computer at ' + state.url + '.'
+      : 'Not running on this computer yet. Opening it starts it.';
+    document.getElementById('open').textContent =
+      state.running ? 'Open my own' : 'Start and open my own';
+    document.getElementById('stop').hidden = !state.running;
+  }}
+  function refresh() {{ pywebview.api.status().then(show); }}
+  window.addEventListener('pywebviewready', refresh);
+  function busy(on, text) {{
+    var open = document.getElementById('open');
+    open.disabled = on;
+    if (text) open.textContent = text;
+  }}
+  function openLocal() {{
+    busy(true, 'Starting...');
+    pywebview.api.open_local().then(function (result) {{
+      if (!result.ok) {{
+        document.getElementById('local-error').textContent = result.error;
+        busy(false);
+        refresh();
+      }}
+    }});
+  }}
+  function stopLocal() {{
+    document.getElementById('stop').disabled = true;
+    pywebview.api.stop_local().then(function (result) {{
+      document.getElementById('stop').disabled = false;
+      document.getElementById('local-error').textContent = result.ok ? '' : result.error;
+      refresh();
+    }});
+  }}
   function openRemote() {{
     pywebview.api.open_remote(document.getElementById('url').value).then(function (result) {{
       if (!result.ok) document.getElementById('error').textContent = result.error;
@@ -87,26 +132,6 @@ LAUNCHER_HTML = """<!doctype html>
 
 class DesktopUnavailable(Exception):
     """The window toolkit is not installed."""
-
-
-def free_port(host: str, preferred: int) -> int:
-    """The configured port, if nothing on this interface is already using it -- so a device
-    told to reach this window at that port, such as from the Share window, actually finds it
-    there. Falls back to whatever port is free, same as before Sharing existed, rather than
-    refusing to start."""
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
-        try:
-            probe.bind((host, preferred))
-        except OSError:
-            probe.bind((host, 0))
-        return int(probe.getsockname()[1])
-
-
-def window_host(host: str) -> str:
-    """Where the window itself should point. A wildcard bind answers on loopback too, so the
-    window can always reach it there. Only an address pinned to one specific interface (an
-    advanced choice) forces the window to use it."""
-    return "127.0.0.1" if host == "0.0.0.0" or is_loopback(host) else host
 
 
 def remote_address(typed: str) -> str:
@@ -121,24 +146,30 @@ def remote_address(typed: str) -> str:
     return typed
 
 
-def _start_local(settings: Settings) -> tuple[str, uvicorn.Server, threading.Thread]:
-    host = settings.server.host
-    port = free_port(host, settings.server.port)
-    settings.server.port = port  # so the Share window hands out the address that actually answers
-    api = create_app(settings)
-    api.state.can_restart = False  # the window would be left pointing at a server that is gone
-    server = uvicorn.Server(uvicorn.Config(api, host=host, port=port, log_level="warning"))
-    thread = threading.Thread(target=server.run, daemon=True)
-    thread.start()
+def start_server() -> None:
+    """Start the background server, detached, so closing this window never takes it down."""
+    options: dict[str, Any] = {
+        "stdin": subprocess.DEVNULL,
+        "stdout": subprocess.DEVNULL,
+        "stderr": subprocess.DEVNULL,
+        "close_fds": True,
+    }
+    if os.name == "nt":
+        options["creationflags"] = (
+            subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP  # type: ignore[attr-defined]
+        )
+    else:
+        options["start_new_session"] = True
+    subprocess.Popen(server_command(), **options)  # noqa: S603 -- our own program
 
-    deadline = time.monotonic() + START_TIMEOUT_SECONDS
-    while not server.started:
-        if time.monotonic() > deadline or not thread.is_alive():
-            server.should_exit = True
-            raise RuntimeError("Katib did not start.")
-        time.sleep(0.05)
 
-    return f"http://{window_host(host)}:{port}", server, thread
+def ensure_running(settings: Settings) -> instance.ServerInfo | None:
+    """The server for this data folder, started first if it is not running yet."""
+    running = instance.find_running(settings.data_dir)
+    if running is not None:
+        return running
+    start_server()
+    return instance.wait_for(settings.data_dir, START_TIMEOUT_SECONDS)
 
 
 def run_desktop(settings: Settings) -> None:
@@ -149,14 +180,29 @@ def run_desktop(settings: Settings) -> None:
             "The desktop window needs an extra package. Install it with: uv sync --extra desktop"
         ) from err
 
-    running: dict[str, object] = {}
+    log_path = settings.data_dir / "logs" / "server.log"
 
     class Api:
-        def open_local(self) -> None:
+        def status(self) -> dict[str, object]:
+            running = instance.find_running(settings.data_dir)
+            return {"running": running is not None, "url": running.url if running else ""}
+
+        def open_local(self) -> dict[str, object]:
             assert window is not None
-            url, server, thread = _start_local(settings)
-            running["server"], running["thread"] = server, thread
-            window.load_url(url)
+            running = ensure_running(settings)
+            if running is None:
+                return {
+                    "ok": False,
+                    "error": f"Katib did not start. What went wrong is in {log_path}.",
+                }
+            window.load_url(running.url)
+            return {"ok": True}
+
+        def stop_local(self) -> dict[str, object]:
+            running = instance.find_running(settings.data_dir)
+            if running is None or instance.stop(running, settings.data_dir):
+                return {"ok": True}
+            return {"ok": False, "error": "Katib did not stop. It may still be finishing a job."}
 
         def open_remote(self, typed: str) -> dict[str, object]:
             assert window is not None
@@ -175,10 +221,5 @@ def run_desktop(settings: Settings) -> None:
         height=900,
     )
     assert window is not None  # only None when a window already exists, which none does here
-    try:
-        webview.start()
-    finally:
-        server = running.get("server")
-        if server is not None:
-            server.should_exit = True  # type: ignore[attr-defined]
-            running["thread"].join(timeout=5)  # type: ignore[union-attr]
+    # Nothing to shut down afterwards: the server is not this window's to stop.
+    webview.start()

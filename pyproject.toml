@@ -35,6 +35,9 @@ desktop = [
     # Windows and macOS have a system web view. Linux needs the GTK bindings, without which the
     # window refuses to open. Building these needs libgirepository1.0-dev and libcairo2-dev.
     "pywebview[gtk]>=5; sys_platform == 'linux'",
+    # The tray icon for the background server. LGPL-3.0: the installers ship it as separate,
+    # replaceable files, which is what that licence asks for.
+    "pystray>=0.19",
 ]
 
 [project.scripts]

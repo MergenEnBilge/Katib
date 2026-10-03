@@ -18,6 +18,7 @@ mkdir -p "$ROOT/DEBIAN" "$ROOT/opt/katib" "$ROOT/usr/bin" \
 
 cp -r dist/Katib/. "$ROOT/opt/katib/"
 ln -s /opt/katib/Katib "$ROOT/usr/bin/katib-app"
+ln -s /opt/katib/KatibServer "$ROOT/usr/bin/katib-server"
 cp installers/desktop/icon.png "$ROOT/usr/share/icons/hicolor/256x256/apps/katib.png"
 
 cat > "$ROOT/usr/share/applications/katib.desktop" <<DESKTOP
@@ -31,6 +32,17 @@ Categories=Graphics;Development;
 Terminal=false
 DESKTOP
 
+cat > "$ROOT/usr/share/applications/katib-server.desktop" <<DESKTOP
+[Desktop Entry]
+Type=Application
+Name=Katib Server
+Comment=Keep Katib running for your other devices, with an icon in the tray
+Exec=/opt/katib/KatibServer
+Icon=katib
+Categories=Graphics;Development;
+Terminal=false
+DESKTOP
+
 cat > "$ROOT/DEBIAN/control" <<CONTROL
 Package: katib
 Version: $VERSION
@@ -39,6 +51,7 @@ Priority: optional
 Architecture: $ARCH
 Maintainer: Katib maintainers <noreply@users.noreply.github.com>
 Depends: libc6 (>= $GLIBC), libgtk-3-0, gir1.2-webkit2-4.1 | gir1.2-webkit2-4.0
+Recommends: gir1.2-ayatanaappindicator3-0.1 | gir1.2-appindicator3-0.1
 Description: Image annotation tool
  Katib lets you draw boxes, outlines, keypoints and text on pictures and
  export them for training. It runs on your own computer.

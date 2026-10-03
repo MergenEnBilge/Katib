@@ -69,9 +69,10 @@ def build_web() -> None:
 def freeze() -> None:
     if not (ROOT / "src" / "katib" / "static" / "index.html").is_file():
         raise Failed("The web interface has not been built. Run this without --skip-web.")
-    # Without pywebview the app freezes cleanly and then cannot open its window, so check for it
-    # here rather than shipping something that fails on the person who installs it.
-    missing = [name for name in ("PyInstaller", "webview") if not installed(name)]
+    # Without pywebview the app freezes cleanly and then cannot open its window, and without
+    # pystray the server has no tray icon, so check for both here rather than shipping something
+    # that fails on the person who installs it.
+    missing = [name for name in ("PyInstaller", "webview", "pystray") if not installed(name)]
     if missing:
         raise Failed(f"This environment is missing {' and '.join(missing)}. Build with:\n  {SETUP}")
     spec = ROOT / "installers" / "desktop" / "katib.spec"
