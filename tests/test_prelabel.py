@@ -281,3 +281,17 @@ def test_it_says_how_to_turn_it_on_when_it_is_off(tmp_path: Path) -> None:
     assert res.status_code == 403
     # The message points at the switch in Settings, not at the setting's name in a file.
     assert "Settings" in res.json()["message"]
+
+
+@pytest.mark.parametrize(
+    "names",
+    [
+        "{'a': 'car', 'b': 'bus'}",  # keys that are not numbers
+        "{0: 'car', 'x': 'bus'}",  # a mix of numbers and words
+        "[" * 100_000 + "]" * 100_000,  # nested so deep it is slow to parse
+        "'" + "x" * 100_000 + "'",  # far larger than any real list of names
+    ],
+    ids=["word-keys", "mixed-keys", "too-deep", "too-long"],
+)
+def test_odd_class_names_are_ignored_instead_of_failing(names: str) -> None:
+    assert ml._class_names({"names": names}) is None
