@@ -26,7 +26,8 @@ from katib.storage.imaging import (
     ALLOWED_SUFFIXES,
     UnreadableImage,
     make_thumbnail,
-    read_info,
+    sha256_of,
+    thumbnail_and_hash,
 )
 from katib.storage.local import LocalStorage, StorageTooLarge
 
@@ -182,25 +183,26 @@ def _add_image(
     split: str | None = None,
 ) -> Image | str:
     """Read `source`, add a row and a thumbnail. Returns the Image, or a reason it was skipped."""
-    info = read_info(source)
-    if info.sha256 in known:
-        return f"duplicate of {known[info.sha256]}"
+    # The checksum reads the file's bytes only, so a duplicate is caught before any decoding.
+    digest = sha256_of(source)
+    if digest in known:
+        return f"duplicate of {known[digest]}"
     image_id = new_id()
-    make_thumbnail(source, ctx.thumbs.path(_thumb_key(image_id)))
+    width, height, phash = thumbnail_and_hash(source, ctx.thumbs.path(_thumb_key(image_id)))
     image = Image(
         id=image_id,
         project_id=project_id,
         filename=filename,
         storage_key=storage_key,
-        width=info.width,
-        height=info.height,
-        sha256=info.sha256,
-        phash=info.phash,
+        width=width,
+        height=height,
+        sha256=digest,
+        phash=phash,
         position=position,
         split=split,
     )
     session.add(image)
-    known[info.sha256] = filename
+    known[digest] = filename
     return image
 
 
