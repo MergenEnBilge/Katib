@@ -81,6 +81,25 @@ def status(
     typer.echo(f"Katib {running.version} is running at {running.url} (process {running.pid}).")
 
 
+@app.command(name="setup-code")
+def show_setup_code(
+    config: Annotated[Path | None, typer.Option(help="Path to katib.toml.")] = None,
+) -> None:
+    """Show the code for creating the first administrator, and a link that fills it in."""
+    from katib.server import instance
+    from katib.services import setup_code
+
+    settings = load_settings(config)
+    code = setup_code.pending(settings.data_dir)
+    if code is None:
+        typer.echo("No setup code is needed: this Katib already has an administrator.")
+        return
+    typer.echo(f"Setup code: {code}")
+    running = instance.find_running(settings.data_dir)
+    if running is not None:
+        typer.echo(f"On this computer, open {setup_code.setup_link(running.url, code)}")
+
+
 @app.command()
 def stop(
     config: Annotated[Path | None, typer.Option(help="Path to katib.toml.")] = None,

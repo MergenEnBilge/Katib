@@ -20,6 +20,7 @@ from katib.config import Settings, load_settings
 from katib.desktop import autostart
 from katib.desktop.notice import open_path, show_error
 from katib.server.run import AlreadyRunning, DidNotStart, ManagedServer
+from katib.services import setup_code
 
 log = logging.getLogger(__name__)
 
@@ -95,9 +96,18 @@ def _run_tray(server: ManagedServer, url: str, log_path: Path) -> bool:
         if not open_path(log_path):
             icon.notify(f"The log is at {log_path}", "Katib")
 
+    def finish_setup() -> None:
+        webbrowser.open(setup_code.setup_link(url, setup_code.pending(server.data_dir)))
+
     menu = pystray.Menu(
         pystray.MenuItem(f"Katib is running at {url}", lambda: None, enabled=False),
         pystray.MenuItem("Open Katib", lambda: open_window(url), default=True),
+        # Only while the server waits for its first administrator: the code is filled in.
+        pystray.MenuItem(
+            "Finish setting up Katib",
+            finish_setup,
+            visible=lambda _item: setup_code.pending(server.data_dir) is not None,  # pyright: ignore[reportArgumentType]
+        ),
         pystray.MenuItem("Open in my browser", lambda: webbrowser.open(url)),
         pystray.MenuItem(
             "Share with phones and colleagues", lambda: webbrowser.open(f"{url}/settings")

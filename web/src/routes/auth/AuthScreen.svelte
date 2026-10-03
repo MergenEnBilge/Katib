@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Snippet } from 'svelte';
+  import { untrack, type Snippet } from 'svelte';
   import { ApiError } from '../../lib/api/client';
   import { t } from '../../lib/i18n/index.svelte';
   import { router } from '../../lib/state/router.svelte';
@@ -25,7 +25,19 @@
   let email = $state('');
   let name = $state('');
   let password = $state('');
-  let code = $state('');
+  // Read once, when the page opens: the link is consumed and cleared straight away.
+  const linkedCode = untrack(() => (kind === 'setup' ? takeCodeFromLink() : ''));
+  let code = $state(linkedCode);
+  const codeFromLink = linkedCode !== '';
+
+  /** The Katib window, its tray icon and `katib setup-code` open this page with the code after
+   *  the `#`, which browsers never send to a server. Take it, then wipe it from the address bar
+   *  so it does not linger in history. */
+  function takeCodeFromLink(): string {
+    const found = new URLSearchParams(location.hash.slice(1)).get('setup-code') ?? '';
+    if (found) history.replaceState(null, '', location.pathname + location.search);
+    return found.trim().toUpperCase();
+  }
   let error = $state('');
   let busy = $state(false);
 
@@ -79,7 +91,11 @@
       <TextField label={t('auth.name')} bind:value={name} />
     {/if}
     {#if kind === 'setup' && session.needsSetupCode}
-      <TextField label={t('auth.setup.code')} bind:value={code} hint={t('auth.setup.codeHint')} />
+      <TextField
+        label={t('auth.setup.code')}
+        bind:value={code}
+        hint={codeFromLink ? t('auth.setup.codeFilled') : t('auth.setup.codeHint')}
+      />
     {/if}
     <label class="pw">
       <span>{t('auth.password')}</span>

@@ -25,6 +25,7 @@ from katib.config import Settings, read_remote_choice, write_remote_choice
 from katib.desktop.autostart import server_command
 from katib.desktop.notice import open_path
 from katib.server import instance
+from katib.services import setup_code
 
 START_TIMEOUT_SECONDS = 30
 #: How long to wait for a server that is finishing a job before it stops.
@@ -312,7 +313,12 @@ def run_desktop(settings: Settings) -> None:
                     "ok": False,
                     "error": "Katib's server did not start. Show its log to see why.",
                 }
-            show(running.url, local=True)
+            # Waiting for its first administrator, the server asks for its setup code. Whoever sits
+            # at this computer may read it, so the window passes it on rather than make them dig.
+            show(
+                setup_code.setup_link(running.url, setup_code.pending(settings.data_dir)),
+                local=True,
+            )
             return {"ok": True}
 
         def stop_local(self) -> dict[str, object]:

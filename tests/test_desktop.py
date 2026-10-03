@@ -317,3 +317,18 @@ def test_a_remote_page_cannot_use_the_windows_own_controls(
     assert results["open"]["ok"] is False  # type: ignore[index]
     assert results["loaded"] == "http://team.example.com"
     assert stopped == []
+
+
+def test_the_window_fills_in_the_setup_code_on_this_computer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from katib.services import setup_code
+
+    code = setup_code.get_or_create(tmp_path)
+    monkeypatch.setattr(window.instance, "find_running", lambda _d: RUNNING)
+
+    fake, seen = fake_webview(lambda api, _w: api.open_local())
+    monkeypatch.setitem(sys.modules, "webview", fake)
+    run_desktop(Settings(storage={"data_dir": str(tmp_path)}))
+
+    assert seen["window"].loaded == f"{RUNNING.url}/#setup-code={code}"  # type: ignore[union-attr]

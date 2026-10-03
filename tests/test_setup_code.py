@@ -131,3 +131,37 @@ def test_a_proxy_that_katib_was_not_told_about_gets_asked_for_the_code(tmp_path:
         behind = {"x-forwarded-for": "93.184.216.34"}
         assert api.get(f"{API}/auth/status", headers=behind).json()["needs_setup_code"] is True
         assert api.post(f"{API}/auth/setup", json=SIGNUP, headers=behind).status_code == 403
+
+
+def test_programs_on_this_computer_can_read_a_pending_code(tmp_path: Path) -> None:
+    data = tmp_path / "data"
+    assert setup_code.pending(data) is None
+    code = setup_code.get_or_create(data)
+    assert setup_code.pending(data) == code
+    setup_code.clear(data)
+    assert setup_code.pending(data) is None
+
+
+def test_the_setup_link_keeps_the_code_out_of_what_the_server_sees() -> None:
+    link = setup_code.setup_link("http://127.0.0.1:8420", "ABCDEFGH23")
+    # After the #, where a browser keeps it to itself.
+    assert link == "http://127.0.0.1:8420/#setup-code=ABCDEFGH23"
+    assert setup_code.setup_link("http://127.0.0.1:8420", None) == "http://127.0.0.1:8420"
+
+
+def test_katib_setup_code_prints_the_code_while_one_is_needed(tmp_path: Path) -> None:
+    from typer.testing import CliRunner
+
+    from katib.cli import app as cli
+
+    data = tmp_path / "data"
+    config = tmp_path / "katib.toml"
+    config.write_text(f'[storage]\ndata_dir = "{data.as_posix()}"\n')
+    runner = CliRunner()
+    assert (
+        "No setup code is needed"
+        in runner.invoke(cli, ["setup-code", "--config", str(config)]).output
+    )
+    code = setup_code.get_or_create(data)
+    shown = runner.invoke(cli, ["setup-code", "--config", str(config)])
+    assert shown.exit_code == 0 and code in shown.output

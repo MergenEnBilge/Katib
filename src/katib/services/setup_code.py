@@ -68,6 +68,24 @@ def get_or_create(data_dir: Path) -> str:
     return code
 
 
+def pending(data_dir: Path) -> str | None:
+    """The code, while a server for this data folder is waiting for its first administrator.
+
+    For programs on the server's own computer to fill it in for whoever sits there: reading this
+    file is what proves they may, since only the account that runs Katib can.
+    """
+    try:
+        return (data_dir / FILE).read_text(encoding="utf-8").strip() or None
+    except OSError:
+        return None
+
+
+def setup_link(url: str, code: str | None) -> str:
+    """The address of the server's start page, carrying the code after the `#`. Browsers keep
+    that part to themselves: it never reaches a server, a proxy or a log."""
+    return f"{url}/#setup-code={code}" if code else url
+
+
 def matches(data_dir: Path, given: str) -> bool:
     expected = get_or_create(data_dir)
     return secrets.compare_digest(expected.encode(), given.strip().upper().encode())

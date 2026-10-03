@@ -208,8 +208,9 @@ def setup(
             limiter.fail(key)
             raise Forbidden(
                 "Other people can reach this server, and whoever makes this account runs it, "
-                "so it needs its setup code. You will find it in the server's log, or in "
-                "setup-code.txt in its data folder."
+                "so it needs its setup code. On the computer Katib runs on, open Katib (or "
+                "Finish setting up Katib in its tray icon) and it is filled in, or run "
+                "`katib setup-code` there."
             )
     user = auth.setup_first_admin(session, body.email, body.name, body.password)
     setup_code.clear(settings.data_dir)
