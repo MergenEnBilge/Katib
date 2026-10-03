@@ -28,28 +28,32 @@
 </script>
 
 <div class="panel">
-  <form
-    class="add"
-    onsubmit={(e) => {
-      e.preventDefault();
-      void add();
-    }}
-  >
-    <input
-      data-tour="class-input"
-      placeholder="New class name"
-      aria-label="New class name"
-      aria-invalid={error ? 'true' : undefined}
-      bind:value={name}
-    />
-    <Button variant="primary" disabled={busy || !name.trim()} onclick={add}><Plus size={16} />Add</Button>
-  </form>
+  {#if ws.canManage}
+    <form
+      class="add"
+      onsubmit={(e) => {
+        e.preventDefault();
+        void add();
+      }}
+    >
+      <input
+        data-tour="class-input"
+        placeholder="New class name"
+        aria-label="New class name"
+        aria-invalid={error ? 'true' : undefined}
+        bind:value={name}
+      />
+      <Button variant="primary" disabled={busy || !name.trim()} onclick={add}><Plus size={16} />Add</Button>
+    </form>
+  {/if}
   {#if error}<p class="error" role="alert">{error}</p>{/if}
 
   {#if ws.classes.length === 0}
     <EmptyState
       title="No classes yet"
-      description="A class is a label such as “car” or “person”. Add one, then draw shapes with it."
+      description={ws.canManage
+        ? 'A class is a label such as “car” or “person”. Add one, then draw shapes with it.'
+        : 'A class is a label such as “car” or “person”. Whoever manages this project will add them.'}
     >
       {#snippet icon()}<Tags size={20} />{/snippet}
     </EmptyState>

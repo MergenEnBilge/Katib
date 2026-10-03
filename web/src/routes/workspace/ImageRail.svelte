@@ -131,15 +131,21 @@
       {#if ws.search || ws.statusFilter !== 'all' || ws.splitFilter !== 'all'}
         <p class="none">No images match this filter.</p>
       {:else}
-        <EmptyState
-          title="No images yet"
-          description="Add images from a folder on this computer or upload them from this device."
-        >
-          {#snippet icon()}<ImageIcon size={20} />{/snippet}
-          {#snippet action()}
-            <Button variant="primary" onclick={onimport}><Upload size={16} />Import images</Button>
-          {/snippet}
-        </EmptyState>
+        {#if ws.canManage}
+          <EmptyState
+            title="No images yet"
+            description="Add images from a folder on this computer or upload them from this device."
+          >
+            {#snippet icon()}<ImageIcon size={20} />{/snippet}
+            {#snippet action()}
+              <Button variant="primary" onclick={onimport}><Upload size={16} />Import images</Button>
+            {/snippet}
+          </EmptyState>
+        {:else}
+          <EmptyState title="No images yet" description="Whoever manages this project will add them.">
+            {#snippet icon()}<ImageIcon size={20} />{/snippet}
+          </EmptyState>
+        {/if}
       {/if}
     </div>
   {:else}

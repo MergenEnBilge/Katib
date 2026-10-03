@@ -392,9 +392,9 @@
       <button type="button" class="save {ws.saveState}" onclick={showSaveStatus} aria-label="Save status: {saveLabel}">
         <span class="pip"></span><span class="save-text">{saveLabel}</span>
       </button>
-      <span class="hide-narrow" data-tour="import"><Button onclick={() => (dialog = 'import-images')}><Upload size={16} />Import</Button></span>
-      <span class="hide-narrow" data-tour="export"><Button onclick={() => (dialog = 'export')}><Download size={16} />Export</Button></span>
       {#if ws.canManage}
+        <span class="hide-narrow" data-tour="import"><Button onclick={() => (dialog = 'import-images')}><Upload size={16} />Import</Button></span>
+        <span class="hide-narrow" data-tour="export"><Button onclick={() => (dialog = 'export')}><Download size={16} />Export</Button></span>
         <span class="hide-narrow" data-tour="split">
           <IconButton label="Train, validation and test split" onclick={() => (dialog = 'splits')}><Shuffle size={16} /></IconButton>
         </span>
@@ -479,15 +479,24 @@
         {/if}
         {#if !ws.currentId && !ws.imagesLoading && ws.project}
           <div class="overlay">
-            <EmptyState
-              title="Nothing to annotate yet"
-              description="Import images to start. You can bring labels from YOLO or COCO files afterward."
-            >
-              {#snippet icon()}<Upload size={20} />{/snippet}
-              {#snippet action()}
-                <Button variant="primary" onclick={() => (dialog = 'import-images')}>Import images</Button>
-              {/snippet}
-            </EmptyState>
+            {#if ws.canManage}
+              <EmptyState
+                title="Nothing to annotate yet"
+                description="Import images to start. You can bring labels from YOLO or COCO files afterward."
+              >
+                {#snippet icon()}<Upload size={20} />{/snippet}
+                {#snippet action()}
+                  <Button variant="primary" onclick={() => (dialog = 'import-images')}>Import images</Button>
+                {/snippet}
+              </EmptyState>
+            {:else}
+              <EmptyState
+                title="Nothing to annotate yet"
+                description="This project has no images yet. Whoever manages it will add them."
+              >
+                {#snippet icon()}<Upload size={20} />{/snippet}
+              </EmptyState>
+            {/if}
           </div>
         {/if}
       </main>
