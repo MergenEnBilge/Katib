@@ -5,6 +5,7 @@ export type Route =
   | { name: 'inbox' }
   | { name: 'settings' }
   | { name: 'invite'; token: string }
+  | { name: 'get-app' }
   | { name: 'not-found' };
 
 /** Map a URL path to a route. Trailing slashes are ignored. */
@@ -13,6 +14,7 @@ export function matchRoute(path: string): Route {
   if (clean === '/') return { name: 'projects' };
   if (clean === '/inbox') return { name: 'inbox' };
   if (clean === '/settings') return { name: 'settings' };
+  if (clean === '/get-app') return { name: 'get-app' };
   const invite = /^\/invite\/([A-Za-z0-9_-]{16,})$/.exec(clean);
   if (invite?.[1]) return { name: 'invite', token: invite[1] };
   const gallery = /^\/p\/([0-9a-fA-F-]{36})\/gallery$/.exec(clean);

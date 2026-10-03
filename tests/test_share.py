@@ -153,3 +153,13 @@ def test_an_invite_says_where_the_phone_app_comes_from(tmp_path: Path) -> None:
 
 def test_lan_addresses_never_include_loopback() -> None:
     assert not [a for a in net.lan_addresses() if a.startswith("127.")]
+
+
+def test_the_share_code_for_the_app_opens_a_page_on_this_server(tmp_path: Path) -> None:
+    """The code is scanned by a phone camera, which often shows only the address it found. A page
+    on this server shows a download button, where a bare file link did not show anything."""
+    settings = shared_settings(tmp_path)
+    with TestClient(create_app(settings)) as c:
+        sign_up(c, settings)
+        body = c.get(f"{API}/share", headers={"host": "192.168.1.20:8420"}).json()
+    assert body["app_url"] == "http://192.168.1.20:8420/get-app"

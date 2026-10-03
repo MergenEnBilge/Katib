@@ -99,8 +99,8 @@
           <div>
             <p class="line"><strong>Rather have the app?</strong></p>
             <p class="hint">
-              Point an Android phone at this code to download it. Open it, then type the address
-              above, or scan the code beside it from inside the app.
+              Scan this code with an Android phone. It opens a page with the download button, and
+              the page also shows the address to type into the app.
             </p>
             <p class="hint">On an iPhone, open the address in Safari and choose Add to Home Screen.</p>
           </div>

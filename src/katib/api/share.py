@@ -77,7 +77,9 @@ def share(request: Request, user: UserDep, anywhere: AnywhereDep) -> ShareOut:
         accounts=settings.auth.mode == "local",
         urls=found.urls,
         secure=bool(found.urls) and found.urls[0].startswith("https://"),
-        app_url=APP_DOWNLOAD_URL,
+        # A page on this server with a download button, rather than the file itself: a phone
+        # camera scanning a bare file link often shows nothing to tap.
+        app_url=f"{found.urls[0]}/get-app" if found.urls else APP_DOWNLOAD_URL,
         in_container=net.in_container(),
         needs_address=found.unknown,
         port=settings.server.port,

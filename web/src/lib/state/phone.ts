@@ -10,6 +10,10 @@
 /** The Android package the app is published under. It must match capacitor.config.json. */
 export const ANDROID_PACKAGE = 'io.github.mergenenbilge.katib';
 
+/** Where the Android app is downloaded from. The latest release always has this file. */
+export const APK_URL =
+  'https://github.com/MergenEnBilge/Katib/releases/latest/download/Katib-android.apk';
+
 /** The custom scheme the app registers. Also set in installers/mobile/configure-android.mjs. */
 export const APP_SCHEME = 'katib';
 
