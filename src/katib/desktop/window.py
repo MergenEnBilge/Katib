@@ -13,6 +13,7 @@ import html
 import os
 import subprocess
 from typing import Any
+from urllib.parse import urlsplit
 
 from katib.config import Settings, read_remote_choice, write_remote_choice
 from katib.desktop.autostart import server_command
@@ -143,6 +144,14 @@ def remote_address(typed: str) -> str:
         return ""
     if "://" not in typed:
         typed = f"http://{typed}"
+    parts = urlsplit(typed)
+    # Only web addresses: anything else (file://, javascript:...) has no business in this window.
+    if parts.scheme not in ("http", "https") or not parts.hostname:
+        return ""
+    try:
+        parts.port  # noqa: B018 -- "javascript:alert(1)" arrives here as a host with a bad port
+    except ValueError:
+        return ""
     return typed
 
 
@@ -181,36 +190,52 @@ def run_desktop(settings: Settings) -> None:
         ) from err
 
     log_path = settings.data_dir / "logs" / "server.log"
+    # pywebview hands `js_api` to whatever page the window shows -- including a Katib on someone
+    # else's server once the window has gone there. So the API answers only while the window
+    # shows its own launcher; only this code below changes that, never a page.
+    state = {"launcher": True}
+    refused: dict[str, object] = {"ok": False, "error": "Only Katib's own start page can do this."}
+
+    def show(url: str) -> None:
+        assert window is not None
+        state["launcher"] = False
+        window.load_url(url)
 
     class Api:
         def status(self) -> dict[str, object]:
+            if not state["launcher"]:
+                return {"running": False, "url": ""}
             running = instance.find_running(settings.data_dir)
             return {"running": running is not None, "url": running.url if running else ""}
 
         def open_local(self) -> dict[str, object]:
-            assert window is not None
+            if not state["launcher"]:
+                return refused
             running = ensure_running(settings)
             if running is None:
                 return {
                     "ok": False,
                     "error": f"Katib did not start. What went wrong is in {log_path}.",
                 }
-            window.load_url(running.url)
+            show(running.url)
             return {"ok": True}
 
         def stop_local(self) -> dict[str, object]:
+            if not state["launcher"]:
+                return refused
             running = instance.find_running(settings.data_dir)
             if running is None or instance.stop(running, settings.data_dir):
                 return {"ok": True}
             return {"ok": False, "error": "Katib did not stop. It may still be finishing a job."}
 
         def open_remote(self, typed: str) -> dict[str, object]:
-            assert window is not None
+            if not state["launcher"]:
+                return refused
             url = remote_address(typed)
             if not url:
-                return {"ok": False, "error": "Type an address, such as katib.example.com."}
+                return {"ok": False, "error": "Type a web address, such as katib.example.com."}
             write_remote_choice(url)
-            window.load_url(url)
+            show(url)
             return {"ok": True}
 
     window = webview.create_window(

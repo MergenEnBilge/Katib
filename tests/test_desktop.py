@@ -206,3 +206,52 @@ def test_missing_toolkit_gives_a_plain_message(
     monkeypatch.setitem(sys.modules, "webview", None)
     with pytest.raises(DesktopUnavailable, match="uv sync --extra desktop"):
         run_desktop(Settings(storage={"data_dir": str(tmp_path)}))
+
+
+@pytest.mark.parametrize(
+    "typed", ["file:///C:/Windows/win.ini", "javascript:alert(1)", "ftp://example.com", "http://"]
+)
+def test_the_window_opens_only_web_addresses(typed: str) -> None:
+    assert remote_address(typed) == ""
+
+
+def test_a_remote_page_cannot_use_the_windows_own_controls(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    stopped: list[bool] = []
+    running = instance.ServerInfo(
+        pid=1, url="http://127.0.0.1:8420", host="127.0.0.1", port=8420, version="0", token="t"
+    )
+    monkeypatch.setattr(window.instance, "find_running", lambda _d: running)
+    monkeypatch.setattr(window.instance, "stop", lambda *_a: stopped.append(True) or True)
+    results: dict[str, object] = {}
+
+    class FakeWindow:
+        def load_url(self, url: str) -> None:
+            results["loaded"] = url
+
+    def visit_a_remote_server_then_misbehave(api: object) -> None:
+        assert api.open_remote("team.example.com") == {"ok": True}  # type: ignore[attr-defined]
+        # From here on, the page in the window is the remote server's.
+        results["stop"] = api.stop_local()  # type: ignore[attr-defined]
+        results["status"] = api.status()  # type: ignore[attr-defined]
+        results["open"] = api.open_remote("evil.example")  # type: ignore[attr-defined]
+
+    seen: dict[str, object] = {}
+
+    def create_window(_title: str, **kwargs: object) -> FakeWindow:
+        seen["api"] = kwargs["js_api"]
+        return FakeWindow()
+
+    fake = types.SimpleNamespace(
+        create_window=create_window,
+        start=lambda: visit_a_remote_server_then_misbehave(seen["api"]),
+    )
+    monkeypatch.setitem(sys.modules, "webview", fake)
+    run_desktop(Settings(storage={"data_dir": str(tmp_path)}))
+
+    assert results["stop"] == {"ok": False, "error": "Only Katib's own start page can do this."}
+    assert results["status"] == {"running": False, "url": ""}
+    assert results["open"]["ok"] is False  # type: ignore[index]
+    assert results["loaded"] == "http://team.example.com"
+    assert stopped == []
