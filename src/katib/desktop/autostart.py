@@ -20,12 +20,14 @@ LAUNCH_AGENT_ID = "io.github.mergenenbilge.katib.server"
 
 
 def server_command() -> list[str]:
-    """What starts the background server: the installed program, or this Python when developing."""
+    """What starts the background server without anyone asking just now (the window, sign-in):
+    the installed program, or this Python when developing. Quiet, because nobody is watching
+    for a message box; problems still go to the log."""
     if getattr(sys, "frozen", False):
         exe = Path(sys.executable)
         name = "KatibServer.exe" if os.name == "nt" else "KatibServer"
-        return [str(exe.with_name(name))]
-    return [sys.executable, "-m", "katib", "tray-server"]
+        return [str(exe.with_name(name)), "--quiet"]
+    return [sys.executable, "-m", "katib", "tray-server", "--quiet"]
 
 
 def _launch_agent() -> Path:

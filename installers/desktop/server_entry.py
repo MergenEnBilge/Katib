@@ -2,6 +2,7 @@
 server is running yet, and so does signing in, once "Start when I sign in" is on.
 
 `--stop` asks a running server to stop instead, which the uninstaller uses before removing files.
+`--quiet` is how the window and sign-in start it: problems go to the log without message boxes.
 """
 
 import multiprocessing
@@ -26,4 +27,4 @@ if __name__ == "__main__":
     if "--stop" in sys.argv[1:]:
         running = instance.find_running(settings.data_dir)
         sys.exit(0 if running is None or instance.stop(running, settings.data_dir) else 1)
-    sys.exit(run(settings))
+    sys.exit(run(settings, quiet="--quiet" in sys.argv[1:]))

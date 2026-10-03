@@ -7,6 +7,8 @@ import threading
 from collections.abc import Callable
 
 DELAY_SECONDS = 0.7
+#: Set for the new copy, so it knows it is one: `katib` then skips opening another browser tab.
+RESTARTED = "KATIB_RESTARTED"
 
 
 def command() -> list[str]:
@@ -18,6 +20,7 @@ def command() -> list[str]:
 
 def restart_now() -> None:
     args = command()
+    os.environ[RESTARTED] = "1"
     if os.name == "nt":
         # Windows cannot replace a running program, so start a second copy and leave.
         subprocess.Popen(args, close_fds=True)  # noqa: S603

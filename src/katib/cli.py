@@ -3,6 +3,7 @@
 
 import contextlib
 import logging
+import os
 import webbrowser
 from pathlib import Path
 from typing import Annotated
@@ -10,7 +11,7 @@ from typing import Annotated
 import typer
 import uvicorn
 
-from katib import net
+from katib import net, restart
 from katib.config import Settings, get_settings, load_settings
 
 app = typer.Typer(add_completion=False, help="Katib annotation server.")
@@ -55,11 +56,14 @@ def desktop_app(
 @app.command(name="tray-server", hidden=True)
 def tray_server(
     config: Annotated[Path | None, typer.Option(help="Path to katib.toml.")] = None,
+    quiet: Annotated[
+        bool, typer.Option(help="Started by the window or at sign-in: no message boxes.")
+    ] = False,
 ) -> None:
     """The background server the Katib window starts, with its icon in the system tray."""
     from katib.desktop.tray import run as run_tray
 
-    raise typer.Exit(run_tray(load_settings(config)))
+    raise typer.Exit(run_tray(load_settings(config), quiet=quiet))
 
 
 @app.command()
@@ -89,8 +93,14 @@ def stop(
     if running is None:
         typer.echo("Katib is not running, so there is nothing to stop.")
         return
-    if not instance.stop(running, settings.data_dir):
-        raise typer.BadParameter(f"Katib at {running.url} did not stop. Is it still busy?")
+    typer.echo(f"Stopping Katib at {running.url}. Any job still running finishes first...")
+    if not instance.stop(running, settings.data_dir, seconds=120):
+        typer.echo(
+            "Katib has not stopped yet. It may still be finishing a long job; it stops by itself "
+            f"once that is done. Its log is in {settings.data_dir / 'logs'}.",
+            err=True,
+        )
+        raise typer.Exit(1)
     typer.echo("Katib has stopped.")
 
 
@@ -176,7 +186,8 @@ def _run(
         )
     if share:
         _print_share_help(settings)
-    if open_browser:
+    # A restart runs this same command again; the browser tab from the first time is still open.
+    if open_browser and not os.environ.pop(restart.RESTARTED, None):
         webbrowser.open(instance.local_url(settings.server.host, settings.server.port))
     try:
         ManagedServer(settings).run_in_foreground()

@@ -1,4 +1,5 @@
 import sys
+import time
 import types
 from pathlib import Path
 
@@ -19,9 +20,27 @@ class FakeWindow:
 
     def __init__(self) -> None:
         self.loaded: str | None = None
+        self.html: str | None = None
 
     def load_url(self, url: str) -> None:
         self.loaded = url
+
+    def load_html(self, content: str) -> None:
+        self.html = content
+
+
+class FakeProcess:
+    def __init__(self, exit_code: int | None) -> None:
+        self.exit_code = exit_code
+
+    def poll(self) -> int | None:
+        return self.exit_code
+
+
+@pytest.fixture(autouse=True)
+def _every_remote_server_answers(monkeypatch: pytest.MonkeyPatch) -> None:
+    """No test here should reach the network to check an address answers."""
+    monkeypatch.setattr(window.instance, "answers", lambda *_a, **_k: True)
 
 
 def fake_webview(on_start: object) -> tuple[types.SimpleNamespace, dict[str, object]]:
@@ -75,9 +94,11 @@ def test_the_window_starts_the_server_when_none_is_running(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     started: list[bool] = []
-    monkeypatch.setattr(window.instance, "find_running", lambda _d: None)
-    monkeypatch.setattr(window.instance, "wait_for", lambda _d, _s: RUNNING)
-    monkeypatch.setattr(window, "start_server", lambda: started.append(True))
+    answers = iter([None, None, RUNNING])
+    monkeypatch.setattr(window.instance, "find_running", lambda _d: next(answers))
+    monkeypatch.setattr(
+        window, "start_server", lambda: started.append(True) or FakeProcess(exit_code=None)
+    )
 
     fake, seen = fake_webview(lambda api, _w: api.open_local())
     monkeypatch.setitem(sys.modules, "webview", fake)
@@ -87,20 +108,61 @@ def test_the_window_starts_the_server_when_none_is_running(
     assert seen["window"].loaded == RUNNING.url  # type: ignore[union-attr]
 
 
-def test_a_server_that_never_comes_up_says_where_to_look(
+def test_a_server_that_exits_at_once_is_reported_straight_away(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(window.instance, "find_running", lambda _d: None)
-    monkeypatch.setattr(window.instance, "wait_for", lambda _d, _s: None)
-    monkeypatch.setattr(window, "start_server", lambda: None)
+    monkeypatch.setattr(window, "start_server", lambda: FakeProcess(exit_code=1))
+    monkeypatch.setattr(window, "START_TIMEOUT_SECONDS", 30)
     result: dict[str, object] = {}
 
     fake, seen = fake_webview(lambda api, _w: result.update(api.open_local()))
     monkeypatch.setitem(sys.modules, "webview", fake)
+    started = time.monotonic()
+    run_desktop(Settings(storage={"data_dir": str(tmp_path)}))
+
+    assert time.monotonic() - started < 5
+    assert result["ok"] is False
+    assert "log" in str(result["error"])
+    assert seen["window"].loaded is None  # type: ignore[union-attr]
+
+
+def test_the_window_comes_back_when_its_server_stops(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    alive = {"yes": True}
+    monkeypatch.setattr(window, "WATCH_SECONDS", 0.05)
+    monkeypatch.setattr(
+        window.instance, "find_running", lambda _d: RUNNING if alive["yes"] else None
+    )
+
+    def open_then_lose_the_server(api: object, w: FakeWindow) -> None:
+        api.open_local()  # type: ignore[attr-defined]
+        alive["yes"] = False  # stopped from the tray, say
+        deadline = time.monotonic() + 5
+        while w.html is None and time.monotonic() < deadline:
+            time.sleep(0.02)
+        assert api.status() == {"running": False, "url": ""}  # type: ignore[attr-defined]
+
+    fake, seen = fake_webview(open_then_lose_the_server)
+    monkeypatch.setitem(sys.modules, "webview", fake)
+    run_desktop(Settings(storage={"data_dir": str(tmp_path)}))
+
+    assert "stopped" in str(seen["window"].html)  # type: ignore[union-attr]
+
+
+def test_connecting_to_something_that_is_not_katib_says_so(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(window.instance, "answers", lambda *_a, **_k: False)
+    result: dict[str, object] = {}
+
+    fake, seen = fake_webview(lambda api, _w: result.update(api.open_remote("nowhere.example")))
+    monkeypatch.setitem(sys.modules, "webview", fake)
     run_desktop(Settings(storage={"data_dir": str(tmp_path)}))
 
     assert result["ok"] is False
-    assert "server.log" in str(result["error"])
+    assert "nowhere.example" in str(result["error"])
     assert seen["window"].loaded is None  # type: ignore[union-attr]
 
 

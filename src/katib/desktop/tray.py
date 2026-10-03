@@ -18,6 +18,7 @@ from typing import Any
 
 from katib.config import Settings, load_settings
 from katib.desktop import autostart
+from katib.desktop.notice import open_path, show_error
 from katib.server.run import AlreadyRunning, DidNotStart, ManagedServer
 
 log = logging.getLogger(__name__)
@@ -71,7 +72,7 @@ def _image() -> Any:
     return image
 
 
-def _run_tray(server: ManagedServer, url: str) -> bool:
+def _run_tray(server: ManagedServer, url: str, log_path: Path) -> bool:
     """Show the icon until the server stops. False if this desktop has no tray to show it in."""
     try:
         import pystray  # pyright: ignore[reportMissingImports]
@@ -79,11 +80,20 @@ def _run_tray(server: ManagedServer, url: str) -> bool:
         return False
 
     def stop_server(icon: Any, _item: Any) -> None:
+        log.info("Stopping, as asked from the tray.")
         server.stop()
         icon.stop()
 
-    def toggle_autostart(_icon: Any, item: Any) -> None:
-        autostart.set_enabled(not item.checked)
+    def toggle_autostart(icon: Any, item: Any) -> None:
+        try:
+            autostart.set_enabled(not item.checked)
+        except OSError as err:
+            log.warning("Could not change starting at sign-in.", exc_info=True)
+            icon.notify(f"Could not change that: {err}", "Katib")
+
+    def show_log(icon: Any, _item: Any) -> None:
+        if not open_path(log_path):
+            icon.notify(f"The log is at {log_path}", "Katib")
 
     menu = pystray.Menu(
         pystray.MenuItem(f"Katib is running at {url}", lambda: None, enabled=False),
@@ -98,9 +108,21 @@ def _run_tray(server: ManagedServer, url: str) -> bool:
             toggle_autostart,
             checked=lambda _item: autostart.is_enabled(),
         ),
+        pystray.MenuItem("Show the log", show_log),
         pystray.MenuItem("About Katib", lambda: webbrowser.open(REPO_URL)),
         pystray.Menu.SEPARATOR,
-        pystray.MenuItem("Stop the server", stop_server),
+        # A submenu is the confirmation: stopping cuts off every phone and browser connected.
+        pystray.MenuItem(
+            "Stop the server",
+            pystray.Menu(
+                pystray.MenuItem(
+                    "Phones and browsers using it will lose their connection",
+                    lambda: None,
+                    enabled=False,
+                ),
+                pystray.MenuItem("Stop it now", stop_server),
+            ),
+        ),
     )
     icon = pystray.Icon("katib", _image(), f"Katib, running at {url}", menu)
 
@@ -120,33 +142,44 @@ def _run_tray(server: ManagedServer, url: str) -> bool:
     return True
 
 
-def run(settings: Settings | None = None, *, open_after_start: bool = False) -> int:
+def run(settings: Settings | None = None, *, quiet: bool = False) -> int:
+    """Serve with a tray icon until stopped.
+
+    `quiet` is for being started without anyone asking just now -- by the window, or at sign-in.
+    Started by hand, from the Start menu say, a problem gets a message on screen as well as in
+    the log, and a server that is already running is opened rather than started twice.
+    """
     settings = settings or load_settings()
     path = log_to_file(settings)
     try:
-        return _serve_with_tray(settings, path, open_after_start=open_after_start)
-    except Exception:
-        # A background program has nowhere to show a crash, so it goes in the log.
+        return _serve_with_tray(settings, path, quiet=quiet)
+    except Exception as err:
         log.exception("Katib's server stopped because of an error.")
+        if not quiet:
+            show_error(
+                "Katib stopped",
+                f"Katib's server stopped because of an error: {err}\n\nThe details are in {path}.",
+            )
         return 1
 
 
-def _serve_with_tray(settings: Settings, path: Path, *, open_after_start: bool) -> int:
+def _serve_with_tray(settings: Settings, path: Path, *, quiet: bool) -> int:
     server = ManagedServer(settings, any_port=True)
     try:
         info = server.start()
     except AlreadyRunning as err:
         log.info("%s", err)
-        if open_after_start and err.url:
+        if not quiet and err.url:
             open_window(err.url)
         return 0
     except DidNotStart as err:
         log.error("%s See %s", err, path)
+        if not quiet:
+            show_error("Katib could not start", f"{err}\n\nThe details are in {path}.")
         return 1
-    if open_after_start:
-        open_window(info.url)
-    if not _run_tray(server, info.url):
+    if not _run_tray(server, info.url, path):
         server.wait_until_stopped()
     server.stop()
     server.wait()
+    log.info("Katib's server has stopped.")
     return 0

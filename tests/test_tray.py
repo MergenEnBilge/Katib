@@ -18,7 +18,7 @@ def settings_for(data: Path) -> Settings:
 def test_the_tray_server_lets_go_of_everything_when_it_stops(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    def tray_that_is_closed_at_once(server: ManagedServer, url: str) -> bool:
+    def tray_that_is_closed_at_once(server: ManagedServer, url: str, _log: Path) -> bool:
         assert instance.find_running(tmp_path) is not None
         server.stop()
         return True
