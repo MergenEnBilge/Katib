@@ -49,7 +49,7 @@
   $effect(() => {
     api
       .formats()
-      .then((f) => (formats = f))
+      .then((f) => (formats = f.filter((x) => x.can_export !== false)))
       .catch((err: unknown) => {
         error = err instanceof ApiError ? err.message : 'Could not load the list of formats.';
       });

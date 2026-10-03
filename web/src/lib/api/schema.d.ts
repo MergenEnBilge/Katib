@@ -1862,6 +1862,11 @@ export interface components {
             label: string;
             /** Supports */
             supports: string[];
+            /**
+             * Can Export
+             * @default true
+             */
+            can_export: boolean;
         };
         /** GroupOut */
         GroupOut: {

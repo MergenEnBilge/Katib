@@ -370,7 +370,7 @@
         label="Label folder or file"
         placeholder="/data/labels"
         bind:value={labelPath}
-        hint="A YOLO folder with data.yaml and labels, or a COCO .json file."
+        hint="A dataset folder or file in any format Katib reads: YOLO (old or new, including pose and rotated boxes), COCO, Pascal VOC, LabelMe, CVAT, CreateML, mask pictures, or class folders. Its splits come with it."
       />
       <label class="select">
         <span>Format</span>

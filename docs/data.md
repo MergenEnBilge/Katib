@@ -72,7 +72,7 @@ Katib only reads inside folders it was allowed to use, and it checks again every
 
 Add your images first. Then choose **Import**, then **Labels**, and give the path to a dataset folder or file. Katib detects the format, or you can choose one from the list.
 
-Labels are matched to images by file name. If two images have the same name, the label file is skipped and reported. Pictures that already have shapes are left alone, so importing the same file twice never doubles your labels. Class names match your existing classes by name or by an earlier name. Unknown names become new classes.
+Labels are matched to images by file name. When two pictures share a name, as `train/a.jpg` and `val/a.jpg` often do, the split and the folders the label sits in decide which is which; only a tie that nothing settles is skipped and reported. A split the dataset states outright replaces one Katib guessed from folder names. Pictures that already have shapes are left alone, so importing the same file twice never doubles your labels. Class names match your existing classes by name or by an earlier name. Unknown names become new classes.
 
 Every import ends with a report of what was added and what was skipped, and why.
 
@@ -85,9 +85,10 @@ A split says which images are for training, which are for checking progress (val
 When your data already comes divided, Katib notices and keeps it:
 
 - **Folders.** Images inside folders called `train`, `val`, `valid`, `validation` or `test` join that split. This works when you connect a folder and when you import labels.
-- **YOLO.** Labels in `labels/train`, `labels/val` and so on, and the `train.txt` and `val.txt` lists named in `data.yaml`.
-- **COCO.** A file such as `instances_train2017.json` puts its images in the train split. A folder with one file per split is read as a whole.
-- **Pascal VOC.** The lists in `ImageSets/Main`.
+- **YOLO.** The image folders or list files `data.yaml` names for `train`, `val` and `test`, labels in `labels/train` or `train/labels`, and Darknet's `train.txt` and `valid.txt`.
+- **COCO.** A file such as `instances_train2017.json` puts its images in the train split, and so does a file inside a `train` folder. A folder with one file per split is read as a whole.
+- **Pascal VOC.** The lists in `ImageSets/Main`, with `trainval.txt` as train when there are no separate lists.
+- **CVAT, LabelMe, CreateML and class folders.** CVAT's subsets, and the split folders the files sit in.
 
 ### Dividing your own images
 
@@ -103,15 +104,23 @@ Every shuffle can be undone from **History** for 30 days. To move a single image
 
 ## Formats
 
-| Format | Reads and writes | Notes |
-|--------|------------------|-------|
-| YOLO detection | Boxes | `data.yaml` or `classes.txt`, one `.txt` per image |
-| YOLO segmentation | Polygons | Boxes are written as four-point polygons |
-| YOLO oriented boxes | Rotated boxes | Four corners per line |
-| COCO | Boxes, polygons, keypoints | Rotated boxes are written as polygons. Run-length masks are not read yet |
-| Pascal VOC | Boxes | One XML file per image |
-| LabelMe | Boxes and polygons | One JSON file per image |
-| Tags and text (JSON Lines) | Tags, captions, text in shapes, and every shape kind | One `metadata.jsonl` file. Loads in Hugging Face |
+| Format | Reads | Writes | Layouts it recognizes |
+|--------|-------|--------|------------------------|
+| YOLO detection | Boxes | Yes | Ultralytics `data.yaml` whose `train`, `val` and `test` name image folders, list files or lists of them; Roboflow's `train/images` and `train/labels`; old Darknet `obj.data`, `obj.names`, `train.txt` and `valid.txt`, with labels beside the pictures |
+| YOLO segmentation | Polygons | Yes | As detection, with a polygon on each line |
+| YOLO oriented boxes | Rotated boxes | Yes | As detection, with four corners on each line |
+| YOLO pose | Keypoints | Yes | As detection, with `kpt_shape` in `data.yaml` |
+| COCO | Boxes, polygons, keypoints, run-length masks | Yes | One file, a file per split such as `instances_train2017.json`, or Roboflow's `train/_annotations.coco.json` |
+| Pascal VOC | Boxes | Yes | `Annotations` and `ImageSets/Main`, including inside `VOCdevkit/VOC2012`; `trainval.txt` counts as train |
+| LabelMe | Boxes, polygons, circles (as polygons), points (as keypoints) | Yes | One JSON per picture, also inside split folders |
+| CVAT for images | Boxes, rotated boxes, polygons, points, tags | Yes | `annotations.xml`; CVAT's subsets become splits |
+| CreateML | Boxes | Yes | One JSON per split, as Roboflow exports it. Add the pictures first: the file has no sizes |
+| Segmentation masks (PNG) | Masks | No | A `masks` or `SegmentationClass` folder of PNGs named like the pictures, with `classes.txt` or `labelmap.txt` naming each value or colour |
+| Class per folder | Tags | Yes | `train/cat/1.jpg`, `val/dog/2.jpg`. Found by itself only under split folders; choose it by hand for `cat/1.jpg` |
+| Tags and text (JSON Lines) | Tags, captions, text in shapes, and every shape kind | Yes | One `metadata.jsonl` file. Loads in Hugging Face |
+
+A dataset that unpacked into a folder of its own -- `data.yaml` one folder down, say -- is found
+from the folder above it too.
 
 ### Tags and text
 
