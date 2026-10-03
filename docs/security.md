@@ -7,7 +7,8 @@ This page explains what Katib protects, what it leaves to you, and what was chec
 - **Passwords** are stored with argon2id. Session cookies, invite links and API tokens are stored only as hashes, so a copy of the database cannot be used to sign in.
 - **Sign-in** is limited to five failed attempts per account and per visitor in five minutes.
 - **Cookies** are `HttpOnly` and `SameSite=Lax`, and marked `Secure` when you use HTTPS.
-- **Cross-site requests** that change data are refused when a request with a session cookie comes from another site. WebSocket connections from another site are refused too.
+- **Cross-site requests** that change data are refused whenever a browser says they come from another site, with or without a session cookie. WebSocket connections from another site are refused too.
+- **DNS rebinding.** While Katib answers only on your own computer, it refuses requests addressed to any host name but `localhost`, `127.0.0.1` and `::1`. A page on another domain that re-points its name at your computer therefore gets nowhere.
 - **Permissions** are checked on the server for every request, not only hidden in the interface. People who are not members of a project get "not found", so they cannot even tell it exists.
 - **No accounts, no network.** With `auth.mode = "none"`, Katib refuses to listen on anything but your own computer.
 - **Your files.** Katib reads connected folders and never writes to them. It only reads inside folders it was allowed to use, resolves links before checking, and checks again each time it serves a picture. Only administrators can browse the server's folders on a shared server.
@@ -19,7 +20,7 @@ This page explains what Katib protects, what it leaves to you, and what was chec
 - **Browser features** Katib does not use, such as the camera and location, are switched off for its pages. HTTPS visits get a `Strict-Transport-Security` header.
 - **No telemetry.** The one thing Katib ever fetches from the internet on its own is a model downloaded by name under Settings, and only when an administrator asks for it. Each one is pinned to a hash of the exact bytes it had when it was added to Katib's source; a download that does not match, or answers with far more data than expected, is refused rather than installed.
 
-- **Who manages a team.** Owners and administrators can add, change and remove anyone on a project. Managers can bring in annotators, reviewers and viewers, change between those roles and remove them, but cannot hand out, change or take away ownership or management. A project always keeps at least one owner. Only someone who can manage a project can search the server's accounts to add one, and that search returns names and email addresses only.
+- **Who manages a team.** Owners and administrators can add, change and remove anyone on a project. Managers can bring in annotators, reviewers and viewers, change between those roles and remove them, but cannot hand out, change or take away ownership or management. A project always keeps at least one owner. Administrators can search the server's accounts by name or email. Owners and managers who are not administrators find someone only by typing their whole email address, so owning a project is not a way to list everyone. An invite stops working when the person who sent it can no longer add people.
 - **Stopping the server.** A program on the same computer can ask the server to stop. The request has to come straight from that computer, not through a proxy, and carry a token the server writes into `server.json` in its data folder. That file is readable only by the account running Katib. One server runs per data folder, held by a lock that the operating system releases however the server ends, so a crash never leaves a folder looking busy.
 
 ## What is up to you
@@ -85,6 +86,17 @@ connection to a server. It found and fixed:
 | Checking whether an address or account was locked out of sign-in created an entry for it even with no failed attempts, so the count of watched addresses grew with every attempt, not only failed ones | Nothing is recorded until there is an actual failure to remember |
 | Restoring a backup extracted it before checking whether it would fit on disk | The claimed size is checked against free space first |
 | The Android app allowed a secure connection's page to load insecure subresources | Mixed content is no longer allowed |
+
+A fifth review, after 0.4.0, covered the standalone server, the tray, the window and the new team
+controls. It found and fixed:
+
+| Finding | Fix |
+|---------|-----|
+| With accounts off there is no session cookie, so a page on any site could send Katib a POST, such as a restart. A page that re-pointed its own domain at 127.0.0.1 (DNS rebinding) could use the whole API, including a factory reset | Unsafe requests from another site are refused with or without a cookie, and a loopback-only Katib refuses host names other than its own |
+| Once the desktop window opened another Katib by address, that server's page could still call the window's own controls, such as stopping the server on this computer | Those controls answer only while the window shows its own start page, and the window opens only `http` and `https` addresses |
+| Anyone can make a project and own it, and an owner could list every account on the server by searching one letter at a time | Only administrators can search; anyone else must type a whole email address |
+| An invite kept working after the manager who sent it was demoted or removed | An invite is checked against its sender's role when it is used |
+| The stop request trusted the address uvicorn rewrote from proxy headers | Katib reads forwarded addresses only when `server.behind_proxy` says to, and the stop check sees the real caller |
 
 ## Known limits
 
