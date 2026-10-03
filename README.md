@@ -62,7 +62,7 @@ the network at all.
 With Docker, the whole install is one line:
 
 ```bash
-docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.3.1
+docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.4.0
 ```
 
 Open <http://localhost:8420>. Katib asks for a setup code before it will make the first account,
@@ -172,10 +172,16 @@ pnpm --dir web dev            # front end on :5173, proxies /api to the backend
 
 ## Status
 
-This is 0.3.1. Everything described here works today, and the checks run on every push: the
+This is 0.4.0. Everything described here works today, and the checks run on every push: the
 Python tests against both SQLite and Postgres, the browser tests at desktop and phone sizes with
 an automated accessibility pass, a Docker build, and speed budgets. Every export format is
 exercised by a test that sends a project out through the API and reads it back in again.
+
+Since 0.3.1: on a desktop, the server is its own program with an icon in the system tray, and the
+window is just one more client of it, so closing the window no longer cuts off every phone and
+colleague connected to it. Owners and managers can add people who already have an account to a
+project, straight from its card. An invite link works for someone who already has an account, and
+nobody is shown buttons their role cannot use.
 
 Since 0.3.0: the desktop app can now connect to a Katib someone else is already running, instead
 of only ever starting one of its own, and the address its own Share window hands out is the one
@@ -194,6 +200,10 @@ Being honest about what that number does and does not promise:
 - The Windows installer, the Linux `.deb`, the Docker image and the Android app have each been
   built and run. The macOS disk image is built by the release workflow and has not been opened on
   a Mac.
+- The background server was run frozen on Windows: started the way Explorer starts it, found by
+  a second client, stopped from the command line and by the uninstaller's stop, with no process
+  left behind each time. Its tray menu and the Linux tray have not been clicked through by hand
+  in this release.
 - Installers are not code-signed, so Windows and macOS warn you the first time. The APK is signed
   with a debug key unless you configure a release keystore.
 - Click to select has been run end to end against a real downloaded Segment Anything model, not
