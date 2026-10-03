@@ -35,12 +35,20 @@ someone asks it to.
    Choose **More info**, then **Run anyway**.
 4. Start Katib from the Start menu or the desktop shortcut.
 
-Katib opens on a small launcher: run one of your own, or type the address of a Katib someone else
-is already running and open that instead, the same way a browser tab would. Running one of your
-own opens in its own window, closing which stops it. By default the server behind that window
-only answers on your own computer, same as everywhere else Katib runs — turn on **Settings**,
-then **Sharing**, then **Everyone on my network**, and close and reopen Katib to let phones and
-colleagues reach this window's server too.
+Katib opens on a small launcher: open your own, or type the address of a Katib someone else is
+already running and open that instead, the same way a browser tab would.
+
+Your own Katib is two parts. The **server** keeps your projects and answers every device that
+connects; the **window** is just one of those devices, like a browser tab or the phone app. Opening
+your own starts the server if it is not running yet, and a Katib icon appears in the system tray
+(the corner of the taskbar, by the clock). Closing the window leaves the server running, so phones
+and colleagues stay connected. To stop it, use **Stop the server** in the tray icon's menu, or the
+launcher's stop button. The same menu has **Start when I sign in**, if you would rather it was
+always there.
+
+By default the server only answers on your own computer, same as everywhere else Katib runs. To
+let phones and colleagues in, turn on **Settings**, then **Sharing**, then **Everyone on my
+network**, and restart Katib from the button Settings offers.
 
 Prefer no installer? The archive of `dist\Katib` from a build works as a portable folder: run
 `Katib.exe` inside it.
@@ -155,6 +163,10 @@ For a window of its own instead of a browser tab:
 uv sync --extra desktop
 uv run katib app
 ```
+
+The window starts the server in the background, with its tray icon, the first time you open your
+own Katib from it. `uv run katib status` and `uv run katib stop` check on it and stop it from a
+terminal.
 
 ### Build an installer yourself
 

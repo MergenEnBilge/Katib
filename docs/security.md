@@ -19,6 +19,9 @@ This page explains what Katib protects, what it leaves to you, and what was chec
 - **Browser features** Katib does not use, such as the camera and location, are switched off for its pages. HTTPS visits get a `Strict-Transport-Security` header.
 - **No telemetry.** The one thing Katib ever fetches from the internet on its own is a model downloaded by name under Settings, and only when an administrator asks for it. Each one is pinned to a hash of the exact bytes it had when it was added to Katib's source; a download that does not match, or answers with far more data than expected, is refused rather than installed.
 
+- **Who manages a team.** Owners and administrators can add, change and remove anyone on a project. Managers can bring in annotators, reviewers and viewers, change between those roles and remove them, but cannot hand out, change or take away ownership or management. A project always keeps at least one owner. Only someone who can manage a project can search the server's accounts to add one, and that search returns names and email addresses only.
+- **Stopping the server.** A program on the same computer can ask the server to stop. The request has to come straight from that computer, not through a proxy, and carry a token the server writes into `server.json` in its data folder. That file is readable only by the account running Katib. One server runs per data folder, held by a lock that the operating system releases however the server ends, so a crash never leaves a folder looking busy.
+
 ## What is up to you
 
 - **Use HTTPS** for anything beyond your own computer. The Docker setup does this for you. Plain HTTP is fine on a network you trust, but passwords and pictures can be read by others on it.

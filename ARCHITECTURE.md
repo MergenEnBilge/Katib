@@ -45,8 +45,8 @@ This document is the technical source of truth. `DESIGN.md` covers the interface
 ## 2. System overview
 
 ```
-   Browser            Phone (PWA)          Desktop app
-  (laptop / PC)     (installable web)   (server + native window)
+   Browser            Phone (PWA)          Desktop window
+  (laptop / PC)     (installable web)    (native client)
         \                  |                   /
          \_________________|__________________/
                            |
@@ -68,7 +68,17 @@ This document is the technical source of truth. `DESIGN.md` covers the interface
                                 (folder or S3)
 ```
 
-The desktop app is the same server started on `127.0.0.1` with a native window pointing at it. A desktop app can also run in client mode against a remote server.
+Every user interface is a client of a server, including the desktop window. On a desktop the
+server is a separate background program, `KatibServer`, with an icon in the system tray. The
+window finds it through `server.json` in the data folder, or starts it detached, and closing the
+window leaves the server running for every other device. The window can also open any other
+Katib by address, as a browser would.
+
+One server runs per data folder. It holds an OS lock on `server.lock` for its lifetime, so a
+second one refuses to start rather than share the database; the lock goes with the process
+however it ends. Once it answers, it writes `server.json` with its address and a stop token,
+readable only by its owner. `katib stop`, the tray and the window stop it through a loopback-only
+endpoint that checks that token.
 
 ## 3. Deployment modes
 
@@ -77,7 +87,7 @@ The desktop app is the same server started on `127.0.0.1` with a native window p
 | Local | `katib` | SQLite | off | Binds to `127.0.0.1` only. Opens the browser. |
 | LAN share | `katib serve --host 0.0.0.0` | SQLite or Postgres | on | Prints a URL and QR code. Phones join through the browser. |
 | Server | `docker compose up` | Postgres | on | Katib, Postgres and Caddy (automatic HTTPS) in one compose file. |
-| Desktop | installer | SQLite | off, or on when shared | Same server in a native window. Can toggle sharing on. |
+| Desktop | installer | SQLite | off, or on when shared | Background server with a tray icon, plus a native window as one of its clients. Can toggle sharing on. |
 
 Two rules follow from this table:
 
@@ -106,7 +116,8 @@ katib/
     formats/       One module per format: yolo, coco, voc, labelme.
     jobs/          Job runner and job implementations.
     ml/            Optional predictors (extra: katib[ml]).
-    desktop/       Native window launcher.
+    desktop/       Native window (a client), tray icon, start at sign-in.
+    server/        One server per data folder: lock, server.json, start and stop.
     config.py      Settings loading (toml + environment).
     cli.py         Typer entry point.
     static/        Built frontend (generated, not committed).
