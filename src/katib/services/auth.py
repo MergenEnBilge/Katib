@@ -175,12 +175,31 @@ def invite_info(session: Session, token: str) -> dict[str, str | None]:
 
 def accept_invite(session: Session, token: str, email: str, name: str, password: str) -> User:
     invite = _invite(session, token)
-    user = create_user(session, email, name, password)
+    try:
+        user = create_user(session, email, name, password)
+    except EmailTaken as err:
+        raise EmailTaken(
+            "You already have an account with that email. Sign in, and this link will add you "
+            "to the project."
+        ) from err
     invite.used_at = utcnow()
     if invite.project_id is not None:
         session.add(ProjectMember(project_id=invite.project_id, user_id=user.id, role=invite.role))
     session.flush()
     return user
+
+
+def join_invite(session: Session, token: str, user: User) -> uuid.UUID:
+    """Put an existing, signed-in account on the invite's project. Returns the project id."""
+    invite = _invite(session, token)
+    if invite.project_id is None:
+        raise InvalidInput("This link is for making a new account, and you already have one.")
+    if session.get(ProjectMember, (invite.project_id, user.id)) is not None:
+        raise InvalidInput("You are already on this project.")
+    session.add(ProjectMember(project_id=invite.project_id, user_id=user.id, role=invite.role))
+    invite.used_at = utcnow()
+    session.flush()
+    return invite.project_id
 
 
 def create_api_token(session: Session, user: User, name: str) -> tuple[ApiToken, str]:

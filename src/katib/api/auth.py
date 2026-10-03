@@ -80,6 +80,24 @@ class AcceptIn(BaseModel):
     password: str
 
 
+class JoinOut(BaseModel):
+    project_id: uuid.UUID
+
+
+class PersonOut(BaseModel):
+    """Just enough to pick someone from a list, for people who are not administrators."""
+
+    id: uuid.UUID
+    name: str
+    email: str
+
+
+class UserProjectOut(BaseModel):
+    project_id: uuid.UUID
+    name: str
+    role: str
+
+
 class TokenIn(BaseModel):
     name: str
 
@@ -251,6 +269,12 @@ def accept(body: AcceptIn, request: Request, response: Response, session: Sessio
     return _user(user)
 
 
+@router.post("/auth/invites/{token}:join", response_model=JoinOut)
+def join(token: str, session: SessionDep, user: UserDep) -> JoinOut:
+    """Someone who already has an account opens an invite: add them, no new account needed."""
+    return JoinOut(project_id=auth.join_invite(session, token, user))
+
+
 @router.post("/invites", response_model=InviteOut, status_code=201)
 def create_invite(
     body: InviteIn, request: Request, session: SessionDep, user: UserDep
@@ -259,7 +283,9 @@ def create_invite(
         if not user.is_admin:
             raise Forbidden("Only administrators can invite people without a project.")
     else:
-        need(session, user, body.project_id, "manage")
+        role = access.require(session, user, body.project_id, "manage")
+        if not access.can_assign(role, None, body.role):
+            raise Forbidden("Only an owner can invite a manager.")
     token = auth.create_invite(session, user, body.project_id, body.role)
     path = f"/invite/{token}"
     # The whole point of an invite is that somebody else opens it, so it must not carry the address
@@ -372,7 +398,8 @@ def members(project_id: uuid.UUID, session: SessionDep, user: UserDep) -> list[M
 def set_member(
     project_id: uuid.UUID, user_id: uuid.UUID, body: MemberIn, session: SessionDep, user: UserDep
 ) -> list[MemberOut]:
-    need(session, user, project_id, "owner")
+    """Add someone who already has an account, or change their role."""
+    access.require_assign(session, user, project_id, user_id, body.role)
     if user_id == user.id and body.role != "owner" and not user.is_admin:
         raise InvalidInput("You cannot remove your own ownership. Ask another owner.")
     access.add_member(session, project_id, user_id, body.role)
@@ -383,6 +410,28 @@ def set_member(
 def remove_member(
     project_id: uuid.UUID, user_id: uuid.UUID, session: SessionDep, user: UserDep
 ) -> list[MemberOut]:
-    need(session, user, project_id, "owner")
+    access.require_assign(session, user, project_id, user_id, None)
     access.remove_member(session, project_id, user_id)
     return [MemberOut(user=_user(u), role=r) for u, r in access.list_members(session, project_id)]
+
+
+@router.get("/projects/{project_id}/people", response_model=list[PersonOut])
+def addable_people(
+    project_id: uuid.UUID, session: SessionDep, user: UserDep, q: str = ""
+) -> list[PersonOut]:
+    """Accounts on this server that could be added to the project."""
+    need(session, user, project_id, "manage")
+    return [
+        PersonOut(id=p.id, name=p.name, email=p.email)
+        for p in access.addable_people(session, project_id, q)
+    ]
+
+
+@router.get("/users/{user_id}/projects", response_model=list[UserProjectOut])
+def user_projects(user_id: uuid.UUID, session: SessionDep, user: UserDep) -> list[UserProjectOut]:
+    if not user.is_admin:
+        raise Forbidden("Only administrators can see everyone's projects.")
+    return [
+        UserProjectOut(project_id=p.id, name=p.name, role=r)
+        for p, r in access.projects_of(session, user_id)
+    ]

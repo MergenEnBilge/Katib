@@ -323,3 +323,110 @@ def test_a_weak_new_password_is_refused(admin: TestClient) -> None:
         f"{API}/auth/password", json={"current_password": PASSWORD, "new_password": "short"}
     )
     assert refused.status_code == 422
+
+
+def make_account(admin: TestClient, email: str) -> tuple[str, TestClient]:
+    """An account made by an administrator, on no project yet, and a browser signed in as it."""
+    made = admin.post(f"{API}/users", json={"email": email, "name": email, "password": PASSWORD})
+    assert made.status_code == 201, made.text
+    browser = client_for(admin)
+    browser.post(f"{API}/auth/login", json={"email": email, "password": PASSWORD})
+    return str(made.json()["id"]), browser
+
+
+def test_an_existing_account_can_be_added_to_a_project(admin: TestClient) -> None:
+    pid = admin.post(f"{API}/projects", json={"name": "P"}).json()["id"]
+    bob_id, bob = make_account(admin, "bob@example.com")
+    assert bob.get(f"{API}/projects").json() == []
+
+    found = admin.get(f"{API}/projects/{pid}/people", params={"q": "bob"}).json()
+    assert [p["email"] for p in found] == ["bob@example.com"]
+    assert set(found[0]) == {"id", "name", "email"}
+
+    added = admin.put(f"{API}/projects/{pid}/members/{bob_id}", json={"role": "annotator"})
+    assert added.status_code == 200, added.text
+    assert [p["id"] for p in bob.get(f"{API}/projects").json()] == [pid]
+    # Once on the project, they are no longer someone who could be added.
+    assert admin.get(f"{API}/projects/{pid}/people", params={"q": "bob"}).json() == []
+
+
+def test_managers_add_annotators_but_not_owners_or_managers(admin: TestClient) -> None:
+    pid = admin.post(f"{API}/projects", json={"name": "P"}).json()["id"]
+    manager = join(admin, pid, "manager", "m@example.com")
+    cara_id, _ = make_account(admin, "cara@example.com")
+    dan_id, _ = make_account(admin, "dan@example.com")
+
+    assert manager.get(f"{API}/projects/{pid}/people").status_code == 200
+    ok = manager.put(f"{API}/projects/{pid}/members/{cara_id}", json={"role": "reviewer"})
+    assert ok.status_code == 200
+    assert (
+        manager.put(f"{API}/projects/{pid}/members/{cara_id}", json={"role": "viewer"}).status_code
+        == 200
+    )
+    assert (
+        manager.put(f"{API}/projects/{pid}/members/{dan_id}", json={"role": "owner"}).status_code
+        == 403
+    )
+    assert (
+        manager.put(f"{API}/projects/{pid}/members/{dan_id}", json={"role": "manager"}).status_code
+        == 403
+    )
+    assert (
+        manager.post(f"{API}/invites", json={"project_id": pid, "role": "manager"}).status_code
+        == 403
+    )
+    assert manager.delete(f"{API}/projects/{pid}/members/{cara_id}").status_code == 200
+
+    owner_id = next(
+        m["user"]["id"]
+        for m in admin.get(f"{API}/projects/{pid}/members").json()
+        if m["role"] == "owner"
+    )
+    assert manager.delete(f"{API}/projects/{pid}/members/{owner_id}").status_code == 403
+
+
+def test_annotators_cannot_look_for_people_to_add(admin: TestClient) -> None:
+    pid = admin.post(f"{API}/projects", json={"name": "P"}).json()["id"]
+    annotator = join(admin, pid, "annotator", "a@example.com")
+    assert annotator.get(f"{API}/projects/{pid}/people").status_code == 403
+
+
+def test_the_last_owner_cannot_be_demoted(admin: TestClient) -> None:
+    pid = admin.post(f"{API}/projects", json={"name": "P"}).json()["id"]
+    owner_id = admin.get(f"{API}/projects/{pid}/members").json()[0]["user"]["id"]
+    refused = admin.put(f"{API}/projects/{pid}/members/{owner_id}", json={"role": "annotator"})
+    assert refused.status_code == 422
+    assert "at least one owner" in refused.json()["message"]
+
+
+def test_someone_with_an_account_joins_through_an_invite(admin: TestClient) -> None:
+    pid = admin.post(f"{API}/projects", json={"name": "P"}).json()["id"]
+    _, bob = make_account(admin, "bob@example.com")
+    token = invite(admin, pid, "reviewer")
+
+    # Filling in the new-account form with an email that exists says what to do instead.
+    taken = client_for(admin).post(
+        f"{API}/auth/accept",
+        json={"token": token, "email": "bob@example.com", "name": "Bob", "password": PASSWORD},
+    )
+    assert taken.status_code == 409
+    assert "Sign in" in taken.json()["message"]
+
+    joined = bob.post(f"{API}/auth/invites/{token}:join")
+    assert joined.status_code == 200, joined.text
+    assert joined.json()["project_id"] == pid
+    roles = {
+        m["user"]["email"]: m["role"] for m in admin.get(f"{API}/projects/{pid}/members").json()
+    }
+    assert roles["bob@example.com"] == "reviewer"
+    assert bob.post(f"{API}/auth/invites/{token}:join").status_code == 410
+
+
+def test_an_admin_sees_which_projects_someone_is_on(admin: TestClient) -> None:
+    pid = admin.post(f"{API}/projects", json={"name": "Birds"}).json()["id"]
+    bob_id, bob = make_account(admin, "bob@example.com")
+    admin.put(f"{API}/projects/{pid}/members/{bob_id}", json={"role": "viewer"})
+    assert admin.get(f"{API}/users/{bob_id}/projects").json() == [
+        {"project_id": pid, "name": "Birds", "role": "viewer"}
+    ]
+    assert bob.get(f"{API}/users/{bob_id}/projects").status_code == 403
