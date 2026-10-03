@@ -9,7 +9,7 @@ caller: on a single-person install that is anyone, on a shared server it is admi
 import os
 import sys
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from sqlalchemy import select
@@ -48,6 +48,8 @@ class Listing:
     can_connect: bool
     #: Katib is in a container, so only folders mounted at startup are reachable from here.
     in_container: bool = False
+    #: Files here that look like label files, so the labels picker can offer them.
+    label_files: list[Place] = field(default_factory=list[Place])
 
 
 def load_connected(session: Session, ctx: StorageContext) -> None:
@@ -91,6 +93,25 @@ def _count_images(folder: Path) -> int:
     except OSError:
         return 0
     return count
+
+
+LABEL_FILE_SUFFIXES = frozenset(
+    {".yaml", ".yml", ".json", ".xml", ".txt", ".data", ".names", ".csv", ".jsonl"}
+)
+
+
+def _label_files_here(folder: Path) -> list[Place]:
+    found: list[Place] = []
+    try:
+        with os.scandir(folder) as entries:
+            for entry in entries:
+                if entry.name.startswith(".") or not entry.is_file():
+                    continue
+                if Path(entry.name).suffix.lower() in LABEL_FILE_SUFFIXES:
+                    found.append(Place(entry.name, str(Path(entry.path))))
+    except OSError:
+        return []
+    return sorted(found, key=lambda p: p.name.lower())
 
 
 def _subfolders(folder: Path) -> list[Place]:
@@ -140,6 +161,7 @@ def browse(ctx: StorageContext, raw: str | None, *, unrestricted: bool) -> Listi
         images_here=_count_images(path),
         can_connect=unrestricted or inside(path, roots),
         in_container=in_container,
+        label_files=_label_files_here(path),
     )
 
 

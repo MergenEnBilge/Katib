@@ -127,3 +127,20 @@ test('pictures deleted from a connected folder can be taken out of the project',
   // The file that is still there was never touched.
   expect(existsSync(join(folder, 'keep.png'))).toBe(true);
 });
+
+test('choose label files from a folder picker instead of typing a path', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'New project' }).first().click();
+  await page.getByLabel('Project name').fill(`Labels ${test.info().project.name}`);
+  await page.getByRole('button', { name: 'Create project' }).click();
+  await expect(page).toHaveURL(/\/p\/[0-9a-f-]{36}$/);
+
+  await page.getByRole('button', { name: 'Import images' }).last().click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('tab', { name: 'Labels' }).click();
+  await dialog.getByRole('button', { name: 'Choose labels' }).click();
+  await dialog.getByRole('button', { name: 'Home' }).click();
+  await expect(dialog.getByRole('button', { name: 'Use this folder' })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Cancel' }).click();
+  await expect(dialog.getByRole('button', { name: 'Choose labels' })).toBeVisible();
+});

@@ -33,6 +33,12 @@
   let connected = $state<ConnectedFolder[]>([]);
   let picking = $state(false);
   let labelPath = $state('');
+  let pickingLabels = $state(false);
+
+  function chooseLabels(path: string): void {
+    labelPath = path;
+    pickingLabels = false;
+  }
   let format = $state('');
   let formats = $state<FormatInfo[]>([]);
   let busy = $state(false);
@@ -370,12 +376,31 @@
     </div>
   {:else}
     <div class="section">
-      <TextField
-        label="Label folder or file"
-        placeholder="/data/labels"
-        bind:value={labelPath}
-        hint="A dataset folder or file in any format Katib reads: YOLO (old or new, including pose and rotated boxes), COCO, Pascal VOC, LabelMe, CVAT, CreateML, mask pictures, or class folders. Its splits come with it."
-      />
+      <p class="note">
+        Choose the dataset folder, or its <code>data.yaml</code> or <code>obj.data</code> file. YOLO
+        (old or new, including pose and rotated boxes), COCO, Pascal VOC, LabelMe, CVAT, CreateML,
+        mask pictures and class folders are all read, with their splits.
+      </p>
+      {#if pickingLabels}
+        <FolderPicker
+          onpick={chooseLabels}
+          onpickfile={chooseLabels}
+          oncancel={() => (pickingLabels = false)}
+        />
+      {:else}
+        <div class="chosen">
+          {#if labelPath}
+            <span class="mono" title={labelPath}>{labelPath}</span>
+          {:else}
+            <span class="note">Nothing chosen yet.</span>
+          {/if}
+          <Button onclick={() => (pickingLabels = true)}><FolderOpen size={16} />{labelPath ? 'Choose another' : 'Choose labels'}</Button>
+        </div>
+        <details class="typed">
+          <summary>Type a path instead</summary>
+          <TextField label="Folder or file on the Katib computer" placeholder="/data/labels" bind:value={labelPath} />
+        </details>
+      {/if}
       <label class="select">
         <span>Format</span>
         <select bind:value={format}>

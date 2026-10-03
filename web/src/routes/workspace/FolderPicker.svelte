@@ -1,11 +1,20 @@
 <script lang="ts">
-  import { ArrowUp, Folder, FolderOpen } from '@lucide/svelte';
+  import { ArrowUp, FileText, Folder, FolderOpen } from '@lucide/svelte';
   import { api, ApiError } from '../../lib/api/client';
   import type { FolderListing } from '../../lib/api/types';
   import { plural } from '../../lib/format';
   import Button from '../../lib/ui/Button.svelte';
 
-  let { onpick, oncancel }: { onpick: (path: string) => void; oncancel: () => void } = $props();
+  let {
+    onpick,
+    oncancel,
+    onpickfile,
+  }: {
+    onpick: (path: string) => void;
+    oncancel: () => void;
+    /** Given when the picker is choosing a label file, such as data.yaml or a COCO .json. */
+    onpickfile?: (path: string) => void;
+  } = $props();
 
   let listing = $state<FolderListing | null>(null);
   let error = $state('');
@@ -77,6 +86,15 @@
         <li class="empty">No folders inside this one.</li>
       {/each}
     </ul>
+    {#if onpickfile && listing.label_files.length > 0}
+      <ul class="list" aria-label="Label files">
+        {#each listing.label_files as file (file.path)}
+          <li>
+            <button type="button" onclick={() => onpickfile?.(file.path)}><FileText size={16} />{file.name}</button>
+          </li>
+        {/each}
+      </ul>
+    {/if}
     <div class="choose">
       <span class="count">
         {plural(listing.images_here, 'image')} here. Images in the folders inside are included too.

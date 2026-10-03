@@ -6,7 +6,15 @@ import uuid
 from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse
 
-from katib.api.deps import RunnerDep, SessionDep, StorageDep, UserDep, may_browse_anywhere, need
+from katib.api.deps import (
+    AnywhereDep,
+    RunnerDep,
+    SessionDep,
+    StorageDep,
+    UserDep,
+    may_browse_anywhere,
+    need,
+)
 from katib.api.jobs import job_out
 from katib.api.schemas import DatasetImportIn, ExportIn, FormatOut, JobOut
 from katib.core.dataset import ExportOptions, SplitSpec
@@ -16,6 +24,9 @@ from katib.services import exchange, images, projects
 from katib.services.errors import Forbidden, InvalidInput, NotFound
 
 router = APIRouter(tags=["exchange"])
+
+#: Files that name a dataset folder, so choosing one means the folder it sits in.
+DATASET_FILE_NAMES = frozenset({"data.yaml", "data.yml", "obj.data"})
 
 
 @router.get("/formats", response_model=list[FormatOut])
@@ -34,10 +45,14 @@ def import_dataset(
     user: UserDep,
     storage: StorageDep,
     runner: RunnerDep,
+    anywhere: AnywhereDep,
 ) -> JobOut:
     need(session, user, project_id, "manage")
     projects.get_project(session, project_id)
-    path = images.resolve_path(body.path, storage.allowed_roots)
+    path = images.resolve_path(body.path, storage.allowed_roots, unrestricted=anywhere)
+    # Someone who picked data.yaml or obj.data means the dataset folder it sits in.
+    if path.is_file() and path.name.lower() in DATASET_FILE_NAMES:
+        path = path.parent
     factory = runner.session_factory
 
     def work(progress: Progress) -> dict[str, object]:
