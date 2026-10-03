@@ -187,9 +187,18 @@ On your own computer, Katib opens straight into your projects. There is nothing 
 
 On a shared server, the first person to open the page creates the administrator account, and that
 account runs the server. So if anyone else could reach Katib, it asks for a setup code before it
-will create that account. Copy it from the server's log — Docker prints it with
-`docker logs katib` — or read `setup-code.txt` in the data folder. It stops working the moment the
-account exists.
+will create that account. On the computer Katib runs on you do not need to look it up: open Katib
+from its window, or choose **Finish setting up Katib** in its tray icon, and the code is filled in
+for you, since only you can read it there. From a terminal, `katib setup-code` prints it with a
+link that fills it in. In Docker it is in `docker logs katib`, or
+`docker exec katib cat /data/setup-code.txt`. It stops working the moment the account exists.
+
+### When something goes wrong
+
+If the server stops answering, every page says so in a bar along the top, keeps whatever you
+were changing, and carries on by itself once the server is back. The Katib window goes back to its
+start page and says what happened, and its **Show the server's log** link opens the log, which says
+why. `katib status` tells you whether the server is running and where, and `katib stop` stops it.
 
 A Katib that answers only on the computer it runs on never asks, because nobody else can get
 there. In Docker it always asks, even when you published the port to `127.0.0.1` only: from inside
