@@ -52,8 +52,12 @@ def database_url(request: pytest.FixtureRequest, tmp_path: Path) -> Iterator[str
 def _private_config_folder(
     tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Keep tests away from the real folder where the app remembers its data location."""
+    """Keep tests away from the real folders where the app remembers its data location and
+    keeps the data itself -- a copy of Katib installed on the same machine saves its own
+    settings there, which would otherwise leak into any test that relies on the defaults."""
     monkeypatch.setenv("KATIB_CONFIG_DIR", str(tmp_path_factory.mktemp("config")))
+    default_data = tmp_path_factory.mktemp("default-data")
+    monkeypatch.setattr("katib.config.user_data_path", lambda *_a, **_k: default_data)
 
 
 @pytest.fixture(autouse=True)
