@@ -391,3 +391,43 @@ def test_a_picture_already_in_the_project_is_known_by_its_hash(
     assert res.json() == {"have": [digest]}
     other = api.post(f"{API}/projects/{uuid.uuid4()}/images:have", json={"hashes": [digest]})
     assert other.status_code == 200 and other.json() == {"have": []}
+
+
+def test_export_can_be_saved_to_a_folder_on_the_server(
+    api: TestClient, library: Path, tmp_path: Path
+) -> None:
+    p = make_project(api)
+    import_library(api, p, library)
+    car = api.post(f"{API}/projects/{p['id']}/classes", json={"name": "car"}).json()
+    image = api.get(f"{API}/projects/{p['id']}/images").json()["items"][0]
+    api.put(
+        f"{API}/images/{image['id']}/annotations",
+        json={
+            "items": [
+                {
+                    "class_id": car["id"],
+                    "type": "box",
+                    "geometry": {"x": 0.1, "y": 0.1, "w": 0.2, "h": 0.2},
+                }
+            ]
+        },
+    )
+    destination = tmp_path / "exported"
+    res = api.post(
+        f"{API}/projects/{p['id']}/exports",
+        json={"format": "yolo-detect", "destination": str(destination), "copy_images": True},
+    )
+    assert res.status_code == 202, res.text
+    job = wait_job(api, res.json()["id"])
+    assert job["status"] == "done", job
+    assert job["result"]["file"] is None
+    assert (destination / "data.yaml").is_file()
+    assert any((destination / "labels").glob("*.txt"))
+    assert not list(destination.glob("*.zip"))
+
+    # Saving into a folder that already has files is refused, so nothing is overwritten.
+    again = api.post(
+        f"{API}/projects/{p['id']}/exports",
+        json={"format": "yolo-detect", "destination": str(destination)},
+    )
+    assert again.status_code == 422

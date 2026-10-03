@@ -15,6 +15,11 @@ All notable changes to Katib are listed here, newest first. Each release is also
 - A `data.yaml` in a folder above the one you connect is now used, when it lists that folder as a
   split. Classes come from it even when there are no label files yet.
 
+### Export to a folder
+
+- Exports can be written straight into a folder on the Katib computer, as an alternative to a zip.
+  The folder must be empty or new, so nothing is overwritten. Only administrators can choose one.
+
 ### Sharing and uploads
 
 - Scanning the share code with an Android phone opens a page on your Katib with a download

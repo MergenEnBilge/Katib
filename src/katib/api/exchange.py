@@ -2,6 +2,8 @@
 
 import shutil
 import uuid
+from pathlib import Path
+from typing import Any
 
 from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse
@@ -84,9 +86,11 @@ def export_dataset(
     user: UserDep,
     storage: StorageDep,
     runner: RunnerDep,
+    anywhere: AnywhereDep,
 ) -> JobOut:
     need(session, user, project_id, "manage")
     projects.get_project(session, project_id)
+    target = _export_target(body.destination, anywhere)
     if body.format not in REGISTRY:
         raise InvalidInput(f"Unknown format {body.format!r}.")
     if not writes(REGISTRY[body.format]):
@@ -104,6 +108,8 @@ def export_dataset(
     )
 
     def work(progress: Progress) -> dict[str, object]:
+        if target is not None:
+            return _export_to_folder(factory, project_id, body, target, storage, opts, statuses)
         name = f"{body.format}-{uuid.uuid4().hex[:12]}"
         folder = storage.exports.path(name)
         try:
@@ -127,6 +133,50 @@ def export_dataset(
     if job is None:
         raise NotFound("The export job could not be started.")
     return job_out(job)
+
+
+def _export_target(destination: str | None, anywhere: bool) -> Path | None:
+    """The folder an export should be written into, or None for a zip download."""
+    if not destination or not destination.strip():
+        return None
+    if not anywhere:
+        raise Forbidden("Only an administrator can save an export to a folder on the server.")
+    target = Path(destination.strip()).expanduser()
+    if not target.parent.is_dir():
+        raise InvalidInput("The folder above that one does not exist.")
+    if target.exists() and (not target.is_dir() or any(target.iterdir())):
+        raise InvalidInput("That folder already has files in it. Choose an empty or new folder.")
+    return target
+
+
+def _export_to_folder(
+    factory: Any,
+    project_id: uuid.UUID,
+    body: ExportIn,
+    target: Path,
+    storage: StorageDep,
+    opts: ExportOptions,
+    statuses: list[str] | None,
+) -> dict[str, object]:
+    """Write the export straight into `target`. A failed export leaves no half-written folder."""
+    created = not target.exists()
+    try:
+        with factory() as s:
+            report = exchange.export_dataset(
+                s, project_id, body.format, target, storage, opts, statuses
+            )
+            s.commit()
+    except BaseException:
+        if created:
+            shutil.rmtree(target, ignore_errors=True)
+        raise
+    return {
+        "file": None,
+        "folder": str(target),
+        "images": report.images,
+        "shapes": report.shapes,
+        "notes": [{"subject": n.subject, "reason": n.reason} for n in report.notes],
+    }
 
 
 @router.get("/jobs/{job_id}/download")

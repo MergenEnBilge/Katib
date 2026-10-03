@@ -418,6 +418,7 @@ export const api = {
       copyImages = false,
       split?: { train: number; val: number; test: number; seed: number; stratify: boolean },
       useSavedSplits = true,
+      destination?: string,
     ) =>
       request<Job>('POST', `/projects/${projectId}/exports`, {
         format,
@@ -425,6 +426,7 @@ export const api = {
         copy_images: copyImages,
         split,
         use_saved_splits: useSavedSplits,
+        destination: destination || null,
       }),
   },
 };
