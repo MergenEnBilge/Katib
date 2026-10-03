@@ -62,7 +62,7 @@ the network at all.
 With Docker, the whole install is one line:
 
 ```bash
-docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.4.0
+docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.5.0
 ```
 
 Open <http://localhost:8420>. Katib asks for a setup code before it will make the first account,
@@ -172,10 +172,18 @@ pnpm --dir web dev            # front end on :5173, proxies /api to the backend
 
 ## Status
 
-This is 0.4.0. Everything described here works today, and the checks run on every push: the
+This is 0.5.0. Everything described here works today, and the checks run on every push: the
 Python tests against both SQLite and Postgres, the browser tests at desktop and phone sizes with
 an automated accessibility pass, a Docker build, and speed budgets. Every export format is
-exercised by a test that sends a project out through the API and reads it back in again.
+exercised by a test that sends a project out through the API and reads it back in again, and every
+dataset layout listed under [formats](docs/data.md#formats) by a test that connects one.
+
+Since 0.4.0: connecting a folder that holds a dataset reads it as it is, in many more layouts and
+formats, splits included; see [Images, folders and formats](docs/data.md). Folders read in place
+and copies are told apart, and pictures that left a folder can be taken out. When the server stops
+answering every page says so and recovers by itself, and the setup code fills itself in on the
+server's own computer. A serious hole is closed too: other websites could reach a Katib running on
+your own computer. [Security](docs/security.md) has the details.
 
 Since 0.3.1: on a desktop, the server is its own program with an icon in the system tray, and the
 window is just one more client of it, so closing the window no longer cuts off every phone and
