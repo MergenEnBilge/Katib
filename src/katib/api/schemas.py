@@ -320,3 +320,6 @@ class ExportIn(BaseModel):
     use_saved_splits: bool = True
     statuses: list[Literal["todo", "in_progress", "done"]] | None = None
     copy_images: bool = False
+    #: A folder on the Katib computer to write the export into, instead of a zip to download.
+    #: Only administrators can choose one, and it must be empty or not exist yet.
+    destination: str | None = Field(default=None, max_length=1024)

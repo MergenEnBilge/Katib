@@ -7,6 +7,7 @@
   import { onboarding } from '../../lib/state/onboarding.svelte';
   import type { Workspace } from '../../lib/state/workspace.svelte';
   import Button from '../../lib/ui/Button.svelte';
+  import TextField from '../../lib/ui/TextField.svelte';
   import Callout from '../../lib/ui/Callout.svelte';
   import Modal from '../../lib/ui/Modal.svelte';
 
@@ -16,6 +17,8 @@
   let format = $state('yolo-detect');
   let which = $state<'all' | 'done' | 'notdone'>('all');
   let copyImages = $state(false);
+  let saveHere = $state(false);
+  let destination = $state('');
   let splitMode = $state<'saved' | 'new' | 'none'>('none');
   let saved = $state<{ train: number; val: number; test: number; none: number } | null>(null);
   let train = $state(80);
@@ -27,7 +30,7 @@
   let busy = $state(false);
   let error = $state('');
   let downloadUrl = $state('');
-  let result = $state<{ images: number; shapes: number; notes: { subject: string; reason: string }[] } | null>(null);
+  let result = $state<{ images: number; shapes: number; folder?: string | null; notes: { subject: string; reason: string }[] } | null>(null);
 
   $effect(() => {
     api.exportInfo(ws.projectId).then((i) => (orderChanged = i.order_changed)).catch(() => undefined);
@@ -77,6 +80,7 @@
         copyImages,
         split,
         splitMode === 'saved',
+        saveHere && destination.trim() ? destination.trim() : undefined,
       );
       const job = await waitForJob(started.id);
       if (job.status === 'failed') {
@@ -116,6 +120,11 @@
     </fieldset>
 
     <label class="check"><input type="checkbox" bind:checked={copyImages} disabled={busy} /> Include the image files</label>
+
+    <label class="check"><input type="checkbox" bind:checked={saveHere} disabled={busy} /> Save into a folder on the Katib computer instead of a zip</label>
+    {#if saveHere}
+      <TextField label="Folder to write into" placeholder="/data/exports/street" bind:value={destination} hint="Must be empty or new. Only administrators can save to a folder on the server." />
+    {/if}
 
     <fieldset disabled={busy}>
       <legend>Train, validation and test</legend>
@@ -160,7 +169,11 @@
         </details>
       {/if}
       {#snippet action()}
-        <a class="download" href={downloadUrl} download><Download size={16} />Download zip</a>
+        {#if result?.folder}
+          <p class="line">Saved to <span class="mono">{result?.folder}</span></p>
+        {:else}
+          <a class="download" href={downloadUrl} download><Download size={16} />Download zip</a>
+        {/if}
       {/snippet}
     </Callout>
   {/if}
