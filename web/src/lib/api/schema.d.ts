@@ -1848,6 +1848,11 @@ export interface components {
              * @default false
              */
             in_container: boolean;
+            /**
+             * Label Files
+             * @default []
+             */
+            label_files: components["schemas"]["PlaceOut"][];
         };
         /** ForgotMissingOut */
         ForgotMissingOut: {

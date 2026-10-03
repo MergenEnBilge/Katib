@@ -51,6 +51,7 @@ def browse(
         images_here=listing.images_here,
         can_connect=listing.can_connect,
         in_container=listing.in_container,
+        label_files=[PlaceOut(name=p.name, path=p.path) for p in listing.label_files],
     )
 
 

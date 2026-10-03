@@ -252,8 +252,10 @@ def test_yolo_import_then_coco_export(api: TestClient, library: Path, tmp_path: 
 
 def test_import_path_outside_roots_and_empty_export(api: TestClient, tmp_path: Path) -> None:
     p = make_project(api)
+    # With accounts off, this person may browse anywhere, so labels can be imported from anywhere
+    # they can pick. Someone who is not an administrator is limited to the connected folders.
     res = api.post(f"{API}/projects/{p['id']}/imports", json={"path": str(tmp_path)})
-    assert res.status_code == 403
+    assert res.status_code == 202
     res = api.post(f"{API}/projects/{p['id']}/exports", json={"format": "yolo-detect"})
     assert res.status_code == 422
     assert "no images" in res.json()["message"]

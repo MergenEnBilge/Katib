@@ -385,3 +385,24 @@ def test_a_broken_dataset_says_why_it_was_not_read(api: TestClient, tmp_path: Pa
     _project, result = connect(api, root)
     assert result["dataset"]["state"] == "failed"
     assert "yaml" in result["dataset"]["reason"].lower()
+
+
+def test_the_yaml_file_itself_can_be_chosen_for_label_import(
+    api: TestClient, tmp_path: Path
+) -> None:
+    root = tmp_path / "pick-yaml"
+    # The yaml does not list the connected folder, so connecting does not read the labels itself.
+    write(root / "data.yaml", "train: elsewhere\nnames:\n  0: car\n")
+    picture(root / "pics" / "a.jpg")
+    write(root / "labels" / "a.txt", "0 0.5 0.5 0.2 0.2\n")
+    # Connect the pictures first, so the shape can only come from the import below.
+    project, _ = connect(api, root / "pics")
+    job = api.post(f"{API}/projects/{project}/imports", json={"path": str(root / "data.yaml")})
+    assert job.status_code == 202, job.text
+    for _ in range(500):
+        state = api.get(f"{API}/jobs/{job.json()['id']}").json()
+        if state["status"] in ("done", "failed"):
+            break
+        time.sleep(0.02)
+    assert state["status"] == "done", state
+    assert state["result"]["shapes_added"] == 1

@@ -94,8 +94,17 @@ def container_hint(in_container: bool | None = None) -> str:
     )
 
 
-def resolve_path(raw: str, roots: list[Path]) -> Path:
-    """Resolve a user-supplied path and require it to sit inside an allowed root."""
+def resolve_path(raw: str, roots: list[Path], *, unrestricted: bool = False) -> Path:
+    """Resolve a user-supplied path and require it to sit inside an allowed root.
+
+    `unrestricted` is for the people allowed to browse anywhere, so a path they can pick in the
+    browser is also one they can import from.
+    """
+    if unrestricted:
+        try:
+            return Path(raw).expanduser().resolve(strict=True)
+        except (OSError, RuntimeError) as err:
+            raise InvalidInput(f"That path does not exist.{container_hint()}") from err
     if not roots:
         raise ImportNotAllowed(
             "No folder is connected yet. An administrator can add one under Settings, then "
