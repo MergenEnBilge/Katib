@@ -1,30 +1,41 @@
-# Katib
+# Katib documentation
 
-Katib is an annotation tool for computer vision. You draw shapes on images, organize them into classes, and export the result in the format your training code expects.
+Katib is an annotation tool for computer vision. You draw shapes on pictures, sort them into classes,
+and export the labels in the format your training code expects.
 
-It runs on your own machine. Start it on a laptop with one command, or on a server that a whole team shares. Your images stay on your hardware, and nothing is sent anywhere unless you set that up.
+Katib runs on your own computer, so your pictures stay where they are. You can start it on a laptop
+with one command, or run it on a server that your whole team uses.
 
 ## Where to start
 
-- **Just want to try it?** [Install and first project](getting-started.md) takes about five minutes.
-- **Labeling a lot of images?** Read [Drawing and shortcuts](drawing.md). The keyboard makes it much faster.
-- **Have data already?** [Images, folders and formats](data.md) covers connecting a folder of photos and importing existing labels.
-- **Setting it up for a team?** [Working together](teams.md) and [Running a server](server.md).
-- **Putting it where other people can reach it?** Read [Security](security.md) first. It is short.
-- **Want to script it?** [REST API and Python client](automation.md).
+- **Want to try it first?** [Getting started](getting-started.md) takes about five minutes.
+- **Labelling a lot of pictures?** [Drawing and shortcuts](drawing.md) shows the keys that make it faster.
+- **Already have a dataset?** [Pictures, folders and formats](data.md) explains how to bring it in and
+  take it out again.
+- **Setting Katib up for a team?** Read [Working together](teams.md) and [Running a server](server.md).
+- **Putting Katib on the internet?** Read [Security](security.md) first, then [Putting Katib where your team can reach it](deploy.md).
+- **Writing scripts?** The [REST API and Python client](automation.md) cover everything the app can do.
 
-## What it can do
+## What Katib can do
 
-| | |
-|-|-|
-| Shapes | Boxes, polygons, rotated boxes, keypoints, brush masks and whole-image tags |
-| Classes | Rename, merge and delete with a preview and 30 days of undo |
-| Data | YOLO (detection, segmentation, rotated boxes), COCO with keypoints, Pascal VOC and LabelMe, with train, validation and test splits |
-| Quality | Finds tiny and duplicate shapes, near-identical photos and unbalanced classes |
-| Teams | Invites for a computer or a phone, accounts you create yourself, five roles, a task queue, review and live presence |
-| Devices | Desktop, tablet and phone. Installable, and keeps working when the signal drops |
-| Help | A magic wand that needs no model, click-to-select with a SAM model, and draft boxes from your own detection model |
+| Area | Details |
+|------|---------|
+| Shapes | Boxes, polygons, rotated boxes, keypoints, brush masks and whole-picture tags |
+| Classes | Rename, merge and delete across a project. Preview first, and undo for 30 days |
+| Datasets | YOLO, COCO, Pascal VOC, LabelMe, CVAT, CreateML, class folders and JSON Lines, with train, validation and test splits |
+| Quality checks | Finds tiny and duplicate shapes, near-identical pictures and unbalanced classes |
+| Teams | Invite links, five roles, a queue of pictures for each annotator, review, and a view of who is online |
+| Devices | Works in a browser on desktop, tablet and phone. Can be added to a phone's home screen. Android app included |
+| Help with drawing | A magic wand that needs no model, click to select with a Segment Anything model, and draft boxes from your own detector |
 
-## What it does not do
+## What Katib does not do
 
-Katib is deliberately small. It does not track objects through video, label text, audio or 3D data, or sync between separate servers. It has no built-in single sign-on or billing.
+Katib works with still pictures. It does not track objects through video, and it does not label text,
+audio or 3D data. It does not sync between separate servers, and it has no built-in single sign-on or
+billing.
+
+## Other documents
+
+- [How Katib is built](internals.md) describes the code, for anyone who wants to change it.
+- [Contributing](contributing.md) explains how to set up a development environment and run the checks.
+- [Changelog](https://github.com/MergenEnBilge/Katib/blob/main/CHANGELOG.md) lists what changed in each release.

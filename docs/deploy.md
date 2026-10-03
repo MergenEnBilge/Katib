@@ -1,109 +1,112 @@
-# Put Katib where your team can reach it
+# Putting Katib where your team can reach it
 
-Katib runs in one of three places: your own computer, a machine on your network, or a server on the
-internet. This page covers the last two. Everything here can be changed later from **Settings**, so
-nothing you pick now is permanent.
+Katib can run on your own computer, on a computer on your network, or on a server on the internet.
+This guide covers the last two. You can change any of these choices later in **Settings**, so nothing
+you decide here is permanent.
 
 | What you want | Where to go |
 |---------------|-------------|
-| Just label on my own machine | The [installer](getting-started.md) |
-| Let colleagues on my network in | [One container](#one-container), below |
-| Run it on a Raspberry Pi or a cloud box | [The install script](#on-a-server-or-a-raspberry-pi) |
-| A proper team server with HTTPS | [Compose](#the-team-setup-docker-compose) |
-| Reach it from anywhere on the internet | [Over the internet](#over-the-internet) |
+| Label on my own computer | [Install Katib](getting-started.md) |
+| Let colleagues on my network sign in | [One container](#one-container) |
+| Run it on a Raspberry Pi or a small cloud server | [On a server or a Raspberry Pi](#on-a-server-or-a-raspberry-pi) |
+| A full team setup with HTTPS | [The team setup with Docker Compose](#the-team-setup-with-docker-compose) |
+| Reach it from the internet | [Over the internet](#over-the-internet) |
 
-A note on the commands below. They are written as one long line each. Copy the whole line. Some
-guides split commands across several lines with a `\` at the end, which works in a Mac or Linux
-terminal but breaks in PowerShell on Windows.
+Each command in this guide is one line. Copy the whole line. Some guides break long commands over several
+lines with a `\` at the end. That works in a Mac or Linux terminal, but PowerShell on Windows reads each
+line as a separate command.
 
 ## One container
 
-Install [Docker Desktop](https://www.docker.com/products/docker-desktop/), open it, then paste this
-into PowerShell or Terminal:
+First, install [Docker Desktop](https://www.docker.com/products/docker-desktop/) and open it. Then paste
+this into PowerShell or Terminal:
 
 ```bash
 docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.5.0
 ```
 
-Open <http://localhost:8420>. Katib asks for a setup code before it will create the first
-account, because whoever creates it runs the server. Read the code with:
+Open <http://localhost:8420>. Katib asks for a setup code before it creates the first account, because
+whoever creates that account runs the server. To read the code, run:
 
 ```bash
 docker exec katib cat /data/setup-code.txt
 ```
 
-Paste it in, create your account, and you are labelling. The code stops working from then on.
+Paste the code in, create your account, and start labelling. The code stops working once the account
+exists.
 
-Katib comes back by itself whenever Docker starts. Your projects live in a Docker volume called
-`katib-data`, separate from the container, so deleting the container does not touch them.
+Katib starts again on its own whenever Docker starts. Your projects are kept in a Docker volume called
+`katib-data`, which is separate from the container. Deleting the container does not delete your
+projects.
 
-To let someone else in, give them your machine's network address with `:8420` on the end —
-**Settings** then **Sharing** shows it — and invite them from inside a project.
+To let someone else sign in, give them your computer's network address with `:8420` on the end.
+**Settings**, then **Sharing**, shows the address. Then invite them from inside a project.
 
-To label pictures already on your disk, mount the folder as well:
+To label pictures that are already on your disk, mount that folder as well:
 
 ```bash
 docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data -v C:\Photos:/photos:ro ghcr.io/mergenenbilge/katib:v0.5.0
 ```
 
-Then choose **Import**, **Connect a folder**, and pick `/photos`. The `:ro` makes it read-only.
-Katib never writes to your pictures anyway, but it costs nothing to be certain.
+Then choose **Import**, then **Connect a folder**, and pick `/photos`. The `:ro` part makes the folder
+read-only inside the container. Katib never changes your pictures, but the setting is a good safeguard.
 
 !!! note "Who can reach it"
 
-    `-p 8420:8420` publishes Katib on every network interface, so anyone on your network can open
-    it. That is the point on a shared machine and a surprise on a laptop in a cafe. If Katib is
-    only for you, publish it to your own machine instead: `-p 127.0.0.1:8420:8420`.
+    `-p 8420:8420` makes Katib reachable from every network your computer is connected to. That suits a
+    shared machine, but not a laptop on a public Wi-Fi network. If only you will use it, publish it to
+    your own computer instead, with `-p 127.0.0.1:8420:8420`.
 
-    Katib still asks for the setup code either way. From inside a container there is no way to
-    tell how Docker handed the port out, so it assumes the careful answer.
+    Katib asks for the setup code in either case. From inside a container, Katib cannot tell how Docker
+    shared the port, so it always asks.
 
-Prefer not to touch a terminal at all? In Docker Desktop, search for `mergenenbilge/katib`, choose
-**Run**, open **Optional settings**, set the host port to `8420`, and add a volume named
-`katib-data` mounted at `/data`.
+Prefer not to use a terminal? In Docker Desktop, search for `mergenenbilge/katib`, choose **Run**, open
+**Optional settings**, set the host port to `8420`, and add a volume named `katib-data` mounted at
+`/data`.
 
 ## On a server or a Raspberry Pi
 
-Any Linux machine that runs Docker will do — a £5 cloud box, an old laptop, a Raspberry Pi 4 or
-newer. On the machine itself:
+Any Linux computer that runs Docker will work. That includes a small cloud server, an old laptop, or a
+Raspberry Pi 4 or newer. Run this on the machine itself:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/MergenEnBilge/Katib/main/install.sh | sh
 ```
 
-The script looks for Docker and offers to install it, downloads Katib, starts it, waits until it
-answers, then prints the address. Add `--photos /path/to/pictures` to mount a folder, or
-`--port 9000` if something already uses 8420.
+The script checks for Docker and offers to install it if it is missing. It downloads Katib, starts it,
+waits until it responds, and prints the address.
 
-Open the address it prints. Katib asks for a setup code before it will create the first account —
-the script prints it, and `docker exec katib cat /data/setup-code.txt` shows it again later. That
-code is what stops somebody else on the network claiming your server before you get to it.
+- To mount a folder of pictures, add `--photos /path/to/pictures`.
+- If port 8420 is already in use, add `--port 9000`.
 
-Run the same command again to update. The `katib-data` volume is untouched.
+Open the printed address. Katib asks for a setup code before it creates the first account. The script
+prints the code, and you can see it again later with `docker exec katib cat /data/setup-code.txt`. The
+code stops anyone else on the network from claiming the server before you do.
 
-## The team setup: Docker Compose
+To update, run the same command again. Your data is kept in the `katib-data` volume.
 
-### What compose actually is
+## The team setup with Docker Compose
 
-`docker run` starts one container. A real server needs three, and they have to find each other:
+Use this setup for a team that needs HTTPS and a proper database.
 
-- **katib** — the app itself
-- **db** — Postgres, which holds the projects and labels
-- **caddy** — a web server that sits in front, terminates HTTPS and passes requests back to Katib
+### How the pieces fit together
 
-Compose is one file, `docker-compose.yml`, that describes all three: which image each uses, what
-they are allowed to talk to, which folders and volumes they can see, and what to restart when. One
-command reads that file and makes it so. You stop thinking about containers and start thinking about
-the service.
+A single `docker run` starts one container. A team server needs three, and they have to work together:
 
-The three containers share a private network that compose creates. Only Caddy publishes ports (80
-and 443) to the outside world. Postgres and Katib are not reachable from outside at all — Katib
-answers Caddy and nothing else. That is the point: one door, and it speaks HTTPS.
+- **katib**, the application.
+- **db**, a Postgres database that stores your projects and labels.
+- **caddy**, a web server that sits in front. It handles HTTPS and passes requests on to Katib.
+
+A file called `docker-compose.yml` describes all three: which image each one uses, which folders they can
+see, and what should restart. Compose reads that file and starts everything for you.
+
+The three containers share a private network. Only Caddy is reachable from outside, on ports 80 and 443.
+Katib and the database cannot be reached directly. There is one way in, and it uses HTTPS.
 
 ### Setting it up
 
-You need the repository for this, because compose reads `docker-compose.yml` and `docker/Caddyfile`
-from disk:
+You need the Katib code for this, because Compose reads `docker-compose.yml` and `docker/Caddyfile` from
+disk:
 
 ```bash
 git clone https://github.com/MergenEnBilge/Katib.git
@@ -111,145 +114,136 @@ cd Katib
 cp .env.example .env
 ```
 
-Open `.env` and fill in four things:
+Open `.env` and fill in four values:
 
-| Variable | What to put |
-|----------|-------------|
-| `KATIB_DB_PASSWORD` | Any long random string. You will never type it again |
-| `KATIB_HOST` | The name people will type. `katib.example.com` on the internet, or the server's IP on a private network |
-| `KATIB_TLS` | `internal` on a private network. Your email address on a real domain |
-| `KATIB_PHOTOS` | The folder on the server holding pictures to label. Leave it if you have none yet |
+| Setting | What to enter |
+|---------|---------------|
+| `KATIB_DB_PASSWORD` | A long random string. You will not need to type it again |
+| `KATIB_HOST` | The address people will type. Use `katib.example.com` on the internet, or the server's IP address on a private network |
+| `KATIB_TLS` | `internal` on a private network. Your email address on a public domain |
+| `KATIB_PHOTOS` | The folder on the server with the pictures to label. Leave it as it is if you do not have one yet |
 
-Then:
+Then start everything:
 
 ```bash
 docker compose up -d
 ```
 
-Open `https://` followed by your `KATIB_HOST`. The first person there creates the administrator
-account. Under **Import images**, connect the folder called `/photos`.
+Open `https://` followed by your `KATIB_HOST`. The first person to arrive creates the administrator
+account. Under **Import images**, connect the folder named `/photos`.
 
-### Day-to-day
+### Day-to-day commands
 
-| | |
-|---|---|
+| Task | Command |
+|------|---------|
 | See what is running | `docker compose ps` |
 | Read the logs | `docker compose logs -f katib` |
-| Update | `docker compose pull` then `docker compose up -d` |
-| Stop | `docker compose down` — your data stays in the volumes |
-| Back up | **Settings**, **Backup** in the app. Also `pg_dump` the database if you want belt and braces |
+| Update | `docker compose pull`, then `docker compose up -d` |
+| Stop everything | `docker compose down`. Your data stays in its volumes |
+| Back up | In the app, go to **Settings**, then **Backup**. For the database, you can also run `pg_dump` |
 
 ## Over the internet
 
-Everything above assumes people are on the same network as the server. Opening Katib to the internet
-is four steps, and none of them are Katib's doing — this is the same work any self-hosted service
-needs.
+The steps above assume that people are on the same network as the server. To open Katib to the internet,
+you need four things. Katib does not do any of them for you. Any self-hosted service needs the same
+work.
 
-### 1. Get a machine with a public address
+### 1. A server with a public address
 
-A small cloud server is the straightforward answer: 2 GB of memory is plenty to start, and any
-provider will do. You get a public IP address with it.
+A small cloud server is the simplest choice. Two gigabytes of memory is enough to start, and most
+providers offer one. It comes with a public IP address.
 
-Hosting from home works too, but there is more in the way. Your router has to forward ports 80 and
-443 to the machine, your home IP probably changes every so often (a dynamic DNS provider fixes
-that), and some ISPs block port 80 on residential lines, which stops Caddy getting a certificate.
-If you hit that last one, a cloud box is less trouble than fighting it.
+You can also host Katib at home, but it takes more effort. Your router has to forward ports 80 and 443 to
+the machine. Your home IP address may change, and a dynamic DNS service can handle that. Some internet
+providers block port 80 on home connections, which stops Caddy from getting a certificate. If that
+happens, a cloud server is easier.
 
-### 2. Point a domain at it
+### 2. A domain name that points at it
 
-Buy a domain, or use one you have. Add an **A record** for the name you want — say
-`katib.example.com` — pointing at the server's public IP address. Give DNS a few minutes, then
-check from your own machine:
+Buy a domain name, or use one you already own. Add an **A record** for the name you want, such as
+`katib.example.com`, and point it at the server's public IP address. DNS can take a few minutes to update.
+Check it from your own computer:
 
 ```bash
 nslookup katib.example.com
 ```
 
-You want your server's IP back. Nothing else will work until that is right.
+The answer should show your server's IP address. Nothing else will work until it does.
 
 ### 3. Open the firewall
 
-Ports **80** and **443** need to reach the server. Port 80 is not optional even though Katib only
-serves HTTPS: Caddy uses it to prove it controls the domain when it asks for a certificate, and to
-redirect visitors who type `http://`.
+Ports **80** and **443** must be reachable from the internet. Port 80 is needed even though Katib only
+serves HTTPS. Caddy uses it to prove it controls the domain when it requests a certificate, and to send
+visitors who type `http://` over to HTTPS.
 
-On a cloud provider this is a security group or firewall rule in their control panel. On the machine
-itself, if `ufw` is running:
+Most cloud providers have a firewall or security group in their control panel. On the server itself, if
+`ufw` is running:
 
 ```bash
 sudo ufw allow 80,443/tcp
 ```
 
-Do **not** open 8420. Nothing should reach Katib except Caddy.
+Do not open port 8420. Only Caddy should reach Katib.
 
-### 4. Tell compose the name and turn on real certificates
+### 4. Turn on real certificates
 
-In `.env`:
+In `.env`, set:
 
 ```
 KATIB_HOST=katib.example.com
 KATIB_TLS=you@example.com
 ```
 
-Then `docker compose up -d`. Caddy asks Let's Encrypt for a certificate, gets one within seconds,
-and renews it on its own for as long as it keeps running. There is no certificate file to manage and
-no renewal to remember.
+Then run `docker compose up -d`. Caddy requests a certificate from Let's Encrypt, usually within seconds.
+It renews the certificate automatically while it runs, so you do not need to manage certificate files.
 
-Open `https://katib.example.com`. Katib asks for the setup code before it lets you create the first
-account:
+Open `https://katib.example.com`. Katib asks for the setup code before you create the first account:
 
 ```bash
 docker compose exec katib cat /data/setup-code.txt
 ```
 
-Create the administrator account, then invite your team from inside a project. Once that first
-account exists, the code stops mattering.
+Create the administrator account, then invite your team from inside a project. Once that account exists,
+the setup code no longer matters.
 
-### What to know before you do this
+### Before you open it to the internet
 
-Katib on the internet is a service you are now responsible for. Four things are worth an hour of
-your time:
+Katib on the internet is a service you now look after. Keep these four things in mind:
 
-Keep accounts on. The Docker image already does this, and Katib refuses to start on a network
-address without them, but it is worth knowing why the guard exists.
+- **Keep accounts turned on.** The Docker setup does this already. Katib also refuses to start on a network
+  address without accounts.
+- **Use strong passwords.** Whoever holds the administrator account can see every project on the server.
+- **Keep a backup somewhere other than the server.** Go to **Settings**, then **Backup**, and save the zip
+  file elsewhere. A copy on the same machine does not protect you if the machine fails.
+- **Update regularly.** `docker compose pull && docker compose up -d` takes a few seconds. Updates include
+  security fixes.
 
-Pick real passwords for the accounts you create, and remember that whoever holds the administrator
-account can read every project on the server.
+### On a private network
 
-Back up somewhere that is not the server. **Settings**, then **Backup**, gives you a single zip. A
-copy on the same machine is not a backup.
-
-Update every so often. `docker compose pull && docker compose up -d` takes a few seconds, and it is
-how security fixes reach you.
-
-### On a private network instead
-
-Leave `KATIB_TLS=internal` and Caddy signs its own certificate. HTTPS still works, but browsers warn
-once per machine because nobody vouched for that certificate. To clear the warning, take Caddy's
-root certificate and install it on the machines that need it:
+Set `KATIB_TLS=internal`, and Caddy makes its own certificate. HTTPS still works, but each browser warns
+you once, because it does not know who issued the certificate. To remove the warning, copy Caddy's root
+certificate and install it on the computers that need it:
 
 ```bash
 docker compose cp caddy:/data/caddy/pki/authorities/local/root.crt ./katib-root.crt
 ```
 
-This is also the route to take if you want the iPhone home-screen app, which needs HTTPS and will
-not settle for plain `http`.
+This is also the setup you need for the iPhone home-screen app, which requires HTTPS.
 
 ## When something does not work
 
-**The page does not open.** Is the container running? `docker ps`. Is something else on port 8420?
-Pick another with `--port`.
+**The page does not open.** Check that the container is running with `docker ps`. Check that nothing else
+is using port 8420. If it is, pick another port with `--port`.
 
-**It wants a setup code.** It asks everybody, because whoever makes the first account runs the
-server. `docker exec katib cat /data/setup-code.txt`, or look for "setup code" in
-`docker logs katib`.
+**Katib asks for a setup code.** It asks everyone, because whoever creates the first account runs the
+server. Run `docker exec katib cat /data/setup-code.txt`, or search for "setup code" in `docker logs katib`.
 
-**Caddy will not get a certificate.** Almost always DNS or the firewall. Check the A record resolves
-to the right IP, check ports 80 and 443 are actually open from outside, then read
-`docker compose logs caddy` — it says plainly what it tried and what happened.
+**Caddy does not get a certificate.** The cause is almost always DNS or the firewall. Check that the A
+record points to the right IP address. Check that ports 80 and 443 are open from outside. Then read
+`docker compose logs caddy`, which says what Caddy tried and what went wrong.
 
-**A command failed on Windows with `invalid reference format`.** You pasted a command split across
-lines with `\`. PowerShell does not join lines that way. Paste it as one line.
+**A command fails on Windows with `invalid reference format`.** The command was split over several lines
+with `\`. Paste it as one line.
 
-**I want to start over.** `docker rm -f katib` removes the container and leaves your data.
-`docker volume rm katib-data` deletes the data for good.
+**You want to start again.** `docker rm -f katib` removes the container and keeps your data. To delete the
+data as well, run `docker volume rm katib-data`. This cannot be undone.

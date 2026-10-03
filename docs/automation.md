@@ -26,7 +26,7 @@ Create a token by signing in and calling `POST /api/v1/auth/tokens` with a name.
 
 ### Saving shapes safely
 
-Shapes are saved with `POST /api/v1/images/{id}/annotations:batch`. You choose the id of each new shape, so sending a batch again after a dropped connection is harmless: a create for an id that already exists succeeds without adding a second copy. Updates and deletes can carry `if_version`, and the answer for each operation says whether it succeeded, was refused, or conflicted with a newer edit.
+Save shapes with `POST /api/v1/images/{id}/annotations:batch`. Give each new shape its own id. If a connection drops and you send the same batch again, nothing is duplicated: creating a shape whose id already exists simply succeeds. Updates and deletes can include `if_version`. The reply for each operation says whether it worked, was refused, or clashed with a newer edit.
 
 ## The Python client
 
