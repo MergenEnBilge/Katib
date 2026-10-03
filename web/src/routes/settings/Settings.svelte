@@ -26,13 +26,21 @@
   let restarting = $state(false);
   let dbResult = $state<{ ok: boolean; message: string } | null>(null);
 
-  const tabs = $derived([
-    ...(data?.groups ?? []).map((g) => ({ id: g.id, label: g.label })),
-    ...(session.mode === 'local' ? [{ id: 'people', label: 'People' }] : []),
-    { id: 'backup', label: 'Backup' },
+  // Someone who may not change the server still has their own look to choose, and About.
+  const personal = [
     { id: 'appearance', label: 'Appearance' },
     { id: 'about', label: 'About' },
-  ]);
+  ];
+  const tabs = $derived(
+    denied
+      ? personal
+      : [
+          ...(data?.groups ?? []).map((g) => ({ id: g.id, label: g.label })),
+          ...(session.mode === 'local' ? [{ id: 'people', label: 'People' }] : []),
+          { id: 'backup', label: 'Backup' },
+          ...personal,
+        ],
+  );
   const group = $derived(data?.groups.find((g) => g.id === tab));
   const fields = $derived((data?.fields ?? []).filter((f) => f.group === tab));
 
@@ -45,8 +53,10 @@
     try {
       data = await api.settings.get();
     } catch (err) {
-      if (err instanceof ApiError && err.status === 403) denied = true;
-      else error = err instanceof ApiError ? err.message : 'Could not load the settings.';
+      if (err instanceof ApiError && err.status === 403) {
+        denied = true;
+        tab = 'appearance';
+      } else error = err instanceof ApiError ? err.message : 'Could not load the settings.';
     }
   }
 
@@ -120,17 +130,18 @@
   <h1>Settings</h1>
 </header>
 
-{#if denied}
-  <Callout>Only an administrator can change settings on this server.</Callout>
-{:else if error && !data}
+{#if error && !data && !denied}
   <Callout tone="danger">
     {error}
     {#snippet action()}<Button onclick={load}>Try again</Button>{/snippet}
   </Callout>
-{:else if !data}
+{:else if !data && !denied}
   <div class="loading" aria-busy="true"></div>
 {:else}
-  {#if data.info.restart_pending}
+  {#if denied}
+    <p class="note">Settings for the whole server are up to an administrator. These are your own.</p>
+  {/if}
+  {#if data?.info.restart_pending}
     <div class="restart">
       <Callout>
         Some saved settings apply after Katib restarts.
@@ -198,12 +209,12 @@
         </div>
       {:else if tab === 'people'}
         <PeoplePanel />
-      {:else if tab === 'backup'}
+      {:else if tab === 'backup' && data}
         <BackupPanel database={data.info.database} />
       {:else if tab === 'appearance'}
         <AppearancePanel />
       {:else}
-        <AboutPanel info={data.info} shared={session.mode === 'local'} />
+        <AboutPanel info={data?.info ?? null} shared={session.mode === 'local'} />
       {/if}
     </section>
   </div>
@@ -216,6 +227,11 @@
 
   .restart {
     margin-block-end: var(--space-4);
+  }
+
+  .note {
+    margin: 0 0 var(--space-4);
+    color: var(--text-2);
   }
 
   .quiet {

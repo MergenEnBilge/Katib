@@ -110,6 +110,29 @@ test('an owner can delete a project from its Team settings', async ({ browser })
   await context.close();
 });
 
+test('someone who is not an administrator still gets their own settings and the credit', async ({
+  browser,
+}) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  await page.goto('/');
+  await page.getByLabel('Email').fill('sam@example.com');
+  await page.getByLabel('Password').fill(PASSWORD);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page.getByRole('heading', { name: 'Projects', exact: true })).toBeVisible();
+
+  await page.goto('/settings');
+  await expect(page.getByText('Settings for the whole server are up to an administrator')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Sharing' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Appearance' })).toBeVisible();
+  await page.getByRole('button', { name: 'About' }).click();
+  await expect(page.getByRole('link', { name: 'M. Abdullah K. Mughal (MergenEnBilge)' })).toBeVisible();
+  await expect(page.getByText('Version')).toBeVisible();
+  // Where the server keeps its files is for administrators only.
+  await expect(page.getByText('Data folder')).toHaveCount(0);
+  await context.close();
+});
+
 test('signing in with the wrong password says so', async ({ browser }) => {
   const context = await browser.newContext();
   const page = await context.newPage();

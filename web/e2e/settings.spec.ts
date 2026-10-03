@@ -59,6 +59,20 @@ test('model help lists downloadable models beside bringing your own file', async
   await expect(page.getByText('Or add your own files')).toBeVisible();
 });
 
+test('About says who built Katib and where its source lives', async ({ page }) => {
+  await page.goto('/settings');
+  await page.getByRole('button', { name: 'About' }).click();
+  await expect(page.getByRole('link', { name: 'M. Abdullah K. Mughal (MergenEnBilge)' })).toHaveAttribute(
+    'href',
+    'https://github.com/MergenEnBilge',
+  );
+  await expect(page.getByRole('link', { name: 'Source on GitHub' })).toHaveAttribute(
+    'href',
+    'https://github.com/MergenEnBilge/Katib',
+  );
+  await expect(page.getByText('Data folder')).toBeVisible();
+});
+
 test('a factory reset needs RESET typed before it can run', async ({ page }) => {
   // The actual reset is not exercised here -- it would wipe the data every other test in this
   // run shares. This only checks the confirmation guards it correctly, then backs out.

@@ -114,6 +114,8 @@ export function setUnauthorizedHandler(handler: UnauthorizedHandler | null): voi
 }
 
 export const api = {
+  server: () => request<{ status: string; version: string; database: string }>('GET', '/health'),
+
   auth: {
     status: () => request<AuthStatus>('GET', '/auth/status'),
     setup: (email: string, name: string, password: string, setupCode = '') =>

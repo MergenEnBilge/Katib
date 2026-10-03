@@ -1,11 +1,12 @@
 <script lang="ts">
   import { BookOpen, Compass, Keyboard, Lightbulb, MessageCircleQuestion, Route } from '@lucide/svelte';
   import type { Component } from 'svelte';
+  import { AUTHOR, AUTHOR_URL, REPO_URL } from '../lib/credit';
   import { tips } from '../lib/state/tips.svelte';
   import Modal from '../lib/ui/Modal.svelte';
 
-  const GUIDE = 'https://github.com/MergenEnBilge/Katib/tree/main/docs';
-  const ISSUES = 'https://github.com/MergenEnBilge/Katib/issues';
+  const GUIDE = `${REPO_URL}/tree/main/docs`;
+  const ISSUES = `${REPO_URL}/issues`;
 
   let {
     onclose,
@@ -73,6 +74,10 @@
     </label>
     <button type="button" class="again" onclick={() => tips.reset()}>Show every tip again</button>
   </div>
+
+  <p class="credit">
+    Katib is built by <a class="inline" href={AUTHOR_URL} target="_blank" rel="noopener noreferrer">{AUTHOR}</a>.
+  </p>
 </Modal>
 
 <style>
@@ -138,6 +143,27 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
+  }
+
+  .credit {
+    margin: var(--space-3) 0 0;
+    font-size: var(--text-small);
+    color: var(--text-2);
+  }
+
+  /* The list's card styling above targets every link in the dialog; this one is a plain link. */
+  a.inline {
+    display: inline;
+    width: auto;
+    padding: 0;
+    color: var(--accent-text);
+    text-decoration: underline;
+    background: none;
+    border: 0;
+  }
+
+  a.inline:hover {
+    background: none;
   }
 
   small {
