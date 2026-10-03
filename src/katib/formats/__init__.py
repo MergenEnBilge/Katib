@@ -73,6 +73,9 @@ def get_format(format_id: str) -> Format:
         raise FormatError(f"Unknown format {format_id!r}.") from None
 
 
+UNRECOGNISED = "Katib could not tell what format that is. Choose one from the list."
+
+
 def detect_format(path: Path) -> Format:
     """Pick the first format that recognizes `path`."""
     for fmt_id in DETECT_ORDER:
@@ -81,7 +84,7 @@ def detect_format(path: Path) -> Format:
     for fmt_id, fmt in REGISTRY.items():
         if fmt_id not in DETECT_ORDER and fmt.detect(path):
             return fmt
-    raise FormatError("Katib could not tell what format that is. Choose one from the list.")
+    raise FormatError(UNRECOGNISED)
 
 
 __all__ = ["DETECT_ORDER", "REGISTRY", "FormatError", "detect_format", "get_format", "writes"]

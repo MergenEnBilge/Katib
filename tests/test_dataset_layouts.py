@@ -344,3 +344,44 @@ def test_a_folder_of_photos_called_masks_is_still_photos(api: TestClient, tmp_pa
     project, _ = connect(api, root)
 
     assert len(contents(api, project)) == 3
+
+
+def class_names(api: TestClient, project: str) -> list[str]:
+    return sorted(c["name"] for c in api.get(f"{API}/projects/{project}/classes").json())
+
+
+def test_yaml_above_the_chosen_folder_supplies_classes(api: TestClient, tmp_path: Path) -> None:
+    # The person connects the picture folder itself, while data.yaml sits one level up.
+    root = tmp_path / "yaml-above"
+    write(root / "data.yaml", "path: .\ntrain: images/train\nnames:\n  0: car\n  1: bus\n")
+    picture(root / "images" / "train" / "a.jpg")
+    project, result = connect(api, root / "images" / "train")
+    assert class_names(api, project) == ["bus", "car"]
+    assert result["dataset"]["state"] == "read"
+
+
+def test_yaml_without_label_files_still_creates_its_classes(
+    api: TestClient, tmp_path: Path
+) -> None:
+    root = tmp_path / "names-only"
+    write(root / "data.yaml", "train: images\nnames:\n  0: car\n  1: bus\n")
+    picture(root / "images" / "a.jpg")
+    project, result = connect(api, root)
+    assert class_names(api, project) == ["bus", "car"]
+    assert result["dataset"]["state"] == "read"
+
+
+def test_a_plain_photo_folder_says_no_dataset_was_found(api: TestClient, tmp_path: Path) -> None:
+    root = tmp_path / "photos"
+    picture(root / "a.jpg")
+    _project, result = connect(api, root)
+    assert result["dataset"]["state"] == "none"
+
+
+def test_a_broken_dataset_says_why_it_was_not_read(api: TestClient, tmp_path: Path) -> None:
+    root = tmp_path / "broken"
+    write(root / "data.yaml", "names: [this is: not valid\n")
+    picture(root / "images" / "a.jpg")
+    _project, result = connect(api, root)
+    assert result["dataset"]["state"] == "failed"
+    assert "yaml" in result["dataset"]["reason"].lower()

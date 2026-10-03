@@ -92,9 +92,11 @@
     missing?: number;
     skipped_count: number;
     skipped: { name: string; reason: string }[];
-    /** Set when the folder already looked like a labelled dataset in a format Katib reads. */
-    dataset?: {
-      format: string;
+    /** Always set: whether this folder held labels Katib could read, and if not, why. */
+    dataset: {
+      state: 'read' | 'none' | 'failed';
+      reason?: string | null;
+      format?: string | null;
       images_matched: number;
       shapes_added: number;
       classes_created: string[];
@@ -119,17 +121,19 @@
     summary = [
       `${plural(result.added, 'image')} added.`,
       result.skipped_count ? `${plural(result.skipped_count, 'file')} skipped.` : '',
-      dataset
-        ? `This folder already had labels — ${plural(dataset.shapes_added, 'shape')} picked up too${
+      dataset.state === 'read'
+        ? `Labels loaded from ${dataset.format ?? 'the dataset'}: ${plural(dataset.shapes_added, 'shape')}${
             dataset.classes_created.length
-              ? `, with ${plural(dataset.classes_created.length, 'new class', 'new classes')}`
+              ? `, ${plural(dataset.classes_created.length, 'new class', 'new classes')}`
               : ''
           }.`
-        : '',
+        : dataset.state === 'failed'
+          ? `Found a dataset, but could not read its labels. ${dataset.reason ?? ''}`
+          : 'No labels were found in this folder. The pictures were added without them.',
     ].filter(Boolean);
     notes = [
       ...result.skipped.map((s) => ({ subject: s.name, reason: s.reason })),
-      ...(dataset?.notes ?? []),
+      ...(dataset.notes ?? []),
     ];
   }
 
