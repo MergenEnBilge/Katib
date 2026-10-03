@@ -1,4 +1,5 @@
-"""Command line entry point: `katib`, `katib serve`, `katib share`, `katib app`, `katib dev`."""
+"""Command line entry point: `katib`, `katib serve`, `katib share`, `katib app`, `katib status`,
+`katib stop`, `katib dev`."""
 
 import contextlib
 import logging
@@ -52,6 +53,38 @@ def desktop_app(
 
 
 @app.command()
+def status(
+    config: Annotated[Path | None, typer.Option(help="Path to katib.toml.")] = None,
+) -> None:
+    """Say whether a Katib server is running for this data folder, and where."""
+    from katib.server import instance
+
+    settings = load_settings(config)
+    running = instance.find_running(settings.data_dir)
+    if running is None:
+        typer.echo(f"Katib is not running for {settings.data_dir}.")
+        raise typer.Exit(1)
+    typer.echo(f"Katib {running.version} is running at {running.url} (process {running.pid}).")
+
+
+@app.command()
+def stop(
+    config: Annotated[Path | None, typer.Option(help="Path to katib.toml.")] = None,
+) -> None:
+    """Stop the Katib server running for this data folder."""
+    from katib.server import instance
+
+    settings = load_settings(config)
+    running = instance.find_running(settings.data_dir)
+    if running is None:
+        typer.echo("Katib is not running, so there is nothing to stop.")
+        return
+    if not instance.stop(running, settings.data_dir):
+        raise typer.BadParameter(f"Katib at {running.url} did not stop. Is it still busy?")
+    typer.echo("Katib has stopped.")
+
+
+@app.command()
 def share(
     port: Annotated[int | None, typer.Option(help="Port to bind.")] = None,
     config: Annotated[Path | None, typer.Option(help="Path to katib.toml.")] = None,
@@ -69,10 +102,13 @@ def restore(
     config: Annotated[Path | None, typer.Option(help="Path to katib.toml.")] = None,
 ) -> None:
     """Put a backup back into the data folder. Stop Katib first."""
+    from katib.server import instance
     from katib.services import backup
     from katib.services.errors import InvalidInput
 
     settings = load_settings(config)
+    if not instance.lock_is_free(settings.data_dir):
+        raise typer.BadParameter("Katib is running for this data folder. Run `katib stop` first.")
     try:
         report = backup.restore(backup_file, settings.data_dir, replace)
     except InvalidInput as err:
@@ -115,13 +151,27 @@ def _run(
     except ValueError as err:
         raise typer.BadParameter(str(err)) from err
 
-    from katib.api.app import create_app
+    from katib.server import instance
+    from katib.server.run import AlreadyRunning, ManagedServer
 
+    running = instance.find_running(settings.data_dir)
+    if running is not None:
+        if open_browser:
+            # Asked to open Katib, and it is already open somewhere: show that one.
+            webbrowser.open(running.url)
+            return
+        raise typer.BadParameter(
+            f"Katib is already running at {running.url} for this data folder. "
+            "Run `katib stop` first, or give it another folder."
+        )
     if share:
         _print_share_help(settings)
     if open_browser:
-        webbrowser.open(f"http://127.0.0.1:{settings.server.port}")
-    uvicorn.run(create_app(settings), host=settings.server.host, port=settings.server.port)
+        webbrowser.open(instance.local_url(settings.server.host, settings.server.port))
+    try:
+        ManagedServer(settings).run_in_foreground()
+    except AlreadyRunning as err:
+        raise typer.BadParameter(str(err)) from err
 
 
 def _print_share_help(settings: Settings) -> None:

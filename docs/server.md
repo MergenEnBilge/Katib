@@ -46,6 +46,12 @@ If you changed the compose file to build from source, pull the new code and run 
 
 Run `uv run katib serve --host 0.0.0.0` with accounts on, or `uv run katib share` for a quick local network setup. For anything beyond a trusted network, put a reverse proxy with HTTPS in front and set `server.behind_proxy = true`.
 
+One server runs per data folder. A second one refuses to start and says where the first is answering, rather than sharing its database. From another terminal on the same computer:
+
+- `katib status` says whether the server is running, and where;
+- `katib stop` stops it cleanly;
+- `katib restore` refuses to run until the server has stopped.
+
 ### Postgres
 
 SQLite is fine for a team of a few people. For more, use Postgres:

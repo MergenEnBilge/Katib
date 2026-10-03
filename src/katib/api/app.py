@@ -14,6 +14,7 @@ from katib.api import (
     auth,
     class_ops,
     classes,
+    control,
     errors,
     exchange,
     folders,
@@ -104,6 +105,7 @@ def create_app(settings: Settings) -> FastAPI:
     app.state.hub = Hub()
     for module in (
         health,
+        control,
         auth,
         projects,
         classes,
