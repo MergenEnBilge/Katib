@@ -1,60 +1,132 @@
 <script lang="ts">
   import TipCard from '../../lib/ui/TipCard.svelte';
-  import { Copy, X } from '@lucide/svelte';
+  import { Copy, UserPlus, X } from '@lucide/svelte';
   import { api, ApiError } from '../../lib/api/client';
-  import type { Activity, Role } from '../../lib/api/types';
+  import type { Activity, Member, PersonBrief, Project, Role } from '../../lib/api/types';
   import { plural, relativeTime } from '../../lib/format';
-  import { router } from '../../lib/state/router.svelte';
+  import { assignableRoles, canAssign, roleLabel } from '../../lib/roles';
   import { toasts } from '../../lib/state/toast.svelte';
-  import type { Workspace } from '../../lib/state/workspace.svelte';
   import Avatar from '../../lib/ui/Avatar.svelte';
   import Button from '../../lib/ui/Button.svelte';
   import Modal from '../../lib/ui/Modal.svelte';
 
-  let { ws, onclose }: { ws: Workspace; onclose: () => void } = $props();
+  let {
+    project,
+    onproject,
+    onmembers,
+    onclose,
+  }: {
+    project: Project;
+    /** The project changed here (the review setting), so whoever opened this can keep up. */
+    onproject?: (project: Project) => void;
+    onmembers?: (members: Member[]) => void;
+    onclose: () => void;
+  } = $props();
 
   let tab = $state<'members' | 'activity' | 'settings'>('members');
+  let members = $state<Member[] | null>(null);
+  let error = $state('');
+
+  const me = $derived(project.role ?? 'viewer');
+  const canManage = $derived(me === 'owner' || me === 'manager');
+
+  async function loadMembers(): Promise<void> {
+    try {
+      members = await api.members.list(project.id);
+    } catch (err) {
+      members = [];
+      error = err instanceof ApiError ? err.message : 'Could not load the team.';
+    }
+  }
+
+  $effect(() => {
+    void loadMembers();
+  });
+
+  function changed(next: Member[]): void {
+    members = next;
+    onmembers?.(next);
+  }
+
+  // Adding someone who already has an account.
+  let search = $state('');
+  let found = $state<PersonBrief[]>([]);
+  let searched = $state(false);
+  let addRole = $state<Role>('annotator');
+  let adding = $state<string | null>(null);
+
+  $effect(() => {
+    if (!canManage) return;
+    const q = search.trim();
+    const timer = setTimeout(() => {
+      api.members
+        .addable(project.id, q)
+        .then((people) => {
+          found = people;
+          searched = true;
+        })
+        .catch(() => (found = []));
+    }, 200);
+    return () => clearTimeout(timer);
+  });
+
+  async function add(person: PersonBrief): Promise<void> {
+    adding = person.id;
+    error = '';
+    try {
+      changed(await api.members.set(project.id, person.id, addRole));
+      found = found.filter((p) => p.id !== person.id);
+      toasts.show(`${person.name} can now work on this project as ${roleLabel(addRole).toLowerCase()}.`);
+    } catch (err) {
+      error = err instanceof ApiError ? err.message : 'Could not add that person.';
+    } finally {
+      adding = null;
+    }
+  }
+
+  async function setRole(userId: string, role: Role): Promise<void> {
+    error = '';
+    try {
+      changed(await api.members.set(project.id, userId, role));
+    } catch (err) {
+      error = err instanceof ApiError ? err.message : 'Could not change the role.';
+      await loadMembers();
+    }
+  }
+
+  let removing = $state<string | null>(null);
+
+  async function remove(userId: string, name: string): Promise<void> {
+    error = '';
+    try {
+      changed(await api.members.remove(project.id, userId));
+      toasts.show(`${name} no longer has access to this project.`);
+    } catch (err) {
+      error = err instanceof ApiError ? err.message : 'Could not remove that person.';
+    } finally {
+      removing = null;
+    }
+  }
+
+  // Inviting someone who has no account yet.
   let inviteRole = $state<Exclude<Role, 'owner'>>('annotator');
   let inviteTo = $state<'computer' | 'phone'>('computer');
   let link = $state('');
   let addressMissing = $state(false);
-  let error = $state('');
-  let activity = $state<Activity[] | null>(null);
-  let busy = $state(false);
-  let confirmName = $state('');
-  let deleting = $state(false);
-
-  const roles: { id: Role; label: string }[] = [
-    { id: 'owner', label: 'Owner' },
-    { id: 'manager', label: 'Manager' },
-    { id: 'annotator', label: 'Annotator' },
-    { id: 'reviewer', label: 'Reviewer' },
-    { id: 'viewer', label: 'Viewer' },
-  ];
-
-  const isOwner = $derived(ws.role === 'owner');
-
-  $effect(() => {
-    if (tab === 'activity' && activity === null) {
-      api.work
-        .activity(ws.projectId)
-        .then((a) => (activity = a))
-        .catch(() => (activity = []));
-    }
-  });
+  let inviting = $state(false);
 
   async function invite(): Promise<void> {
-    busy = true;
+    inviting = true;
     error = '';
     try {
-      const made = await api.auth.createInvite(ws.projectId, inviteRole);
+      const made = await api.auth.createInvite(project.id, inviteRole);
       // The server knows an address other people can reach. Ours may just say localhost.
       link = made.url || `${location.origin}${made.path}`;
       addressMissing = !made.url;
     } catch (err) {
       error = err instanceof ApiError ? err.message : 'Could not create the invite.';
     } finally {
-      busy = false;
+      inviting = false;
     }
   }
 
@@ -67,42 +139,22 @@
     }
   }
 
-  async function setRole(userId: string, role: Role): Promise<void> {
-    try {
-      ws.members = await api.members.set(ws.projectId, userId, role);
-    } catch (err) {
-      error = err instanceof ApiError ? err.message : 'Could not change the role.';
-      await ws.loadMembers();
-    }
-  }
+  let activity = $state<Activity[] | null>(null);
 
-  async function remove(userId: string, name: string): Promise<void> {
-    try {
-      ws.members = await api.members.remove(ws.projectId, userId);
-      toasts.show(`${name} was removed from this project.`);
-    } catch (err) {
-      error = err instanceof ApiError ? err.message : 'Could not remove that person.';
+  $effect(() => {
+    if (tab === 'activity' && activity === null) {
+      api.work
+        .activity(project.id)
+        .then((a) => (activity = a))
+        .catch(() => (activity = []));
     }
-  }
+  });
 
   async function toggleReview(enabled: boolean): Promise<void> {
     try {
-      const project = await api.work.setReview(ws.projectId, enabled);
-      ws.project = project;
+      onproject?.(await api.work.setReview(project.id, enabled));
     } catch (err) {
       error = err instanceof ApiError ? err.message : 'Could not change that setting.';
-    }
-  }
-
-  async function deleteProject(): Promise<void> {
-    deleting = true;
-    error = '';
-    try {
-      await api.projects.remove(ws.projectId);
-      router.navigate('/');
-    } catch (err) {
-      error = err instanceof ApiError ? err.message : 'Could not delete this project.';
-      deleting = false;
     }
   }
 
@@ -125,9 +177,12 @@
         return a.verb.replaceAll('_', ' ');
     }
   }
+
+  const handOut = $derived(assignableRoles(me, null));
+  const inviteRoles = $derived(handOut.filter((r) => r.id !== 'owner') as { id: Exclude<Role, 'owner'>; label: string }[]);
 </script>
 
-<Modal title="Team" description="Who works on this project, what they did, and how review works." width={600} {onclose}>
+<Modal title="Team" description="Who can work on {project.name}, what they did, and how review works." width={600} {onclose}>
   <TipCard id="dialog:team" />
   <div class="tabs" role="tablist">
     {#each [['members', 'Members'], ['activity', 'Activity'], ['settings', 'Settings']] as const as [id, label] (id)}
@@ -138,38 +193,79 @@
   {#if error}<p class="error" role="alert">{error}</p>{/if}
 
   {#if tab === 'members'}
-    <ul class="people">
-      {#each ws.members as m (m.user.id)}
-        <li>
-          <Avatar name={m.user.name} userId={m.user.id} size={28} />
-          <span class="who"><strong>{m.user.name}</strong><small>{m.user.email}</small></span>
-          {#if isOwner}
-            <select aria-label="Role of {m.user.name}" value={m.role} onchange={(e) => setRole(m.user.id, e.currentTarget.value as Role)}>
-              {#each roles as r (r.id)}<option value={r.id}>{r.label}</option>{/each}
-            </select>
-            <button type="button" class="x" aria-label="Remove {m.user.name}" onclick={() => remove(m.user.id, m.user.name)}><X size={14} /></button>
-          {:else}
-            <span class="role">{roles.find((r) => r.id === m.role)?.label}</span>
-          {/if}
-        </li>
-      {/each}
-    </ul>
+    {#if canManage}
+      <section class="add" aria-labelledby="add-title">
+        <p class="label" id="add-title">Add people who already have an account</p>
+        <div class="row">
+          <input type="search" placeholder="Search by name or email" aria-label="Search people to add" bind:value={search} />
+          <select aria-label="Role for the people you add" bind:value={addRole}>
+            {#each handOut as r (r.id)}<option value={r.id}>{r.label}</option>{/each}
+          </select>
+        </div>
+        {#if found.length}
+          <ul class="found">
+            {#each found as person (person.id)}
+              <li>
+                <Avatar name={person.name} userId={person.id} size={24} />
+                <span class="who"><strong>{person.name}</strong><small>{person.email}</small></span>
+                <Button loading={adding === person.id} onclick={() => add(person)}>
+                  <UserPlus size={14} />Add
+                </Button>
+              </li>
+            {/each}
+          </ul>
+        {:else if searched}
+          <p class="note">
+            {search.trim()
+              ? 'Nobody else matches. Invite them below if they have no account yet.'
+              : 'Everyone with an account is already on this project.'}
+          </p>
+        {/if}
+      </section>
+    {/if}
 
-    {#if ws.canManage}
+    <p class="label">On this project</p>
+    {#if members === null}
+      <div class="sk" aria-busy="true"></div>
+    {:else}
+      <ul class="people">
+        {#each members as m (m.user.id)}
+          <li>
+            <Avatar name={m.user.name} userId={m.user.id} size={28} />
+            <span class="who"><strong>{m.user.name}</strong><small>{m.user.email}</small></span>
+            {#if removing === m.user.id}
+              <span class="confirm">
+                <span>Remove {m.user.name}?</span>
+                <Button variant="danger" onclick={() => remove(m.user.id, m.user.name)}>Remove</Button>
+                <Button onclick={() => (removing = null)}>Keep</Button>
+              </span>
+            {:else if assignableRoles(me, m.role).some((r) => r.id !== m.role)}
+              <select aria-label="Role of {m.user.name}" value={m.role} onchange={(e) => setRole(m.user.id, e.currentTarget.value as Role)}>
+                {#each assignableRoles(me, m.role) as r (r.id)}<option value={r.id}>{r.label}</option>{/each}
+              </select>
+              {#if canAssign(me, m.role, null)}
+                <button type="button" class="x" aria-label="Remove {m.user.name}" onclick={() => (removing = m.user.id)}><X size={14} /></button>
+              {/if}
+            {:else}
+              <span class="role">{roleLabel(m.role)}</span>
+            {/if}
+          </li>
+        {/each}
+      </ul>
+    {/if}
+
+    {#if canManage}
       <div class="invite">
-        <p class="label">Invite someone</p>
+        <p class="label">Invite someone without an account</p>
         <div class="row">
           <select aria-label="Role for the invited person" bind:value={inviteRole}>
-            <option value="annotator">Annotator</option>
-            <option value="reviewer">Reviewer</option>
-            <option value="manager">Manager</option>
-            <option value="viewer">Viewer</option>
+            {#each inviteRoles as r (r.id)}<option value={r.id}>{r.label}</option>{/each}
           </select>
           <select aria-label="What they will use" bind:value={inviteTo}>
             <option value="computer">On a computer</option>
             <option value="phone">On a phone</option>
           </select>
-          <Button disabled={busy} onclick={invite}>Create invite link</Button>
+          <Button disabled={inviting} onclick={invite}>Create invite link</Button>
         </div>
         {#if link}
           {#if addressMissing}
@@ -195,7 +291,10 @@
             <input readonly value={link} aria-label="Invite link" onfocus={(e) => e.currentTarget.select()} />
             <Button onclick={copy}><Copy size={16} />Copy</Button>
           </div>
-          <p class="note">The link works once and expires in 7 days. Send it only to the person you are inviting.</p>
+          <p class="note">
+            The link works once and expires in 7 days. Someone who already has an account can open
+            it too, and just signs in.
+          </p>
         {/if}
       </div>
     {/if}
@@ -215,8 +314,8 @@
     <label class="toggle">
       <input
         type="checkbox"
-        checked={ws.project?.review_enabled ?? false}
-        disabled={!ws.canManage}
+        checked={project.review_enabled ?? false}
+        disabled={!canManage}
         onchange={(e) => toggleReview(e.currentTarget.checked)}
       />
       <span>
@@ -224,32 +323,6 @@
         <small>Images marked as done wait for a reviewer to approve them or send them back with a comment.</small>
       </span>
     </label>
-
-    {#if isOwner}
-      <div class="danger">
-        <p class="dangerLabel">Danger zone</p>
-        <p class="note">
-          Delete this project, its classes, labels and team. Pictures you uploaded go with it;
-          pictures in a folder you only connected are left alone, since they were never copied
-          here.
-        </p>
-        <div class="row">
-          <input
-            bind:value={confirmName}
-            aria-label={`Type "${ws.project?.name ?? ''}" to confirm`}
-            placeholder={ws.project?.name ?? ''}
-          />
-          <Button
-            variant="danger"
-            loading={deleting}
-            disabled={!ws.project || confirmName !== ws.project.name}
-            onclick={deleteProject}
-          >
-            {deleting ? 'Deleting...' : 'Delete project'}
-          </Button>
-        </div>
-      </div>
-    {/if}
   {/if}
 
   {#snippet footer()}
@@ -296,7 +369,14 @@
     list-style: none;
   }
 
-  .people li {
+  .add {
+    margin-block-end: var(--space-4);
+    padding-block-end: var(--space-3);
+    border-block-end: 1px solid var(--border);
+  }
+
+  .people li,
+  .found li {
     display: flex;
     align-items: center;
     gap: var(--space-3);
@@ -304,11 +384,21 @@
     border-block-end: 1px solid var(--border);
   }
 
+  .found li:last-child {
+    border-block-end: 0;
+  }
+
   .who {
     display: flex;
     flex: 1;
     flex-direction: column;
     min-width: 0;
+  }
+
+  .who small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   small,
@@ -341,6 +431,13 @@
     cursor: pointer;
   }
 
+  .confirm {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-small);
+  }
+
   .role {
     color: var(--text-2);
     font-size: var(--text-small);
@@ -363,6 +460,16 @@
     display: flex;
     gap: var(--space-2);
     margin-block-end: var(--space-2);
+  }
+
+  .row input {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .row input[readonly] {
+    font-family: var(--font-mono);
+    font-size: var(--text-small);
   }
 
   .warn {
@@ -392,13 +499,6 @@
     margin: 0;
   }
 
-  .row input {
-    flex: 1;
-    min-width: 0;
-    font-family: var(--font-mono);
-    font-size: var(--text-small);
-  }
-
   .feed li {
     display: flex;
     justify-content: space-between;
@@ -424,18 +524,9 @@
     border-radius: var(--radius-card);
   }
 
-  .danger {
-    padding-block-start: var(--space-4);
-    margin-block-start: var(--space-4);
-    border-block-start: 1px solid var(--border);
-  }
-
-  .dangerLabel {
-    margin: 0 0 var(--space-1);
-    font-size: var(--text-overline);
-    font-weight: 500;
-    color: var(--danger-text);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+  @media (max-width: 699px) {
+    .row {
+      flex-wrap: wrap;
+    }
   }
 </style>

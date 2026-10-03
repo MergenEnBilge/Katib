@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { EllipsisVertical, Layers, Plus, Search } from '@lucide/svelte';
+  import { EllipsisVertical, Layers, Plus, Search, Users } from '@lucide/svelte';
   import { api, ApiError } from '../lib/api/client';
   import type { Project } from '../lib/api/types';
   import { relativeTime } from '../lib/format';
@@ -7,6 +7,7 @@
   import { onboarding } from '../lib/state/onboarding.svelte';
   import { router } from '../lib/state/router.svelte';
   import { startPractice } from '../lib/state/practice';
+  import { session } from '../lib/state/session.svelte';
   import Button from '../lib/ui/Button.svelte';
   import Callout from '../lib/ui/Callout.svelte';
   import EmptyState from '../lib/ui/EmptyState.svelte';
@@ -14,6 +15,7 @@
   import TextField from '../lib/ui/TextField.svelte';
   import GetStarted from './GetStarted.svelte';
   import NewProjectDialog from './NewProjectDialog.svelte';
+  import TeamDialog from './workspace/TeamDialog.svelte';
 
   let projects = $state<Project[] | null>(null);
   let error = $state('');
@@ -65,20 +67,24 @@
   }
 
   let actionsFor = $state<Project | null>(null);
+  let teamFor = $state<Project | null>(null);
   let confirmName = $state('');
   let deleting = $state(false);
   let deleteError = $state('');
 
-  function openActions(event: MouseEvent, project: Project): void {
-    event.preventDefault();
-    event.stopPropagation();
+  // Someone invited onto a shared server, with nothing to work on yet, should hear that access
+  // comes from whoever runs it -- not be steered into starting projects of their own first.
+  const waitingForAccess = $derived(session.mode === 'local' && !session.user?.is_admin);
+
+  function openActions(project: Project): void {
     confirmName = '';
     deleteError = '';
     actionsFor = project;
   }
 
   function manageTeam(): void {
-    if (actionsFor) router.navigate(`/p/${actionsFor.id}?open=team`);
+    teamFor = actionsFor;
+    actionsFor = null;
   }
 
   async function deleteProject(): Promise<void> {
@@ -112,7 +118,7 @@
   </div>
 </header>
 
-{#if onboarding.visible && projects !== null && !error}
+{#if onboarding.visible && projects !== null && !error && !(waitingForAccess && projects.length === 0)}
   <GetStarted onsample={practice} onnew={() => (creating = true)} busy={makingSample} />
 {/if}
 
@@ -125,6 +131,17 @@
   <div class="grid" aria-busy="true">
     {#each [1, 2, 3] as n (n)}<div class="skeleton"></div>{/each}
   </div>
+{:else if projects.length === 0 && !search.trim() && waitingForAccess}
+  <EmptyState
+    title="You are not on any projects yet"
+    description="Ask whoever runs this Katib to add you to a project. It shows up here as soon as they do. You can also start a project of your own."
+  >
+    {#snippet icon()}<Layers size={20} />{/snippet}
+    {#snippet action()}
+      <Button onclick={load}>Check again</Button>
+      <Button onclick={() => (creating = true)}><Plus size={16} />Start my own project</Button>
+    {/snippet}
+  </EmptyState>
 {:else if projects.length === 0 && !search.trim() && onboarding.visible}
   <!-- The welcome card above already says what to do. -->
 {:else if projects.length === 0 && !search.trim()}
@@ -142,45 +159,49 @@
 {:else}
   <div class="grid">
     {#each projects as project (project.id)}
-      <a class="card" href="/p/{project.id}" onclick={(e) => open(e, project)}>
-        <div class="cover">
-          {#if project.cover_image_id}
-            <img src={api.images.thumbUrl(project.cover_image_id)} alt="" loading="lazy" />
-          {/if}
-          {#if project.role === 'owner' || project.role === 'manager'}
-            <button
-              type="button"
-              class="card-actions"
-              aria-label="More actions for {project.name}"
-              onclick={(e) => openActions(e, project)}
-            >
-              <EllipsisVertical size={16} />
-            </button>
-          {/if}
-        </div>
-        <div class="info">
-          <h2 title={project.name}>{project.name}</h2>
-          <p class="meta">{tp('projects.images', project.image_count)}</p>
-          <div
-            class="bar"
-            role="progressbar"
-            aria-label={t('projects.doneLabel')}
-            aria-valuemin="0"
-            aria-valuemax={project.image_count}
-            aria-valuenow={project.done_count}
-          >
-            <span
-              style:width="{project.image_count
-                ? (project.done_count / project.image_count) * 100
-                : 0}%"
-            ></span>
+      <div class="card-wrap">
+        <a class="card" href="/p/{project.id}" onclick={(e) => open(e, project)}>
+          <div class="cover">
+            {#if project.cover_image_id}
+              <img src={api.images.thumbUrl(project.cover_image_id)} alt="" loading="lazy" />
+            {/if}
           </div>
-          <p class="foot">
-            <span class="mono">{t('projects.done', { done: project.done_count.toLocaleString(), total: project.image_count.toLocaleString() })}</span>
-            <span>{t('projects.edited', { when: relativeTime(project.last_edited ?? project.created_at) })}</span>
-          </p>
-        </div>
-      </a>
+          <div class="info">
+            <h2 title={project.name}>{project.name}</h2>
+            <p class="meta">{tp('projects.images', project.image_count)}</p>
+            <div
+              class="bar"
+              role="progressbar"
+              aria-label={t('projects.doneLabel')}
+              aria-valuemin="0"
+              aria-valuemax={project.image_count}
+              aria-valuenow={project.done_count}
+            >
+              <span
+                style:width="{project.image_count
+                  ? (project.done_count / project.image_count) * 100
+                  : 0}%"
+              ></span>
+            </div>
+            <p class="foot">
+              <span class="mono">{t('projects.done', { done: project.done_count.toLocaleString(), total: project.image_count.toLocaleString() })}</span>
+              <span>{t('projects.edited', { when: relativeTime(project.last_edited ?? project.created_at) })}</span>
+            </p>
+          </div>
+        </a>
+        {#if project.role === 'owner' || project.role === 'manager'}
+          <!-- A sibling of the card's link, not inside it: a button inside a link is not valid,
+               and screen readers announce the pair as one confusing control. -->
+          <button
+            type="button"
+            class="card-actions"
+            aria-label="More actions for {project.name}"
+            onclick={() => openActions(project)}
+          >
+            <EllipsisVertical size={16} />
+          </button>
+        {/if}
+      </div>
     {/each}
   </div>
 {/if}
@@ -198,7 +219,10 @@
 {#if actionsFor}
   <Modal title={actionsFor.name} onclose={() => (actionsFor = null)}>
     <div class="action-list">
-      <Button onclick={manageTeam}>Manage team</Button>
+      <Button variant="primary" onclick={() => actionsFor && router.navigate(`/p/${actionsFor.id}`)}>Open project</Button>
+      {#if session.mode === 'local'}
+        <Button onclick={manageTeam}><Users size={16} />Team and access</Button>
+      {/if}
     </div>
 
     {#if actionsFor.role === 'owner'}
@@ -227,9 +251,20 @@
     {/if}
 
     {#snippet footer()}
-      <Button variant="primary" onclick={() => (actionsFor = null)}>Done</Button>
+      <Button onclick={() => (actionsFor = null)}>Close</Button>
     {/snippet}
   </Modal>
+{/if}
+
+{#if teamFor}
+  <TeamDialog
+    project={teamFor}
+    onproject={(p) => {
+      teamFor = p;
+      projects = (projects ?? []).map((x) => (x.id === p.id ? p : x));
+    }}
+    onclose={() => (teamFor = null)}
+  />
 {/if}
 
 <style>
@@ -279,6 +314,16 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: var(--space-4);
+  }
+
+  .card-wrap {
+    position: relative;
+    display: flex;
+  }
+
+  .card-wrap > .card {
+    flex: 1;
+    min-width: 0;
   }
 
   .card {

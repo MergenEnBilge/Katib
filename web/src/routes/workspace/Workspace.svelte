@@ -162,15 +162,6 @@
       .catch(() => (canSegment = false));
   });
 
-  // Opening from a project card's "Manage team" action skips straight to that dialog, rather
-  // than making someone find the Team button again once they land in the workspace.
-  onMount(() => {
-    if (new URLSearchParams(location.search).get('open') === 'team') {
-      dialog = 'team';
-      history.replaceState(null, '', location.pathname);
-    }
-  });
-
   // Only show the tools this project can save shapes for.
   const tools = $derived(
     allTools.filter(
@@ -581,8 +572,13 @@
   <ExportDialog {ws} onclose={() => (dialog = null)} />
 {:else if dialog === 'classes'}
   <ClassManagerDialog {ws} onclose={() => (dialog = null)} onhistory={() => (dialog = 'history')} />
-{:else if dialog === 'team'}
-  <TeamDialog {ws} onclose={() => (dialog = null)} />
+{:else if dialog === 'team' && ws.project}
+  <TeamDialog
+    project={ws.project}
+    onproject={(p) => (ws.project = p)}
+    onmembers={(m) => (ws.members = m)}
+    onclose={() => (dialog = null)}
+  />
 {:else if dialog === 'history'}
   <HistoryDialog {ws} onclose={() => (dialog = null)} />
 {:else if dialog === 'health'}

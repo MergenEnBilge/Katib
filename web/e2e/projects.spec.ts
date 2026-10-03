@@ -22,18 +22,19 @@ test('delete a project from its card, without opening it', async ({ page }) => {
   await expect(page.getByText(name)).toBeHidden();
 });
 
-test('managing a project team from its card opens straight to that dialog', async ({ page }) => {
+test('a card menu opens its project, and has no team to manage while accounts are off', async ({ page }) => {
   const name = `Handoff ${test.info().project.name}`;
   await page.goto('/');
   await page.getByRole('button', { name: 'New project' }).first().click();
   await page.getByLabel('Project name').fill(name);
   await page.getByRole('button', { name: 'Create project' }).click();
   await expect(page).toHaveURL(/\/p\/[0-9a-f-]{36}$/);
+  const projectUrl = page.url();
 
   await page.getByRole('button', { name: 'Back to projects' }).click();
   await page.getByRole('button', { name: `More actions for ${name}` }).click();
-  await page.getByRole('button', { name: 'Manage team' }).click();
-
-  await expect(page).toHaveURL(/\/p\/[0-9a-f-]{36}$/);
-  await expect(page.getByRole('dialog', { name: 'Team' })).toBeVisible();
+  const menu = page.getByRole('dialog', { name });
+  await expect(menu.getByRole('button', { name: 'Team and access' })).toHaveCount(0);
+  await menu.getByRole('button', { name: 'Open project' }).click();
+  await expect(page).toHaveURL(projectUrl);
 });
