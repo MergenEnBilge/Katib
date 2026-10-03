@@ -16,6 +16,7 @@ from katib.core.dataset import (
     ExportImage,
     ExportOptions,
     ExportReport,
+    ImageLabels,
     Note,
     Shape,
     SkeletonSpec,
@@ -26,7 +27,7 @@ from katib.db.models import Annotation, Class, Image, Project
 from katib.formats import FormatError, detect_format, get_format
 from katib.services import classes, splits
 from katib.services.errors import InvalidInput, NotFound
-from katib.services.images import StorageContext, image_path
+from katib.services.images import FILE_PREFIX, StorageContext, image_path
 
 CHUNK = 200
 MAX_NOTES = 200
@@ -76,10 +77,10 @@ def import_dataset(
         if spec is not None and cls.skeleton is None:
             classes.set_skeleton(session, cls.id, spec.names, spec.edges)
 
-    by_name: dict[str, Image] = {}
+    by_full_name: dict[str, list[Image]] = {}
     by_stem: dict[str, list[Image]] = {}
     for img in session.scalars(select(Image).where(Image.project_id == project_id)):
-        by_name[img.filename.lower()] = img
+        by_full_name.setdefault(img.filename.lower(), []).append(img)
         by_stem.setdefault(Path(img.filename).stem.lower(), []).append(img)
     has_shapes = set(
         session.scalars(
@@ -92,17 +93,18 @@ def import_dataset(
 
     for labels in parsed.images:
         key = labels.filename.lower()
-        image = by_name.get(key)
+        candidates = by_full_name.get(key) or by_stem.get(Path(key).stem, [])
+        image = _pick(candidates, labels)
         if image is None:
-            candidates = by_stem.get(Path(key).stem, [])
-            if len(candidates) == 1:
-                image = candidates[0]
-            elif len(candidates) > 1:
-                summary.notes.append(Note(labels.filename, "More than one image has this name."))
-        if image is None:
+            if len(candidates) > 1:
+                summary.notes.append(
+                    Note(labels.filename, "More than one image has this name, in the same place.")
+                )
             summary.unmatched_images += 1
             continue
-        if labels.split and image.split is None:
+        # What the dataset says outright -- a split list, a per-split annotation file -- is more
+        # reliable than a guess from folder names made when the picture was added.
+        if labels.split and image.split != labels.split:
             image.split = labels.split
             summary.splits_set += 1
         if image.id in has_shapes:
@@ -130,6 +132,48 @@ def import_dataset(
     session.flush()
     del summary.notes[MAX_NOTES:]
     return summary
+
+
+_SPLIT_WORDS = {"train", "training", "val", "valid", "validation", "dev", "test", "testing"}
+_PLUMBING = {"images", "image", "labels", "label", "annotations", "jpegimages", "img", "imgs"}
+
+
+def _folders_of(image: Image) -> list[str]:
+    """The folders a picture read in place sits in, lowercased, nearest last."""
+    if not image.storage_key.startswith(FILE_PREFIX):
+        return []
+    return [p.lower() for p in Path(image.storage_key[len(FILE_PREFIX) :]).parent.parts]
+
+
+def _pick(candidates: list[Image], labels: ImageLabels) -> Image | None:
+    """Which of several same-named pictures a label belongs to.
+
+    One is easy. Several -- a.jpg in both train and val, the usual case -- are told apart first by
+    the split the dataset gives the label, then by the folders the label sat in, matched against
+    the folders each picture sits in. Folders such as "images" and "labels" say nothing, since
+    every split has them; the rest ("train", a class or a batch name) do.
+    """
+    if len(candidates) <= 1:
+        return candidates[0] if candidates else None
+    if labels.split:
+        same_split = [c for c in candidates if c.split == labels.split]
+        if len(same_split) == 1:
+            return same_split[0]
+        if same_split:
+            candidates = same_split
+    hints = [f.lower() for f in labels.folders if f.lower() not in _PLUMBING]
+    if not hints:
+        return None
+
+    def score(image: Image) -> int:
+        folders = _folders_of(image)
+        return sum(1 for h in hints if h in folders)
+
+    ranked = sorted(candidates, key=score, reverse=True)
+    best = score(ranked[0])
+    if best == 0 or score(ranked[1]) == best:
+        return None
+    return ranked[0]
 
 
 def detect_and_import(session: Session, project_id: uuid.UUID, path: Path) -> ImportSummary | None:

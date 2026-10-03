@@ -35,6 +35,9 @@ class ImageLabels:
     width: int | None = None
     height: int | None = None
     split: str | None = None  # "train", "val" or "test" when the dataset says so
+    #: Folders the label or image sat in, inside the dataset ("train/labels", "images/val"). Only
+    #: used to tell apart two pictures with the same name, one per split, say.
+    folders: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
