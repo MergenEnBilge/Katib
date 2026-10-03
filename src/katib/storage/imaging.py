@@ -70,6 +70,32 @@ def make_thumbnail(src: Path, dest: Path, size: int = THUMB_SIZE) -> None:
         img.convert("RGB").save(dest, "JPEG", quality=82)
 
 
+ORIENTATION_TAG = 0x0112
+SIDEWAYS = {5, 6, 7, 8}  # EXIF orientations that turn the picture on its side
+
+
+def thumbnail_and_hash(src: Path, dest: Path, size: int = THUMB_SIZE) -> tuple[int, int, str]:
+    """Write the thumbnail and return the picture's size and perceptual hash, from one decode.
+
+    A JPEG is decoded at reduced size where the format allows it, which is most of the saving on
+    a camera photo. The size returned is the full picture's, after EXIF rotation.
+    """
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        with Image.open(src, formats=FORMATS) as raw:
+            width, height = raw.size
+            if raw.getexif().get(ORIENTATION_TAG, 1) in SIDEWAYS:
+                width, height = height, width
+            raw.draft("RGB", (size, size))
+            img = ImageOps.exif_transpose(raw)
+            img.thumbnail((size, size), Image.Resampling.LANCZOS)
+            phash = _dhash(img)
+            img.convert("RGB").save(dest, "JPEG", quality=82)
+    except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as err:
+        raise UnreadableImage(f"{src.name} is not a readable image.") from err
+    return width, height, phash
+
+
 def crop_jpeg(
     src: Path, x: float, y: float, w: float, h: float, size: int, pad: float = 0.1
 ) -> bytes:

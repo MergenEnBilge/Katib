@@ -3,6 +3,25 @@
 All notable changes to Katib are listed here, newest first. Each release is also on the
 [releases page](https://github.com/MergenEnBilge/Katib/releases).
 
+## Unreleased
+
+### Faster and clearer imports
+
+- Connecting a folder is about three to four times faster for full-size camera photos, because each
+  picture is decoded once instead of twice. Hashes of pictures added from now on are computed the
+  same way, so near-duplicate checks still line up with older pictures.
+- Connecting a folder now tells you what it found: labels loaded, no labels found, or a dataset that
+  could not be read, with the reason.
+- A `data.yaml` in a folder above the one you connect is now used, when it lists that folder as a
+  split. Classes come from it even when there are no label files yet.
+
+### Labels
+
+- The labels dialog has a **Choose labels** button. It opens the same folder browser as the pictures,
+  and it lists label files so you can pick a `data.yaml` or `obj.data` directly. Typing a path still works.
+- Administrators, and anyone on a server without accounts, can import labels from any folder they can
+  browse to.
+
 ## 0.5.1
 
 ### Fixed
