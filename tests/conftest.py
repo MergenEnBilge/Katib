@@ -61,6 +61,15 @@ def _private_config_folder(
 
 
 @pytest.fixture(autouse=True)
+def _test_client_host(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Starlette's test client addresses every request to the made-up host "testserver", which a
+    loopback-only Katib would otherwise refuse as a possible DNS rebinding attack."""
+    from katib.api import security
+
+    monkeypatch.setattr(security, "LOOPBACK_NAMES", {*security.LOOPBACK_NAMES, "testserver"})
+
+
+@pytest.fixture(autouse=True)
 def _database_for_the_app(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> None:
     """In Postgres mode every app the tests build uses the per-test schema."""
     if is_postgres(request.config):

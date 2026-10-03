@@ -1,13 +1,13 @@
 """The WebSocket endpoint at /api/v1/ws?project=<id>."""
 
 import uuid
-from urllib.parse import urlsplit
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from starlette.concurrency import run_in_threadpool
 
 from katib.api.deps import find_user
 from katib.api.hub import Conn, Hub
+from katib.api.security import refusal
 from katib.services import access
 from katib.services.errors import KatibError
 
@@ -33,10 +33,14 @@ def _identify(websocket: WebSocket, project_id: uuid.UUID) -> tuple[uuid.UUID, s
 
 @router.websocket("/ws")
 async def events(websocket: WebSocket, project: uuid.UUID) -> None:
-    # Browsers do not apply the same-site rules to WebSockets the way they do to requests, so
-    # check where the page came from ourselves.
-    origin = websocket.headers.get("origin")
-    if origin and urlsplit(origin).netloc != websocket.headers.get("host", ""):
+    # Browsers do not apply the same-site rules to WebSockets the way they do to requests, and the
+    # HTTP middleware never sees them, so run the same checks here.
+    if refusal(
+        websocket.app.state.settings,
+        websocket.headers.get("host", ""),
+        websocket.headers.get("origin"),
+        unsafe=True,
+    ):
         await websocket.close(code=4403)
         return
     who = await run_in_threadpool(_identify, websocket, project)
