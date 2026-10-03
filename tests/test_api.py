@@ -1,3 +1,4 @@
+import hashlib
 import io
 import json
 import time
@@ -370,3 +371,23 @@ def test_split_export_and_class_order_warning(api: TestClient, library: Path) ->
         json={"format": "coco", "split": {"train": 0, "val": 0, "test": 0}},
     )
     assert wait_job(api, bad.json()["id"])["status"] == "failed"
+
+
+def test_a_picture_already_in_the_project_is_known_by_its_hash(
+    api: TestClient, tmp_path: Path
+) -> None:
+    p = make_project(api)
+    picture_file = tmp_path / "a.png"
+    PILImage.new("RGB", (8, 8), "red").save(picture_file)
+    with picture_file.open("rb") as handle:
+        made = api.post(
+            f"{API}/projects/{p['id']}/images", files={"file": ("a.png", handle, "image/png")}
+        )
+    assert made.status_code == 201, made.text
+    digest = hashlib.sha256(picture_file.read_bytes()).hexdigest()
+    missing = "0" * 64
+    res = api.post(f"{API}/projects/{p['id']}/images:have", json={"hashes": [digest, missing]})
+    assert res.status_code == 200, res.text
+    assert res.json() == {"have": [digest]}
+    other = api.post(f"{API}/projects/{uuid.uuid4()}/images:have", json={"hashes": [digest]})
+    assert other.status_code == 200 and other.json() == {"have": []}

@@ -15,6 +15,16 @@ All notable changes to Katib are listed here, newest first. Each release is also
 - A `data.yaml` in a folder above the one you connect is now used, when it lists that folder as a
   split. Classes come from it even when there are no label files yet.
 
+### Sharing and uploads
+
+- Scanning the share code with an Android phone opens a page on your Katib with a download
+  button. Before, the code pointed straight at the file, which many phone cameras did not offer
+  as something to tap.
+- Copying a folder into Katib skips pictures the project already has. They are recognised by their
+  contents, so a second copy of the same dataset sends nothing for pictures it has already sent.
+  Label files are still sent. On a plain http address, where the browser cannot compute checksums,
+  everything is sent as before.
+
 ### Labels
 
 - The labels dialog has a **Choose labels** button. It opens the same folder browser as the pictures,

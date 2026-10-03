@@ -4,6 +4,7 @@
   import { api, ApiError, waitForJob } from '../../lib/api/client';
   import type { ConnectedFolder, FormatInfo, Job } from '../../lib/api/types';
   import { plural } from '../../lib/format';
+  import { knownPictures } from '../../lib/upload/known';
   import Button from '../../lib/ui/Button.svelte';
   import Callout from '../../lib/ui/Callout.svelte';
   import Modal from '../../lib/ui/Modal.svelte';
@@ -168,21 +169,30 @@
     const batch = crypto.randomUUID();
     let kept = 0;
     try {
+      // Pictures the project already has are not sent again. Checking costs one small request.
+      const known = await knownPictures(projectId, items);
       for (const [i, file] of items.entries()) {
         currentFile = relativePath(file);
         progress = i / items.length;
+        if (known.has(file)) continue;
         const result = await api.folders.uploadFile(projectId, batch, file);
         if (result.kept) kept++;
       }
       currentFile = '';
       progress = 1;
-      if (kept === 0) {
+      const skipped = known.size;
+      if (kept === 0 && skipped === 0) {
         error = 'None of those files could be used. Choose some pictures to upload.';
+        return;
+      }
+      if (kept === 0) {
+        summary = [`${plural(skipped, 'picture')} already in this project, so nothing was sent.`];
         return;
       }
       const made = await api.folders.uploadFinish(projectId, batch);
       await loadConnected();
       await finishImport(made.job);
+      if (skipped) summary = [...summary, `${plural(skipped, 'picture')} already in this project, not sent again.`];
     } catch (err) {
       fail(err, 'Could not upload those files.');
     } finally {

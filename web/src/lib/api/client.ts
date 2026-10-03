@@ -384,6 +384,9 @@ export const api = {
     get: (id: string) => request<ImageItem>('GET', `/images/${id}`),
     setStatus: (id: string, status: 'todo' | 'in_progress' | 'done') =>
       request<ImageItem>('PATCH', `/images/${id}`, { status }),
+    /** Which of these picture digests (SHA-256, hex) the project already holds. */
+    have: (projectId: string, digests: string[]) =>
+      request<{ have: string[] }>('POST', `/projects/${projectId}/images:have`, { hashes: digests }),
     fileUrl: (id: string) => `${BASE}/images/${id}/file`,
     thumbUrl: (id: string) => `${BASE}/images/${id}/thumb`,
     importFolder: (projectId: string, folder: string) =>

@@ -12,7 +12,16 @@ from sqlalchemy.orm import Session
 from katib.api.deps import RunnerDep, SessionDep, StorageDep, UserDep, need
 from katib.api.hub import emit
 from katib.api.jobs import job_out
-from katib.api.schemas import FolderImportIn, ImageOut, ImagePageOut, ImagePatch, JobOut, LockOut
+from katib.api.schemas import (
+    FolderImportIn,
+    HaveIn,
+    HaveOut,
+    ImageOut,
+    ImagePageOut,
+    ImagePatch,
+    JobOut,
+    LockOut,
+)
 from katib.db.models import User
 from katib.jobs.runner import JobRunner
 from katib.services import access, discussion, exchange, images, projects, tasks
@@ -74,6 +83,15 @@ def list_images(
         limit=limit,
     )
     return ImagePageOut(items=[_out(session, r, user) for r in page.rows], next=page.next)
+
+
+@router.post("/projects/{project_id}/images:have", response_model=HaveOut)
+def have_pictures(
+    project_id: uuid.UUID, body: HaveIn, session: SessionDep, user: UserDep
+) -> HaveOut:
+    """Which of these pictures (by SHA-256) the project already has, so they need not be sent."""
+    need(session, user, project_id, "manage")
+    return HaveOut(have=images.known_digests(session, project_id, body.hashes))
 
 
 @router.post("/projects/{project_id}/images", response_model=ImageOut, status_code=201)

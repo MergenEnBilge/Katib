@@ -164,6 +164,17 @@ def _known_keys(session: Session, project_id: uuid.UUID) -> set[str]:
     )
 
 
+def known_digests(session: Session, project_id: uuid.UUID, digests: list[str]) -> list[str]:
+    """The digests from `digests` that this project already holds a picture for."""
+    wanted = {d.lower() for d in digests if len(d) == 64}
+    if not wanted:
+        return []
+    found = session.scalars(
+        select(Image.sha256).where(Image.project_id == project_id, Image.sha256.in_(wanted))
+    )
+    return sorted(set(found))
+
+
 def _known_hashes(session: Session, project_id: uuid.UUID) -> dict[str, str]:
     rows = session.execute(
         select(Image.sha256, Image.filename).where(Image.project_id == project_id)
