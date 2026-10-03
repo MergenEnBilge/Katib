@@ -30,6 +30,7 @@
   import Tour from './routes/workspace/Tour.svelte';
   import AuthScreen from './routes/auth/AuthScreen.svelte';
   import InviteScreen from './routes/auth/InviteScreen.svelte';
+  import GetApp from './routes/GetApp.svelte';
   import Inbox from './routes/Inbox.svelte';
   import Logo from './lib/ui/Logo.svelte';
   import HelpDialog from './routes/HelpDialog.svelte';
@@ -95,6 +96,8 @@
   <AuthScreen kind="setup" />
 {:else if route.name === 'invite'}
   {#key route.token}<InviteScreen token={route.token} />{/key}
+{:else if route.name === 'get-app'}
+  <GetApp />
 {:else if session.phase === 'signed-out'}
   <AuthScreen kind="signin" />
 {:else if route.name === 'gallery'}

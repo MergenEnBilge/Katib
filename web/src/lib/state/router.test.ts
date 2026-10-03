@@ -32,3 +32,10 @@ describe('matchRoute', () => {
     expect(matchRoute('/nope')).toEqual({ name: 'not-found' });
   });
 });
+
+describe('the Android download page', () => {
+  it('is reachable without an account', () => {
+    expect(matchRoute('/get-app')).toEqual({ name: 'get-app' });
+    expect(matchRoute('/get-app/')).toEqual({ name: 'get-app' });
+  });
+});
