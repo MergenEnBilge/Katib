@@ -156,7 +156,8 @@ def measure(image_count: int, per_image: int) -> dict[str, float]:
                 library / f"new{n:04d}.jpg"
             )
 
-        with TestClient(create_app(settings)) as api:
+        # As a browser on this computer would address it: Katib refuses other host names.
+        with TestClient(create_app(settings), base_url="http://localhost") as api:
             first = api.get(f"{API}/projects/{project_id}/images", params={"limit": 1}).json()
             image_id = first["items"][0]["id"]
             results["list one page of images"] = timed(
