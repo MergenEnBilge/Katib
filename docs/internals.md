@@ -146,7 +146,7 @@ selected, what undo does, how it is painted, which shape is under the cursor —
 | `sdk` | The Python client, published separately |
 | `installers` | Everything that turns Katib into something you can install |
 
-## Things that are deliberate
+## Design decisions
 
 - **Original images are never modified.** A connected folder is read where it sits. Uploads are
   copied into the data folder once and then only read. Nothing writes back over a photo.

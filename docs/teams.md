@@ -1,124 +1,144 @@
 # Working together
 
+This guide covers turning on accounts, the roles people can have, how to invite people, and how work is
+shared between them.
+
 ## Turn on accounts
 
-By default Katib is for one person on one computer and has no sign-in. Open **Settings**, then
-**Sharing**, and pick how you want to use it:
+By default, Katib is for one person on one computer, and it does not ask you to sign in. To work with a
+team, open **Settings**, then **Sharing**, and choose one of these:
 
-| | What it does |
-|---|---|
-| **Just me** | Katib answers on this computer only. No sign-in |
-| **My team, on this network** | Everyone on the same wifi signs in and shares projects. Phones can join |
-| **Over the internet** | The same, for a server behind a proxy that handles HTTPS |
+| Choice | What it means |
+|--------|---------------|
+| **Just me** | Katib only answers on this computer. There is no sign-in. |
+| **My team, on this network** | Everyone on the same Wi-Fi signs in and shares projects. Phones can join too. |
+| **Over the internet** | The same as above, for a server behind a proxy that handles HTTPS. |
 
-Each one sets several settings together — who signs in, which addresses Katib answers on, and
-whether to trust a proxy. The individual settings stay underneath if you want to arrange them
-yourself.
+Each choice sets several settings together: who has to sign in, which addresses Katib listens on, and
+whether it trusts a proxy. You can still change the individual settings yourself.
 
-Choosing anything but **Just me** needs a restart, and Katib offers you the button. Afterwards the
-first person to open it creates the administrator account, and that account runs the server — so
-Katib asks for a setup code first. It is printed in the server's log when Katib starts, and kept in
-`setup-code.txt` in the data folder. Once the account exists the code stops working.
+Katib needs a restart after you choose anything except **Just me**. It offers you a button for that.
 
-That step is not ceremony. Anyone who can reach Katib could otherwise claim the account before you
-do, and the wifi in an office or a cafe is not a list of people you trust.
+### The setup code
 
-With accounts off, Katib only listens on your own computer and refuses to start on a network
-address. That keeps an open instance from being exposed by accident.
+After the restart, the first person to open Katib creates the administrator account. That account runs
+the server, so Katib asks for a setup code first. The code is printed in the server log when Katib
+starts, and saved in `setup-code.txt` in the data folder. Once the account exists, the code stops
+working.
+
+The code matters. Anyone who can reach Katib could otherwise create the account before you do. The Wi-Fi
+at an office or a café is not a list of people you trust.
+
+With accounts turned off, Katib only listens on your own computer, and it refuses to start on a network
+address. This stops an open copy from being reachable by accident.
 
 ## Roles
 
 | Role | What they can do |
 |------|------------------|
-| Owner | Everything, including deleting the project and managing members |
-| Manager | Import, manage classes, assign images, review, export |
-| Reviewer | Annotate, approve or send back finished images, comment |
-| Annotator | Annotate and mark images done |
-| Viewer | Look, but not change anything |
+| **Owner** | Everything, including deleting the project and managing the team |
+| **Manager** | Import pictures, manage classes, assign pictures, review and export. Can add, change and remove annotators, reviewers and viewers |
+| **Reviewer** | Label pictures, approve finished pictures or send them back, and leave comments |
+| **Annotator** | Label pictures and mark them as done |
+| **Viewer** | Look at the project, without changing anything |
 
-Administrators are owners of every project. People who are not members of a project cannot see that it exists.
+Administrators are owners of every project. Someone who is not a member of a project cannot see that it
+exists.
 
 ## Inviting people
 
-Open a project, choose **Team**, pick a role and create an invite link. Send it only to the person
-you are inviting. A link works once and expires after seven days. The person opens it, chooses a
-password, and joins the project with that role.
+Open a project and choose **Team**. Pick a role and create an invite link. Send the link only to the
+person you are inviting. A link works once and expires after seven days. The person opens it, chooses a
+password, and joins the project in the role you picked.
 
-The same window opens without leaving the project list, too: an owner or manager sees a small
-button in the corner of each project's card there, with **Manage team** alongside it.
+You can also open the same window from the project list. Each project card has a **Manage team** option
+in its menu, so you do not need to open the project first.
 
-Next to the role there is a second choice: whether they will be working **on a computer** or **on a
-phone**. Pick a phone and you get a code to hold a camera up to instead of a link to send. When
-they scan it, Android offers to open the invite in the Katib app, and offers to download the app
-first if they do not have it. Either way they land on the same page and join the same project.
+Next to the role, choose whether the person will work **on a computer** or **on a phone**. For a phone,
+Katib shows a code to scan with the camera instead of a link. The code opens the invite in the Katib app,
+or offers to download the app first. Either way, the person joins the same project.
 
-The link carries an address other people can open, not whatever is in your own address bar. If
-Katib does not know that address it says so instead of sending out a link to `localhost`; click
-your name at the bottom of the sidebar and tell it.
+The link uses an address that other people can open. If Katib does not know that address, it tells you
+so, and does not make a link to `localhost`. Click your name at the bottom of the sidebar and enter the
+address.
 
-Owners can change roles or remove people in the same window.
+Owners can change roles and remove people in the same window. Managers can do this for annotators,
+reviewers and viewers.
 
-An owner can also delete the whole project — from the **Settings** tab of that same window, or
-straight from its card in the project list, without opening it at all. Either way it asks for the
-project's name typed back before it will run, and it cannot be undone — pictures you uploaded go
-with it, and pictures in a folder you only connected are left alone, since they were never copied
-here.
+### Deleting a project
 
-## Handing out accounts instead
+Only owners can delete a project. You can do this from the **Settings** tab in the Team window, or from
+the project's card in the list. Katib asks you to type the project name to confirm. Deleting cannot be
+undone. The pictures you uploaded are deleted too. Pictures in a folder you connected are not, because
+Katib never copied them.
 
-Invites suit people who will sign themselves up. When you would rather create the accounts
-yourself, open **Settings**, then **People**. You can add someone with an email address, a name and
-a password, make them an administrator, give someone a new password when they forget theirs, and
-shut someone out when they leave.
+## Adding accounts yourself
 
-Katib sends no email, so tell people their password yourself. Changing a password signs that person
-out everywhere at once, which is what you want if you are changing it because something went wrong.
+Invites suit people who will sign up on their own. If you would rather create the accounts yourself,
+open **Settings**, then **People**. You can:
 
-Shutting someone out keeps their name on the work they did. There is no way to delete a person,
-because their annotations would lose their author.
+- add someone with an email address, a name and a password
+- make someone an administrator
+- set a new password for someone who has forgotten theirs
+- sign someone out and turn their account off when they leave
 
-An account created here can open Katib but is not in any project yet. Add them from the project's
-**Team** window, or make them an administrator, which makes them an owner of everything.
+Katib does not send email, so give people their password yourself. Changing a password signs that
+person out on every device. This is useful if you changed it because something went wrong.
 
-## How the work is shared out
+Turning off an account keeps the person's name on the work they did. Katib does not delete people,
+because their labels would lose their author.
 
-- **Next image.** Annotators press **Shift+Enter** to mark an image done and are handed the next one assigned to them, or the next unassigned one.
-- **Assign.** Managers can assign images to people from the review panel.
-- **Soft locks.** When you open an image, Katib marks it as yours for 45 seconds and renews that while you work. Others who open it see who has it and can only look. Managers can take over a lock. Locks are advisory: if two people do edit the same shape, the second save is told the shape changed and shows the newer version.
-- **Presence.** Avatars in the toolbar show who else is in the project.
+A new account can sign in, but it is not part of any project yet. Add it from a project's **Team**
+window. If you make it an administrator, it becomes an owner of every project.
+
+## How the work is shared
+
+- **Next picture.** Annotators press **Shift+Enter** to mark a picture as done. Katib then opens the next
+  picture assigned to them, or the next unassigned one.
+- **Assigning.** Managers can assign pictures to people from the review panel.
+- **Locks.** When you open a picture, Katib reserves it for you for 45 seconds, and keeps extending that
+  while you work. Anyone else who opens it can see who has it and can only look. Managers can take over a
+  lock. If two people change the same shape, the second save is refused, and Katib shows the newer
+  version.
+- **Who is here.** Small avatars in the toolbar show who else is in the project right now.
 
 ## Review
 
-Turn on **Review finished images** under Team, Settings. Images marked done then wait for a reviewer, who can approve them or send them back with a comment. Comments belong to an image and can be resolved. The **Inbox** lists what needs your attention: images assigned to you and images sent back.
+Turn on **Review finished pictures** under **Team**, then **Settings**. Pictures marked as done then wait
+for a reviewer. The reviewer can approve them, or send them back with a comment. Comments belong to one
+picture, and you can mark them as resolved. The **Inbox** lists the pictures that need your attention:
+ones assigned to you and ones sent back.
 
 ## Sharing on your network
 
-Pick **My team, on this network** in Settings, or start Katib with:
+Choose **My team, on this network** in **Settings**. Or start Katib from a terminal with:
 
 ```bash
 uv run katib share
 ```
 
-which turns accounts on, listens on your network, and prints an address with a QR code.
+This turns on accounts, makes Katib listen on your network, and prints an address and a QR code. Everyone
+must be on the same network.
 
-Click your name at the bottom of the sidebar at any time for the address, a code to point a phone
-camera at, and a second code that downloads the Android app. Everyone must be on the same network.
+Click your name at the bottom of the sidebar at any time to see the address. The same panel shows a code
+for a phone camera, and a second code that downloads the Android app.
 
-Katib works the address out from the one your browser used to reach it, so it is the address that
-demonstrably gets through rather than a guess. Two things change that:
+Katib works out the address from the one your browser used to reach it. Two cases need your help:
 
-- **Running in Docker**, Katib cannot see the address of the machine hosting it: from inside the
-  container the only address in sight is the container's own, which nothing outside Docker can
-  reach. So it asks. Type the address of the computer Docker is running on — `ipconfig` on Windows,
-  `hostname -I` on a Mac or Linux — and Katib remembers it and builds every code and invite link
-  from it.
-- **Behind a proxy or on a real domain**, put that address in the same box, or set the public
-  address under **Settings**, then **Sharing**. It wins everywhere, including invite links.
+- **In Docker**, the address inside the container is not the one other computers can reach. Katib asks
+  for it. Type the address of the computer that runs Docker. On Windows, run `ipconfig` to find it. On a
+  Mac or Linux computer, run `hostname -I`. Katib remembers the address and uses it for every code and
+  invite link.
+- **Behind a proxy or on a domain name**, enter that address in the same box, or set the public address
+  under **Settings**, then **Sharing**. It takes priority everywhere, including invite links.
 
-If the address ever changes, **Not the right address?** under the code lets you replace it.
+If the address changes later, choose **Not the right address?** under the code, and enter the new one.
 
-The address uses plain HTTP. That is fine on a network you trust, but passwords and annotations could be read by others on it, and phones cannot install Katib as an app from a plain address. For anything more, put HTTPS in front with the Docker setup in [Running a server](server.md).
+The address uses plain HTTP. That is fine on a network you trust. On any other network, other people
+could read passwords and labels, and phones will not install the app from a plain address. For anything
+more, put HTTPS in front of Katib. [Running a server](server.md) explains how.
 
 ## Other servers
 
-The same window lists other Katib servers you use, saved in your browser, so you can jump between a colleague's server and your own.
+The window keeps a list of the Katib servers you use. It is saved in your browser, so you can switch
+between a colleague's server and your own.

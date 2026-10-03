@@ -1,116 +1,128 @@
 # Security
 
-This page explains what Katib protects, what it leaves to you, and what was checked.
+This page explains how Katib protects your data, what you need to take care of yourself, and how to
+report a problem.
 
-## What Katib does
+## What Katib protects
 
-- **Passwords** are stored with argon2id. Session cookies, invite links and API tokens are stored only as hashes, so a copy of the database cannot be used to sign in.
-- **Sign-in** is limited to five failed attempts per account and per visitor in five minutes.
-- **Cookies** are `HttpOnly` and `SameSite=Lax`, and marked `Secure` when you use HTTPS.
-- **Cross-site requests** that change data are refused whenever a browser says they come from another site, with or without a session cookie. WebSocket connections from another site are refused too.
-- **DNS rebinding.** While Katib answers only on your own computer, it refuses requests addressed to any host name but `localhost`, `127.0.0.1` and `::1`. A page on another domain that re-points its name at your computer therefore gets nowhere.
-- **Permissions** are checked on the server for every request, not only hidden in the interface. People who are not members of a project get "not found", so they cannot even tell it exists.
-- **No accounts, no network.** With `auth.mode = "none"`, Katib refuses to listen on anything but your own computer.
-- **Your files.** Katib reads connected folders and never writes to them. It only reads inside folders it was allowed to use, resolves links before checking, and checks again each time it serves a picture. Only administrators can browse the server's folders on a shared server.
-- **Uploads and pictures.** Files are limited in size and in pixel count (a defense against decompression bombs). Katib opens only the picture formats it supports, by their content, so a file's name cannot change how it is decoded. A single uploaded picture is stored under a generated name, never a name you typed. A folder uploaded as a folder keeps its own layout instead, because that is what lets Katib recognize a dataset inside it — every file name in it is still checked for `..` and other tricks before it touches disk, and only file types Katib actually reads (pictures and the label formats it understands) are kept.
-- **Datasets you import.** XML is parsed with a library that refuses entity expansion attacks. Import paths must sit inside allowed folders.
-- **Pages** are served with a strict Content-Security-Policy, `X-Frame-Options: DENY` and `nosniff`. The interface never inserts untrusted text as HTML.
-- **First account.** Whoever creates the first administrator account owns the server, so Katib guards it with a setup code as soon as anybody else could get there first. A server listening on a network address asks everyone for it, including the person sitting at that computer; so does a request that arrives from a public address or through a proxy Katib was not told to trust. The code is printed when Katib starts and kept in `setup-code.txt`, and it stops working once the account exists. Guessing it is rate limited. A server that answers only on its own computer needs no code, because nobody else can reach it.
-- **Settings, backups and restarts** can only be used by administrators. Passwords inside a database address are never shown again after they are saved, and the files that hold them are readable only by the account that runs Katib. Backups made in the app are deleted from the server after a day.
-- **Browser features** Katib does not use, such as the camera and location, are switched off for its pages. HTTPS visits get a `Strict-Transport-Security` header.
-- **No telemetry.** The one thing Katib ever fetches from the internet on its own is a model downloaded by name under Settings, and only when an administrator asks for it. Each one is pinned to a hash of the exact bytes it had when it was added to Katib's source; a download that does not match, or answers with far more data than expected, is refused rather than installed.
+**Passwords.** Passwords are stored with argon2id, a scheme designed to slow down guessing. Session
+cookies, invite links and API tokens are stored only as hashes. Someone who copies the database
+cannot sign in with what they find.
 
-- **Who manages a team.** Owners and administrators can add, change and remove anyone on a project. Managers can bring in annotators, reviewers and viewers, change between those roles and remove them, but cannot hand out, change or take away ownership or management. A project always keeps at least one owner. Administrators can search the server's accounts by name or email. Owners and managers who are not administrators find someone only by typing their whole email address, so owning a project is not a way to list everyone. An invite stops working when the person who sent it can no longer add people.
-- **Stopping the server.** A program on the same computer can ask the server to stop. The request has to come straight from that computer, not through a proxy, and carry a token the server writes into `server.json` in its data folder. That file is readable only by the account running Katib. One server runs per data folder, held by a lock that the operating system releases however the server ends, so a crash never leaves a folder looking busy.
+**Sign-in attempts.** After five failed attempts in five minutes, Katib blocks further attempts for that
+account and that visitor's address.
 
-## What is up to you
+**Cookies.** Session cookies cannot be read by page scripts. They are sent only to Katib, and they are
+marked `Secure` when you use HTTPS.
 
-- **Use HTTPS** for anything beyond your own computer. The Docker setup does this for you. Plain HTTP is fine on a network you trust, but passwords and pictures can be read by others on it.
-- **Only set `server.behind_proxy`** when a proxy you control is the only way to reach Katib. Katib then trusts that proxy about the visitor's address. If someone can reach Katib directly, they could pretend to be anyone.
-- **Keep the data folder private.** It holds the database, uploads and undo history.
-- **Back up** the data folder and, with Postgres, the database. See [Running a server](server.md#backups).
-- **Choose who is an administrator.** Administrators are owners of every project and can browse the server's folders.
-- **Models are code.** An ONNX model runs on your server. Only use models you trust. Only administrators can add one, whether by uploading a file or downloading one of the models Katib offers.
-- **Passwords you hand out.** An administrator can create an account and set its password from **Settings**, then **People**. Katib sends no email, so you pass it on yourself; do it somewhere that is not a shared channel, and let the person change it.
+**Requests from other websites.** A page on another website cannot change your data through your browser.
+Katib refuses any request that comes from another site, whether or not you are signed in. WebSocket
+connections are checked the same way.
 
-## What was reviewed
+**Name tricks.** Some attacks point a domain name at your own computer, so that a website can talk to
+your local Katib. While Katib only listens on your computer, it accepts requests addressed to
+`localhost`, `127.0.0.1` and `::1`, and nothing else.
 
-Before the first release the code was reviewed against the list above. That review found and fixed:
+**Permissions.** The server checks permissions on every request. Hiding a button is never the only
+protection. People who are not members of a project get "not found" when they try to open it, so they
+cannot tell that it exists.
 
-| Finding | Fix |
-|---------|-----|
-| WebSocket connections did not check where the page came from | Connections from another site are refused |
-| Behind a proxy, every visitor looked like the proxy, so one person's failed logins could lock everyone out, and cookies were not marked `Secure` | `server.behind_proxy` makes Katib use the visitor's address and scheme from the proxy |
-| Pillow decodes many formats by content, including some that call other programs | Katib opens only JPEG, PNG, WebP, BMP and TIFF |
-| The model status page showed the server's folder path to every signed-in person | Only administrators see it |
-| The built-in API documentation page loaded scripts from a public CDN, which the security headers blocked | The page is turned off. `/openapi.json` is still served |
+**Accounts and the network.** With accounts off, Katib refuses to listen on anything except your own
+computer. You cannot share an open copy by accident.
 
-A second review covered the settings page, backups, restore, the setup code, the practice project and the Android app. It found and fixed:
+**Your pictures.** Katib reads connected folders but never writes to them. It only reads from folders you
+allowed, and it checks that again each time it shows a picture. Links are resolved before the check, so a
+link cannot lead out of an allowed folder. On a shared server, only administrators can browse the
+server's folders.
 
-| Finding | Fix |
-|---------|-----|
-| A proxy in front of Katib that was not marked as trusted made every visitor look like a private address, which would have skipped the setup code | Requests that carry proxy headers need the code unless `server.behind_proxy` is on |
-| Files holding a database password or the setup code used the default file permissions | They are readable only by the owner where the system supports it |
-| Backup zips, which contain every password hash, stayed on the server | They are deleted after 24 hours |
-| Pages could ask the browser for the camera, microphone or location | A Permissions-Policy header switches them off |
+**Uploads.** Uploaded files have size limits, and pictures have a pixel limit. This stops a tiny file from
+expanding into something huge when it is opened. Katib opens only the picture types it supports, and it
+checks each file's contents, not its name. An uploaded picture is stored under a name Katib creates, never
+a name you typed.
 
-A third review, before 0.1.0, went through every route in the API, the file handling, the new
-click-to-select and account pages, and the phone app. It found and fixed:
+**Folder uploads.** A folder keeps its layout, because that is how Katib recognises a dataset inside it.
+Every file name is checked for `..` and other tricks before anything is written. Only pictures and label
+files that Katib reads are kept. Anything else in the folder is skipped.
 
-| Finding | Fix |
-|---------|-----|
-| Whoever reached a server on a shared network first could claim the administrator account without the setup code, because Katib treated a private address as proof of trust. An office or cafe wifi is not a list of people you trust | Any server open to a network asks everyone for the code |
-| The progress and result of a backup, including the name of the file it wrote, could be read by any signed-in person, though the file itself could not be downloaded | Jobs that belong to no project are administrators' only |
-| Making a QR code needed administrator rights, so a project manager could create a phone invite but not show it | Anyone signed in can render a code; the server's own addresses are still administrators' only |
+**Imported datasets.** Katib reads XML with a parser that refuses entity expansion attacks. Import paths
+must be inside an allowed folder.
 
-Dependencies are checked with `pnpm audit`, `npm audit` and `pip-audit`. Nothing that ships has a
-known vulnerability. The tools that build the Android icons do: `@capacitor/assets` pulls in old
-copies of `tar`, `sharp` and `uuid`, with no fixed version published. They run on a build machine
-and no part of them is inside the app, so the audit of what ships is clean while the full
-development audit is not.
+**Pages.** Pages are served with a strict Content-Security-Policy, which limits what scripts can do. Katib
+does not embed other pages, and it does not turn untrusted text into HTML. The browser is also told not to
+guess file types, and to switch off the camera, microphone and location.
 
-Uploading a whole folder, added after 0.1.0, was reviewed on its own since it is the one upload
-path where a name you typed reaches the filesystem rather than a name Katib generated. Every file
-name in the folder is split into segments and checked for `..`, an empty segment, and a bare
-Windows drive letter before anything is written, and the storage layer underneath checks again,
-independently, that the result still sits inside its own folder. Only file types Katib already
-reads — pictures, and the label files the format readers understand — are kept; anything else in
-the folder is left out rather than written to disk unread.
+**The first account.** Whoever creates the first administrator account controls the server. Katib therefore
+asks for a **setup code** before it creates that account whenever another person could reach the server
+first. The code is printed when Katib starts and saved in `setup-code.txt`. It stops working once the
+account exists. Guessing it is rate limited.
 
-A fourth review, before 0.3.1, covered the desktop app's new launcher and the Android app's
-connection to a server. It found and fixed:
+A server that only answers on its own computer does not ask, because nobody else can reach it.
 
-| Finding | Fix |
-|---------|-----|
-| A remembered server address was written into the desktop launcher's page without escaping it | The address is escaped before it reaches the page |
-| Checking whether an address or account was locked out of sign-in created an entry for it even with no failed attempts, so the count of watched addresses grew with every attempt, not only failed ones | Nothing is recorded until there is an actual failure to remember |
-| Restoring a backup extracted it before checking whether it would fit on disk | The claimed size is checked against free space first |
-| The Android app allowed a secure connection's page to load insecure subresources | Mixed content is no longer allowed |
+**Settings, backups and restarts.** Only administrators can change settings, make backups, or restart
+Katib. A password inside a database address is never shown again after you save it. Backup files are
+deleted from the server after a day, because they contain password hashes.
 
-A fifth review, after 0.4.0, covered the standalone server, the tray, the window and the new team
-controls. It found and fixed:
+**Models.** The model downloads Katib offers are checked against a fixed hash, so a download that does
+not match is refused.
 
-| Finding | Fix |
-|---------|-----|
-| With accounts off there is no session cookie, so a page on any site could send Katib a POST, such as a restart. A page that re-pointed its own domain at 127.0.0.1 (DNS rebinding) could use the whole API, including a factory reset | Unsafe requests from another site are refused with or without a cookie, and a loopback-only Katib refuses host names other than its own |
-| Once the desktop window opened another Katib by address, that server's page could still call the window's own controls, such as stopping the server on this computer | Those controls answer only while the window shows its own start page, and the window opens only `http` and `https` addresses |
-| Anyone can make a project and own it, and an owner could list every account on the server by searching one letter at a time | Only administrators can search; anyone else must type a whole email address |
-| An invite kept working after the manager who sent it was demoted or removed | An invite is checked against its sender's role when it is used |
-| The stop request trusted the address uvicorn rewrote from proxy headers | Katib reads forwarded addresses only when `server.behind_proxy` says to, and the stop check sees the real caller |
+**No telemetry.** Katib does not report usage anywhere. The only thing it downloads on its own is a model
+that an administrator asks for by name.
+
+**Teams.** Owners and administrators can add, change and remove anyone on a project. Managers can add,
+change and remove annotators, reviewers and viewers. They cannot give out, change or remove ownership or
+management. A project always keeps at least one owner.
+
+Searching for people is limited to administrators. Owners and managers who are not administrators must type
+the whole email address. This means owning a project does not let you list every account on the server.
+
+An invite stops working when the person who sent it can no longer add people.
+
+**Stopping the server.** A program on the same computer can ask the server to stop. The request has to
+come directly from that computer, not through a proxy. It also has to include a token that the server
+writes to `server.json` in its data folder. Only the account that runs Katib can read that file.
+
+Only one server runs for each data folder. The lock is released by the operating system when the server
+ends, even if it crashes, so a stopped server never leaves a folder looking busy.
+
+## What you need to take care of
+
+**Use HTTPS** for anything beyond your own computer. The Docker setup handles this. Plain `http` is fine on
+a network you trust, but other people on that network can read passwords and pictures.
+
+**Set `server.behind_proxy` only when the proxy is the only way in.** Katib then believes the proxy about
+each visitor's address and about HTTPS. If people can reach Katib without going through the proxy, they can
+pretend to be anyone.
+
+**Keep the data folder private.** It holds the database, uploads and undo history.
+
+**Back up regularly**, and keep the backup somewhere other than the server. See
+[Running a server](server.md#backups).
+
+**Choose your administrators carefully.** Administrators own every project, can read every account's name and
+email, and can browse the server's folders.
+
+**Treat models as code.** An ONNX model runs on your server. Use only models you trust. Only administrators
+can add one, by uploading a file or downloading one of the models Katib offers.
+
+**Pass on passwords carefully.** Katib does not send email. Give new passwords in person, or through a private
+channel, and ask the person to change them straight away.
 
 ## Known limits
 
-- The database connection test in Settings connects to whatever address an administrator types, like any tool that can talk to a database. Only administrators can use it.
-- The Android app allows plain HTTP addresses, because home servers usually have no certificate. It warns before connecting to one that is not on a private network.
-- Compressed API replies are a known trade-off on encrypted connections. Katib's replies do not mix secret values with text an attacker can choose, which is what such attacks need.
-
-- Click to select runs a model for whoever clicks. A member of a project could use it to keep a
-  server's processor busy. It is not open to strangers, and the first click on a picture is the
-  only expensive one, but there is no quota on it.
-- Login attempts are counted in memory, so a restart resets them, and separate server processes do not share them.
-- Locks and presence are advisory. They prevent almost all edit conflicts, and version checks catch the rest.
-- There is no built-in single sign-on, two-factor sign-in, or audit log beyond project activity and the history of bulk changes.
+- The database connection test in Settings connects to whatever address an administrator types. Only
+  administrators can use it.
+- The Android app allows plain `http` addresses, because home servers often have no certificate. It warns
+  you before connecting to an address that is not on a private network.
+- Click to select runs a model on the server for anyone who uses it. Each picture's first click is the slow
+  one. There is no usage limit, so a project member could keep the server busy.
+- Sign-in attempts are counted in memory. A restart clears the count.
+- Locks and presence are advisory. They prevent most edit conflicts, and a version check catches the rest.
+- Katib has no single sign-on, two-factor sign-in, or full audit log. It keeps a history of project activity
+  and bulk changes.
 
 ## Reporting a problem
 
-If you find a security problem, please do not open a public issue. Use [GitHub's private vulnerability reporting](https://github.com/MergenEnBilge/Katib/security/advisories/new) on the repository. Include what you did and what you saw. You will get an answer, and a fix is credited to you if you like.
+Please do not report security problems in a public issue. Use
+[GitHub's private vulnerability reporting](https://github.com/MergenEnBilge/Katib/security/advisories/new).
+Describe what you did and what happened. Fixes are listed in the [changelog](https://github.com/MergenEnBilge/Katib/blob/main/CHANGELOG.md), and you are
+credited if you want to be.

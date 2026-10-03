@@ -1,71 +1,86 @@
 # Drawing and shortcuts
 
-## The shapes
+This guide explains each tool in the workspace and the keys that control it. Press **?** inside
+Katib at any time to see the full list.
 
-| Kind | Tool | How |
-|------|------|-----|
-| Boxes | **B** | Drag a rectangle. |
-| Polygons | **P** | Click around an outline, then press Enter or click the first point to close it. |
-| Rotated boxes | **O** | Drag along one edge, then move out to the other side and click. Drag the round handle to turn the box. |
-| Keypoints | **K** | Click each landmark in order. Shift+click marks one as hidden, **N** skips one, Enter finishes early. |
-| Brush masks | **R** | Paint. **E** switches to the eraser. **[** and **]** change the brush size. |
-| Magic wand | **W** | Click inside an object to outline the area of similar color. **[** and **]** change how alike the colors must be. |
-| Click to select | **S** | Click an object and a model outlines it. Shift+click adds what it missed, Ctrl+click cuts back what it took too much of. Only appears when a model is loaded — see [Model help](assist.md). |
-| Image tags | | Switch a class on under "Tags on this image". |
-| Text | | Open the **Text** tab and write. See below. |
+## The tools
 
-The toolbar shows only the tools your project can save. To change which kinds a project uses, ask an owner to create a new project with the kinds you need.
+| Shape | Key | How to use it |
+|-------|-----|---------------|
+| Box | **B** | Drag a rectangle around the object. |
+| Polygon | **P** | Click around the outline. Press Enter, or click the first point, to close the shape. |
+| Rotated box | **O** | Drag along one edge, move to the other side, then click. Drag the round handle to turn the box. |
+| Keypoints | **K** | Click each point in order. Shift+click marks a point as hidden. **N** skips a point. Enter finishes early. |
+| Brush mask | **R** | Paint over the area. **E** switches to the eraser. **[** and **]** change the brush size. |
+| Magic wand | **W** | Click inside an object to outline the area with similar colours. **[** and **]** change how alike the colours must be. |
+| Click to select | **S** | Click an object and a model outlines it. Shift+click adds a missed part. Ctrl+click removes an extra part. This only appears when a model is loaded. See [Model help](assist.md). |
+| Image tags | | Turn on a class under **Tags on this image**. |
+| Text | | Open the **Text** tab and write. See [Writing text](#writing-text). |
 
-### Keypoints need landmarks
+The toolbar only shows the tools your project can use. To change which shapes a project uses, create a
+new project with the shapes you need.
 
-Open **Manage classes**, choose a class, and write its landmarks one per line, for example `nose`, `left eye`, `right eye`. To draw lines between landmarks, list pairs of numbers such as `1-2, 1-3`. Landmarks are placed in this order with the keypoints tool.
+### Keypoints need named points
 
-While a shape is selected, hover a landmark and press **V** to mark it hidden, or **Delete** to mark it as not labeled.
+Open **Manage classes**, choose a class, and type its points, one per line. For example: `nose`,
+`left eye`, `right eye`. To draw lines between points, list the pairs of point numbers, such as
+`1-2, 1-3`. The keypoint tool places the points in this order.
+
+While a keypoint shape is selected, hover over a point and press **V** to mark it hidden. Press
+**Delete** to mark it as not labelled.
 
 ## Writing text
 
-Choose **Text** when you create a project to label pictures with words. Two things become possible:
+Choose **Text** when you create a project if you want to write words on your pictures. There are two
+ways to use it.
 
-- **Captions.** Open the **Text** tab on the right and choose **Add text**. Write a caption, a description or any note about the whole picture. Add as many entries as you need. Each one can carry an optional label, such as `caption` or `question`, chosen from your classes. Text saves as you leave the box, like everything else.
-- **Words inside a shape.** With the Text kind on, selecting a box, polygon or rotated box shows a **Text in this shape** field in the Details tab. Use it to write down the word on a sign or a line from a document. The words appear next to the class name on the picture.
+- **Captions.** Open the **Text** tab on the right, then choose **Add text**. Write a caption, a
+  description or a note about the whole picture. You can add as many as you need. Each one can have a
+  label, such as `caption` or `question`, picked from your classes. Text saves when you leave the box.
+- **Words inside a shape.** When the Text shape is on, select a box, polygon or rotated box. The
+  **Details** tab shows a **Text in this shape** field. Use it for the words on a sign or a line of a
+  document. The words appear next to the class name on the picture.
 
-Export both with **Tags and text (JSON Lines)**. See [Images, folders and formats](data.md#tags-and-text).
+To export captions and text, choose **Tags and text (JSON Lines)**. See
+[Pictures, folders and formats](data.md#tags-captions-and-text).
 
 ## Selecting and editing
 
-- Click a shape to select it, or drag on empty space to select several.
+- Click a shape to select it. Drag on empty space to select several at once.
 - Drag a shape to move it. Drag a handle to resize it.
-- **Tab** and **Shift+Tab** step through the shapes on the image.
-- Arrow keys nudge the selection by one pixel. Hold Shift for ten.
-- **Ctrl+D** duplicates. **Ctrl+C** and **Ctrl+V** copy and paste between images.
-- **Delete** removes the selection. **Ctrl+Z** and **Ctrl+Shift+Z** undo and redo. Undo history lasts for the image you have open.
-- Press a number key (**1** to **9**) to change the class of the selected shapes, or to choose the class you will draw with.
+- **Tab** and **Shift+Tab** move from one shape to the next.
+- Arrow keys move the selection one pixel. Hold **Shift** to move it ten pixels.
+- **Ctrl+D** makes a copy of the selection. **Ctrl+C** and **Ctrl+V** copy and paste between pictures.
+- **Delete** removes the selection.
+- **Ctrl+Z** undoes and **Ctrl+Shift+Z** redoes. Undo works on the picture you have open.
+- Press a number key, **1** to **9**, to change the class of the selected shapes. With nothing
+  selected, the number chooses the class you draw with next.
 
-Locked classes cannot be edited, and hidden classes cannot be selected. Use the eye and lock buttons next to each class.
+Locked classes cannot be edited, and hidden classes cannot be selected. Use the eye and lock buttons
+next to each class to change this.
 
-## Moving around
+## Moving around the picture
 
-| Action | How |
-|--------|-----|
-| Zoom | **+**, **-**, or Ctrl and the scroll wheel |
-| Fit to view | **0** |
-| Pan | Hold **Space** and drag, or scroll. On a touch screen, drag with two fingers |
+| To do this | Press |
+|------------|-------|
+| Zoom in or out | **+** or **-**, or Ctrl and the scroll wheel |
+| Fit the picture to the window | **0** |
+| Move the picture | Hold **Space** and drag, or scroll. On a touch screen, drag with two fingers |
 | Hide all shapes | **H** |
-| Next and previous image | **D** and **A**, or the arrow keys |
-| Mark as done and continue | **Shift+Enter** |
-| Fold the image list away | **[** |
-| Fold the classes and details panel away | **]** |
-| Give the picture the whole window | **\** |
+| Go to the next or previous picture | **D** and **A**, or the arrow keys |
+| Mark the picture as done and go on | **Shift+Enter** |
+| Hide the picture list | **[** |
+| Hide the classes and details panel | **]** |
+| Give the picture the whole window | **\\** |
 
-Folding is remembered, so the workspace looks the way you left it next time. On the home screen, **[**
-folds the sidebar down to its icons.
+Katib remembers which panels you hid, so the workspace looks the same the next time you open it. On
+the home screen, **[** shrinks the sidebar to icons.
 
 ## On a phone or tablet
 
-The interface adapts to the screen. Handles get larger touch targets, and two fingers pan and zoom. Open Katib from the address in **Share** (see [Working together](teams.md#sharing-on-your-network)), and install it from your browser's menu to keep it on your home screen.
+The layout adapts to the screen. Handles are bigger for touch, and two fingers can pan and zoom.
+Open Katib from the address shown under **Share**, and add it to your home screen from your browser's
+menu. See [Working together](teams.md#sharing-on-your-network).
 
-If the signal drops while you draw, your edits are kept on the device and sent when you open Katib again with a connection. Images you have not opened yet are not available offline.
-
-## All shortcuts
-
-Press **?** inside Katib for the full list, which is always up to date.
+If the connection drops while you are drawing, your changes are kept on the device. They are sent when
+you reconnect. Pictures you have not opened yet are not available without a connection.

@@ -1,60 +1,80 @@
 # Running a server
 
+This guide is for the person who keeps Katib running for a team. It covers Docker, backups, settings,
+and day-to-day checks.
+
 ## With Docker
 
-This is the easiest way to run Katib for a team. It starts Katib, a Postgres database, and Caddy, which adds HTTPS.
+The Docker setup is the easiest way to run Katib for a team. It starts three containers: Katib, a
+Postgres database, and Caddy, which provides HTTPS.
+
+First, make your settings file:
 
 ```bash
 cp .env.example .env
 ```
 
-Open `.env` and set:
+Open `.env` and fill in these values:
 
-| Variable | What it is |
-|----------|------------|
-| `KATIB_DB_PASSWORD` | A long password for the database |
-| `KATIB_PHOTOS` | The folder on the server with the photos to label. Katib only reads it |
-| `KATIB_HOST` | The name people will type, such as `katib.example.com` or the server's address |
+| Setting | What to put |
+|---------|-------------|
+| `KATIB_DB_PASSWORD` | A long password for the database. You will not need to type it again |
+| `KATIB_PHOTOS` | The folder on the server that holds the pictures to label. Katib only reads from it |
+| `KATIB_HOST` | The address people will type, such as `katib.example.com` or the server's IP address |
 | `KATIB_TLS` | `internal` for a private network, or your email address for a public domain |
 
-Then start it:
+Then start Katib:
 
 ```bash
 docker compose up -d
 ```
 
-Open `https://` and that name. The first person to arrive creates the administrator account. In **Import images**, connect the folder called `/photos`.
+Open `https://` followed by the address you set. The first person to arrive creates the administrator
+account. Under **Import images**, connect the folder named `/photos`.
 
 ### HTTPS
 
-- On a **public domain**, set `KATIB_TLS` to your email address and Caddy gets a real certificate by itself.
-- On a **private network**, leave it as `internal`. Caddy signs its own certificate, and each browser shows a warning once. To remove the warning, install Caddy's root certificate on those computers:
+- **On a public domain**, set `KATIB_TLS` to your email address. Caddy gets a real certificate
+  automatically.
+- **On a private network**, leave `KATIB_TLS` as `internal`. Caddy makes its own certificate, and each
+  browser shows a warning the first time. To remove the warning, install Caddy's root certificate on
+  those computers:
 
     ```bash
     docker compose cp caddy:/data/caddy/pki/authorities/local/root.crt ./katib-root.crt
     ```
 
-Katib is only reachable through Caddy. The compose file sets `server.behind_proxy`, so Katib trusts Caddy about who is visiting and that they used HTTPS. Do not set that option if anything other than your proxy can reach Katib directly.
+Only Caddy can reach Katib. The compose file tells Katib to trust Caddy for the visitor's address and
+for HTTPS. Do not turn on that setting if anything other than your proxy can reach Katib directly.
 
 ### Upgrading
 
-Run `docker compose pull` then `docker compose up -d`. Migrations run at startup. Your data lives in Docker volumes, so it survives upgrades and `docker compose down`.
+Run `docker compose pull`, then `docker compose up -d`. Katib updates its database when it starts. Your
+data is kept in Docker volumes, so it survives upgrades and `docker compose down`.
 
-If you changed the compose file to build from source, pull the new code and run `docker compose up -d --build` instead.
+If you built the containers from source, pull the new code and run `docker compose up -d --build`.
 
 ## Without Docker
 
-Run `uv run katib serve --host 0.0.0.0` with accounts on, or `uv run katib share` for a quick local network setup. For anything beyond a trusted network, put a reverse proxy with HTTPS in front and set `server.behind_proxy = true`.
+To run Katib directly, use one of these:
 
-One server runs per data folder. A second one refuses to start and says where the first is answering, rather than sharing its database. From another terminal on the same computer:
+- `uv run katib serve --host 0.0.0.0` with accounts turned on.
+- `uv run katib share` for a quick setup on your local network.
 
-- `katib status` says whether the server is running, and where;
-- `katib stop` stops it cleanly;
-- `katib restore` refuses to run until the server has stopped.
+For anything beyond a network you trust, put a reverse proxy with HTTPS in front of Katib, and set
+`server.behind_proxy = true`.
+
+Only one server can run for each data folder. If you start a second one, it refuses and tells you
+where the first one is listening. This protects the database from two servers writing to it at once.
+To manage the server from another terminal on the same computer:
+
+- `katib status` shows whether the server is running and where.
+- `katib stop` stops it cleanly.
+- `katib restore` will not run while the server is running.
 
 ### Postgres
 
-SQLite is fine for a team of a few people. For more, use Postgres:
+SQLite works well for a small team. For a larger team, use Postgres:
 
 ```bash
 uv sync --extra postgres
@@ -65,82 +85,98 @@ uv sync --extra postgres
 url = "postgresql://katib:secret@localhost/katib"
 ```
 
-Katib creates its tables at startup.
+Katib creates its tables when it starts.
 
 ## Settings
 
-Every setting below can be changed from inside Katib. Choose **Settings** in the sidebar. Each one has a short explanation, and Katib checks what you type before it saves. A setting either applies straight away or shows **Needs a restart**. When something is waiting, a **Restart Katib now** button appears at the top. Katib restarts itself and reconnects your browser.
+You can change every setting from inside Katib. Choose **Settings** in the sidebar. Each setting has a
+short explanation, and Katib checks what you enter before it saves.
 
-On a shared server, only administrators see the Settings page.
+Some settings take effect straight away. Others show **Needs a restart**. When a restart is needed, a
+**Restart Katib now** button appears at the top of the page. Katib restarts itself, and your browser
+reconnects.
 
-The Sharing section opens with three ways to run Katib — just you, your team on this network, or
-over the internet. Picking one sets `auth.mode`, `server.host` and `server.behind_proxy` together.
-The table below is what those choices write, and you can still set each one yourself.
+On a shared server, only administrators can open the Settings page.
 
-Katib keeps what you save in `settings.json` inside its data folder. If you would rather manage settings outside the app, for example in a Docker file, two other places work too:
+The **Sharing** section offers three choices: just you, your team on this network, or over the internet.
+Each choice sets `auth.mode`, `server.host` and `server.behind_proxy` together. You can still change each
+setting by hand.
+
+Katib saves your settings in `settings.json` in its data folder. You can also manage them outside the
+app, in one of these two places:
 
 - `katib.toml` in the folder you start Katib from.
-- An environment variable in the form `KATIB_SECTION__KEY`, for example `KATIB_SERVER__PORT=9000`.
+- Environment variables, written as `KATIB_SECTION__KEY`. For example, `KATIB_SERVER__PORT=9000`.
 
-When the same setting appears in more than one place, the environment wins, then settings saved in the app, then `katib.toml`. A setting fixed by an environment variable shows a lock in the app, with the name of the variable, so nobody wonders why it will not change.
+If the same setting appears in more than one place, the order of priority is: environment variables,
+then settings saved in the app, then `katib.toml`. A setting that an environment variable controls shows
+a lock in the app, with the variable's name, so you know why it cannot be changed there.
 
 | Setting | Default | What it does |
 |---------|---------|--------------|
-| `server.host` | `127.0.0.1` | Address to listen on |
-| `server.port` | `8420` | Port to listen on |
-| `server.public_url` | none | The address people type, shown by the share window |
-| `server.behind_proxy` | `false` | Trust a reverse proxy for the visitor's address and HTTPS |
-| `auth.mode` | `none` | `none` for one person on one computer, `local` for accounts |
+| `server.host` | `127.0.0.1` | The address Katib listens on |
+| `server.port` | `8420` | The port Katib listens on |
+| `server.public_url` | none | The address people type. The Share window shows it |
+| `server.behind_proxy` | `false` | Trust a reverse proxy for the visitor's address and for HTTPS |
+| `auth.mode` | `none` | `none` for one person on one computer. `local` for accounts |
 | `database.url` | SQLite in the data folder | Where projects are stored |
 | `storage.data_dir` | Your user data folder | Where Katib keeps its database, thumbnails, uploads and undo history |
-| `storage.allowed_import_roots` | none | Folders everyone on a shared server may import from |
-| `limits.max_upload_mb` | `100` | Largest picture the browser may upload |
-| `limits.max_folder_upload_files` | `20000` | Largest folder upload, in files |
-| `limits.max_model_mb` | `500` | Largest model the browser may upload |
+| `storage.allowed_import_roots` | none | Folders that everyone on a shared server may import from |
+| `limits.max_upload_mb` | `100` | The largest picture a browser may upload |
+| `limits.max_folder_upload_files` | `20000` | The most files in one folder upload |
+| `limits.max_model_mb` | `500` | The largest model a browser may upload |
 | `limits.max_image_pixels` | `200000000` | Pictures with more pixels than this are refused |
-| `limits.operation_retention_days` | `30` | How long bulk changes stay undoable |
-| `ml.enabled` | `false` | Allow pre-labeling and click to select with your own models |
-| `ml.models_dir` | `models` in the data folder | Where `.onnx` models live |
+| `limits.operation_retention_days` | `30` | How long bulk changes can be undone |
+| `ml.enabled` | `false` | Allow draft labels and click to select, using your own models |
+| `ml.models_dir` | `models` in the data folder | Where `.onnx` model files are kept |
 
-Under **Model help** there is also a box for the two halves of a Segment Anything model, which is
-what click to select needs. [Model help](assist.md) explains which model to use and why it comes in
-two files.
+Under **Model help** you will also find two boxes for the two parts of a Segment Anything model, which
+click to select needs. [Model help](assist.md) explains which model to use.
 
 ## People
 
-With accounts on, **Settings**, then **People** lists everyone who has one. Administrators can
-create an account with its password, reset a password, make someone an administrator, and shut
-someone out. Katib sends no email, so you pass passwords on yourself.
+With accounts turned on, **Settings**, then **People** lists everyone who has an account. Administrators
+can create an account with a password, reset a password, make someone an administrator, and turn an
+account off. Katib does not send email, so you give people their passwords yourself.
 
-Shutting someone out ends their sessions immediately and keeps their name on their work. Accounts
-cannot be deleted, because their annotations would lose their author.
+Turning off an account signs that person out straight away. Their name stays on the work they did.
+Accounts cannot be deleted, because their labels would lose their author.
 
 ## Backups
 
-The easy way: open **Settings**, then **Backup**, and choose **Make a backup**. You get one zip file with your projects, labels, settings and uploaded pictures. It works while people are using Katib. To put a backup back, close Katib and run:
+The simplest way to back up is in the app. Open **Settings**, then **Backup**, and choose **Make a
+backup**. You get one zip file that holds your projects, labels, settings and uploaded pictures. You can
+make a backup while people are still working.
+
+To restore a backup, close Katib and run:
 
 ```bash
 katib restore your-backup.zip
 ```
 
-Katib refuses to overwrite a database that is already there unless you add `--replace`, and then it keeps the old one beside it as `katib.db.before-restore`. Backups from the app cover the built-in database. For Postgres, use `pg_dump` as described below.
+Katib will not overwrite an existing database unless you add `--replace`. If you do, the old database is
+saved next to the new one as `katib.db.before-restore`. Backups made in the app cover the built-in
+database. If you use Postgres, back it up with `pg_dump`, as described below.
 
 Everything Katib stores is in its data folder, plus the database if you use Postgres.
 
-- **SQLite:** stop Katib and copy the data folder. Or, while it runs, copy the folder including the `katib.db-wal` file next to `katib.db`.
-- **Postgres:** use `pg_dump` for the database, and copy the data folder for uploads and undo history.
+- **SQLite:** stop Katib, then copy the data folder. You can also copy it while Katib runs, as long as
+  you include the `katib.db-wal` file next to `katib.db`.
+- **Postgres:** use `pg_dump` for the database, and copy the data folder for the uploads and undo history.
 
 ## Starting over
 
-**Settings**, then **Storage**, has a **Reset everything** button in its danger zone. It deletes
-the whole data folder — every project, uploaded picture and saved setting — and Katib restarts
-into the same first-run screen it shows on a brand new install. Folders you only connected are
-untouched, since those pictures were never copied here. It needs the word `RESET` typed to run,
-and there is no undo, so make a backup first if anything in there is worth keeping.
-- **Connected folders** are your own photos. Back them up the way you already do.
+Under **Settings**, then **Storage**, there is a **Reset everything** button in the danger zone. It
+deletes the whole data folder, including every project, uploaded picture and saved setting. Katib then
+starts the same first-run screen you saw on a new install.
 
-Thumbnails are cached and can be deleted safely. Katib makes them again when needed.
+Folders you only connected are not touched, because Katib never copied those pictures. The reset needs
+you to type `RESET` to confirm, and it cannot be undone. Make a backup first if anything in the data
+folder matters to you.
 
-## Checking on it
+Thumbnails are stored in a cache. You can delete them safely. Katib makes them again when it needs them.
 
-`GET /api/v1/health` answers with the version and whether the database is reachable. The Docker image uses it for its health check. Logs go to standard output.
+## Checking that it is running
+
+`GET /api/v1/health` returns the version and whether the database is reachable. The Docker image uses it
+to check the container. Logs are written to standard output.

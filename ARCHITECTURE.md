@@ -2,7 +2,7 @@
 
 Katib is a data annotation tool. Images first (bounding boxes, polygons, oriented boxes, keypoints, masks, tags), with a design that leaves room for other data types later. It runs on a phone, on a PC you self-host, or as a desktop app, and all three can work on the same project at the same time.
 
-This document is the technical source of truth. `DESIGN.md` covers the interface, `README.md` covers running and checking the code. If code and this document disagree, fix one of them in the same commit.
+This document is the technical reference. `README.md` covers running and checking the code. If the code and this document disagree, fix one of them in the same change.
 
 ## Contents
 
@@ -105,7 +105,6 @@ katib/
   pyproject.toml
   README.md
   ARCHITECTURE.md
-  DESIGN.md
   src/katib/
     core/          Pure Python. Geometry, annotation types, validation. No I/O.
     db/            SQLAlchemy models, session handling, Alembic migrations.
@@ -192,7 +191,7 @@ Timestamps are UTC. JSON columns use the database's native JSON type.
 `id`, `image_id`, `class_id`, `type`, `geometry` (JSON), `attrs` (JSON), `source` (`manual`, `model`, `import`), `confidence`, `created_by`, `created_at`, `updated_at`, `version`
 
 - Indexes: `(image_id)`, `(class_id)`. The second one is what keeps class operations fast.
-- `project_id` is deliberately not duplicated here. Join through `images` when needed, or add a denormalized column only if a benchmark shows it matters.
+- `project_id` is not repeated here on purpose. Join through `images` when needed, or add a denormalized column only if a benchmark shows it matters.
 
 ### comments
 `id`, `image_id`, `annotation_id` (nullable), `x`, `y` (normalized, nullable), `author_id`, `body`, `resolved_at`, `created_at`
@@ -256,7 +255,7 @@ These are the features that set Katib apart, so their semantics are fixed here.
 
 ## 9. Collaboration
 
-The model is deliberately small. Two people are almost never on the same image, so the design prevents collisions instead of resolving them.
+The model is kept small on purpose. Two people are almost never on the same image, so the design prevents collisions instead of resolving them.
 
 ### Roles
 
@@ -329,7 +328,6 @@ Two separate mechanisms, because they have different scopes.
 
 **Bulk operations (server).** Class merges, deletes and other bulk actions use the `operations` table (section 8). They appear in a history panel and in the toast that follows the action. They survive reloads and work across users.
 
-The prototype snapshots the whole project on every edit. Do not carry that over.
 
 ## 11. API
 
@@ -459,7 +457,7 @@ Two uses:
 
 ## 17. Frontend
 
-TypeScript (strict), Svelte 5, Vite. Plain CSS driven by the tokens in `DESIGN.md`. No CSS framework.
+TypeScript (strict), Svelte 5, Vite. Plain CSS driven by the tokens in `web/src/tokens.css`. No CSS framework.
 
 ```
 web/src/
@@ -492,7 +490,7 @@ web/src/
 
 **State.** Server state (projects, images, annotations) is fetched and cached in stores, and WebSocket events invalidate or patch it. UI state (tool, zoom, selection) is local and never persisted to the server, except user preferences.
 
-**Mobile.** Below 700px the side rails become a bottom sheet. See `DESIGN.md` for breakpoints and touch sizes. Phone annotation is optimized for review, quick boxes and tags. Precise polygon work is possible but not the target.
+**Mobile.** Below 700px the side rails become a bottom sheet. The breakpoint is set in `web/src/App.svelte`. Phone annotation is optimized for review, quick boxes and tags. Precise polygon work is possible but not the target.
 
 ## 18. Configuration
 
