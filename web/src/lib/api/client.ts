@@ -1,3 +1,4 @@
+import { connection } from '../state/connection.svelte';
 import type {
   Activity,
   AppSettings,
@@ -70,11 +71,15 @@ async function fail(response: Response): Promise<never> {
 }
 
 async function send(path: string, init: RequestInit): Promise<Response> {
+  let response: Response;
   try {
-    return await fetch(BASE + path, init);
+    response = await fetch(BASE + path, init);
   } catch {
+    connection.unreachable();
     throw new ApiError(0, 'network', 'Could not reach the Katib server. Check that it is running.');
   }
+  connection.reachable();
+  return response;
 }
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -255,6 +260,7 @@ export const api = {
       request<{ ok: boolean; message: string }>('POST', '/settings/test-database', { url }),
     restart: () => request<{ restarting: boolean }>('POST', '/settings/restart'),
     backup: () => request<Job>('POST', '/settings/backup'),
+    dismissResetLeftovers: () => request<void>('DELETE', '/settings/factory-reset/leftovers'),
     factoryResetPreview: () =>
       request<{ files: number; bytes: number }>('GET', '/settings/factory-reset'),
     factoryReset: (confirm: string) =>
@@ -418,9 +424,24 @@ export const api = {
 };
 
 /** Poll a job until it finishes. Calls `onProgress` with 0 to 1. */
+/** How long a job's progress keeps being asked for while the server is not answering. */
+const JOB_PATIENCE_MS = 5 * 60_000;
+
 export async function waitForJob(id: string, onProgress?: (p: number) => void): Promise<Job> {
+  let unreachableSince: number | null = null;
   for (;;) {
-    const job = await api.jobs.get(id);
+    let job: Job;
+    try {
+      job = await api.jobs.get(id);
+    } catch (err) {
+      // A blip, or a server coming back from a restart, should not lose track of a long job.
+      if (!(err instanceof ApiError) || err.status !== 0) throw err;
+      unreachableSince ??= Date.now();
+      if (Date.now() - unreachableSince > JOB_PATIENCE_MS) throw err;
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      continue;
+    }
+    unreachableSince = null;
     onProgress?.(job.progress);
     if (job.status === 'done' || job.status === 'failed') return job;
     await new Promise((resolve) => setTimeout(resolve, 400));

@@ -21,6 +21,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/server:stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop Server */
+        post: operations["stop_server_api_v1_server_stop_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/status": {
         parameters: {
             query?: never;
@@ -351,7 +368,8 @@ export interface paths {
         };
         /**
          * Addable People
-         * @description Accounts on this server that could be added to the project.
+         * @description Accounts on this server that could be added to the project. Administrators can search
+         *     everyone; anyone else finds a person only by typing their whole email address.
          */
         get: operations["addable_people_api_v1_projects__project_id__people_get"];
         put?: never;
@@ -776,6 +794,23 @@ export interface paths {
         /** Start Backup */
         post: operations["start_backup_api_v1_settings_backup_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settings/factory-reset/leftovers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Dismiss Reset Leftovers */
+        delete: operations["dismiss_reset_leftovers_api_v1_settings_factory_reset_leftovers_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1954,6 +1989,16 @@ export interface components {
             can_restart: boolean;
             /** Restart Pending */
             restart_pending: boolean;
+            /**
+             * Reset Leftovers
+             * @default []
+             */
+            reset_leftovers: string[];
+            /**
+             * Log Dir
+             * @default
+             */
+            log_dir: string;
         };
         /** InviteIn */
         InviteIn: {
@@ -2729,6 +2774,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Health"];
+                };
+            };
+        };
+    };
+    stop_server_api_v1_server_stop_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-katib-control"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -4404,6 +4480,24 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["JobOut"];
                 };
+            };
+        };
+    };
+    dismiss_reset_leftovers_api_v1_settings_factory_reset_leftovers_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

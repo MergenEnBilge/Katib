@@ -10,7 +10,7 @@ from importlib.metadata import version
 from pathlib import Path
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Response
 from pydantic import BaseModel
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
@@ -94,6 +94,10 @@ class InfoOut(BaseModel):
     free_bytes: int
     can_restart: bool
     restart_pending: bool
+    #: What the last factory reset could not remove, until someone dismisses it.
+    reset_leftovers: list[str] = []
+    #: Where the background server writes its log, when it has one.
+    log_dir: str = ""
 
 
 class SettingsOut(BaseModel):
@@ -185,6 +189,8 @@ def _payload(request: Request) -> SettingsOut:
         free_bytes=free,
         can_restart=bool(getattr(request.app.state, "can_restart", True)),
         restart_pending=any(f.restart_pending for f in fields),
+        reset_leftovers=reset.leftovers(settings.data_dir),
+        log_dir=str(settings.data_dir / "logs") if (settings.data_dir / "logs").is_dir() else "",
     )
     return SettingsOut(
         groups=[GroupOut(id=g, label=label, help=h) for g, label, h in app_settings.GROUPS],
@@ -297,6 +303,12 @@ def start_backup(
     if job is None:
         raise NotFound("The backup could not be started.")
     return job_out(job)
+
+
+@router.delete("/settings/factory-reset/leftovers", status_code=204)
+def dismiss_reset_leftovers(request: Request, _admin: AdminDep) -> Response:
+    reset.forget_leftovers(_settings(request).data_dir)
+    return Response(status_code=204)
 
 
 @router.get("/settings/factory-reset", response_model=ResetPreviewOut)

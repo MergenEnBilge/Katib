@@ -20,6 +20,22 @@ test('the app opens without a connection and recovers when it returns', async ({
   await expect(page.getByRole('heading', { name: 'Projects', exact: true })).toBeVisible();
 });
 
+test('a server that stops answering is said so, and the page recovers by itself', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Projects', exact: true })).toBeVisible();
+
+  // The server goes away: every request fails the way it does when nothing is listening.
+  await page.route('**/api/v1/**', (route) => route.abort('connectionrefused'));
+  await page.getByRole('searchbox').fill('anything');
+  const banner = page.getByRole('status').filter({ hasText: "Katib's server is not answering" });
+  await expect(banner).toBeVisible();
+
+  await page.unroute('**/api/v1/**');
+  await banner.getByRole('button', { name: 'Try now' }).click();
+  await expect(banner).toBeHidden();
+  await expect(page.getByText('Connected to Katib again.')).toBeVisible();
+});
+
 test('the app can be installed', async ({ page }) => {
   await page.goto('/');
   const href = await page.locator('link[rel="manifest"]').getAttribute('href');

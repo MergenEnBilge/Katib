@@ -12,12 +12,17 @@
   let busy = $state(false);
   let error = $state('');
   let waiting = $state(false);
+  /** Shown on the page, not in the window: by then the window has closed. */
+  let afterwards = $state('');
+  let previewError = $state('');
 
   $effect(() => {
     api.settings
       .factoryResetPreview()
       .then((p) => (preview = p))
-      .catch(() => undefined);
+      .catch((err: unknown) => {
+        previewError = err instanceof ApiError ? err.message : 'Could not count what is there.';
+      });
   });
 
   function open(): void {
@@ -39,7 +44,9 @@
       }
     }
     waiting = false;
-    error = 'Katib did not come back. Start it again by hand.';
+    afterwards =
+      'Katib has not come back after a minute. Start it again by hand; if it will not start, its ' +
+      'log (in the logs folder of the data folder) says why.';
   }
 
   async function run(): Promise<void> {
@@ -64,6 +71,7 @@
   copied here in the first place.
   {#if preview}This would remove {plural(preview.files, 'file')} ({formatBytes(preview.bytes)}).{/if}
 </p>
+{#if previewError}<Callout tone="danger">{previewError}</Callout>{/if}
 <div><Button variant="danger" onclick={open}>Reset everything…</Button></div>
 
 {#if confirming}
@@ -89,6 +97,7 @@
 {#if waiting}
   <Callout>Katib is starting over fresh. This page will reload once it is back.</Callout>
 {/if}
+{#if afterwards}<Callout tone="danger">{afterwards}</Callout>{/if}
 
 <style>
   h3 {

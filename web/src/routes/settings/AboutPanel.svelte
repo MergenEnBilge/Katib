@@ -27,6 +27,7 @@
           ['Space used', formatBytes(info.data_bytes)],
           ['Space free on that drive', formatBytes(info.free_bytes)],
           ['System', `${info.system}, Python ${info.python}`],
+          ...(info.log_dir ? [['Server log', info.log_dir]] : []),
         ]
       : version
         ? [['Version', version]]

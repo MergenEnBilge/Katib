@@ -1,3 +1,4 @@
+import { connection } from '../state/connection.svelte';
 export interface PresenceUser {
   user_id: string;
   name: string;
@@ -65,9 +66,12 @@ export class Realtime {
         // A malformed message is ignored. The next event or refetch corrects the view.
       }
     };
-    ws.onclose = () => {
+    ws.onclose = (event) => {
       clearInterval(this.ping);
       if (this.closed) return;
+      // 1006 is the browser saying the connection simply dropped: often the first sign the
+      // server has gone, before anyone has clicked anything that would notice.
+      if (this.everOpened && event?.code === 1006) connection.unreachable();
       const wait = RETRY_MS[Math.min(this.attempts++, RETRY_MS.length - 1)] as number;
       this.timer = setTimeout(() => this.open(), wait);
     };

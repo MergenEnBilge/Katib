@@ -54,7 +54,12 @@
   }
 
   $effect(() => {
-    api.formats().then((f) => (formats = f)).catch(() => undefined);
+    api
+      .formats()
+      .then((f) => (formats = f))
+      .catch((err: unknown) => {
+        error = err instanceof ApiError ? err.message : 'Could not load the list of formats.';
+      });
     void loadConnected();
   });
 

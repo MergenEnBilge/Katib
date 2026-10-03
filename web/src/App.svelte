@@ -21,6 +21,7 @@
   import { applyTheme, theme } from './lib/state/theme.svelte';
   import Button from './lib/ui/Button.svelte';
   import Callout from './lib/ui/Callout.svelte';
+  import ConnectionBanner from './lib/ui/ConnectionBanner.svelte';
   import EmptyState from './lib/ui/EmptyState.svelte';
   import IconButton from './lib/ui/IconButton.svelte';
   import Splash from './lib/ui/Splash.svelte';
@@ -79,6 +80,7 @@
 </script>
 
 <svelte:window {onkeydown} />
+<ConnectionBanner />
 
 {#if session.phase === 'loading'}
   <Splash message={t('loading')} />

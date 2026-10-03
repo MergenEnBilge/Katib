@@ -100,12 +100,15 @@
     return `${location.protocol}//${location.hostname}:${next}${location.pathname}`;
   }
 
+  let restartError = $state('');
+
   async function restart(): Promise<void> {
     const target = afterRestartUrl();
+    restartError = '';
     try {
       await api.settings.restart();
     } catch (err) {
-      error = err instanceof ApiError ? err.message : 'Could not restart.';
+      restartError = err instanceof ApiError ? err.message : 'Could not restart.';
       return;
     }
     restarting = true;
@@ -122,7 +125,18 @@
       }
     }
     restarting = false;
-    error = 'Katib did not come back. Start it again by hand.';
+    restartError =
+      `Katib has not answered at ${target} for a minute. Start it again by hand.` +
+      (data?.info.log_dir ? ` If it will not start, its log in ${data.info.log_dir} says why.` : '');
+  }
+
+  async function dismissLeftovers(): Promise<void> {
+    try {
+      await api.settings.dismissResetLeftovers();
+      if (data) data = { ...data, info: { ...data.info, reset_leftovers: [] } };
+    } catch (err) {
+      error = err instanceof ApiError ? err.message : 'Could not dismiss that.';
+    }
   }
 </script>
 
@@ -152,6 +166,21 @@
             <span class="quiet">Close Katib and open it again.</span>
           {/if}
         {/snippet}
+      </Callout>
+      {#if restartError}<Callout tone="danger">{restartError}</Callout>{/if}
+    </div>
+  {/if}
+  {#if data?.info.reset_leftovers?.length}
+    <div class="restart">
+      <Callout tone="danger">
+        The last factory reset could not delete {data.info.reset_leftovers.length === 1
+          ? 'one item'
+          : `${data.info.reset_leftovers.length} items`}, usually because another program had them
+        open. Close it and delete them by hand: {data.info.reset_leftovers.slice(0, 5).join(', ')}{data.info
+          .reset_leftovers.length > 5
+          ? ' and more'
+          : ''}.
+        {#snippet action()}<Button onclick={dismissLeftovers}>Done</Button>{/snippet}
       </Callout>
     </div>
   {/if}
