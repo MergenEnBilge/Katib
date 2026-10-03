@@ -144,3 +144,20 @@ test('choose label files from a folder picker instead of typing a path', async (
   await dialog.getByRole('button', { name: 'Cancel' }).click();
   await expect(dialog.getByRole('button', { name: 'Choose labels' })).toBeVisible();
 });
+
+test('uploading the same folder again does not send its pictures twice', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'New project' }).first().click();
+  await page.getByLabel('Project name').fill(`Again ${test.info().project.name}`);
+  await page.getByRole('button', { name: 'Create project' }).click();
+  await expect(page).toHaveURL(/\/p\/[0-9a-f-]{36}$/);
+
+  await page.getByRole('button', { name: 'Import images' }).last().click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Copy a folder').setInputFiles(UPLOAD_SET);
+  await expect(dialog.getByText('1 image added.')).toBeVisible();
+
+  await dialog.getByLabel('Copy a folder').setInputFiles(UPLOAD_SET);
+  await expect(dialog.getByText(/already in this project/)).toBeVisible();
+  await expect(dialog.getByText('1 image added.')).toHaveCount(0);
+});

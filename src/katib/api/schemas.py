@@ -138,6 +138,16 @@ class FolderListingOut(BaseModel):
     label_files: list[PlaceOut] = []
 
 
+class HaveIn(BaseModel):
+    #: SHA-256 digests of pictures a browser is about to send.
+    hashes: list[str] = Field(max_length=5000)
+
+
+class HaveOut(BaseModel):
+    #: The digests this project already holds, so the browser can skip sending those pictures.
+    have: list[str]
+
+
 class ConnectFolderIn(BaseModel):
     path: str
 
