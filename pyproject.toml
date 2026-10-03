@@ -1,6 +1,6 @@
 [project]
 name = "katib"
-version = "0.5.0"
+version = "0.5.1"
 description = "Self-hostable data annotation tool"
 readme = "README.md"
 license = "MIT"

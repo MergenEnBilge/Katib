@@ -52,7 +52,7 @@ Built by M. Abdullah K. Mughal ([MergenEnBilge](https://github.com/MergenEnBilge
 To run Katib with Docker, paste this into a terminal:
 
 ```bash
-docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.5.0
+docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.5.1
 ```
 
 Then open <http://localhost:8420>. The first time, Katib asks for a setup code. Run
