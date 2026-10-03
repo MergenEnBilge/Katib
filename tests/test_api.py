@@ -190,8 +190,24 @@ def test_mark_done(api: TestClient, library: Path) -> None:
 
 
 def test_formats_are_listed(api: TestClient) -> None:
-    ids = {f["id"] for f in api.get(f"{API}/formats").json()}
-    assert ids == {"yolo-detect", "yolo-segment", "yolo-obb", "coco", "voc", "labelme", "jsonl"}
+    listed = {f["id"]: f for f in api.get(f"{API}/formats").json()}
+    assert set(listed) == {
+        "yolo-detect",
+        "yolo-segment",
+        "yolo-obb",
+        "yolo-pose",
+        "coco",
+        "voc",
+        "labelme",
+        "cvat",
+        "createml",
+        "mask-png",
+        "class-folders",
+        "jsonl",
+    }
+    # Masks saved as pictures are read, not written.
+    assert listed["mask-png"]["can_export"] is False
+    assert listed["coco"]["can_export"] is True
 
 
 def test_yolo_import_then_coco_export(api: TestClient, library: Path, tmp_path: Path) -> None:

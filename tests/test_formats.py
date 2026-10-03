@@ -145,17 +145,22 @@ def test_coco_ids_follow_class_order(tmp_path: Path) -> None:
     assert doc["categories"] == [{"id": 1, "name": "car"}, {"id": 2, "name": "bus"}]
 
 
-def test_coco_reports_masks_and_multi_ring_polygons(tmp_path: Path) -> None:
+def test_coco_reads_masks_and_multi_ring_polygons(tmp_path: Path) -> None:
     import json
 
+    from katib.core import rle
+
+    # A 4 x 3 picture whose middle column (x = 1) is on, as COCO counts it: down each column.
+    mask = {"size": [3, 4], "counts": [3, 3, 6]}
     doc = {
-        "images": [{"id": 1, "file_name": "a.jpg", "width": 100, "height": 100}],
+        "images": [{"id": 1, "file_name": "a.jpg", "width": 4, "height": 3}],
         "categories": [{"id": 1, "name": "car"}],
         "annotations": [
             {"id": 1, "image_id": 1, "category_id": 1, "iscrowd": 1, "bbox": [0, 0, 1, 1]},
+            {"id": 4, "image_id": 1, "category_id": 1, "iscrowd": 1, "segmentation": mask},
             {
                 "id": 2, "image_id": 1, "category_id": 1,
-                "segmentation": [[10, 10, 50, 10, 50, 50], [60, 60, 90, 60, 90, 90]],
+                "segmentation": [[1, 1, 3, 1, 3, 2], [0, 0, 2, 0, 2, 2]],
             },
             {"id": 3, "image_id": 9, "category_id": 1, "bbox": [0, 0, 1, 1]},
         ],
@@ -163,16 +168,23 @@ def test_coco_reports_masks_and_multi_ring_polygons(tmp_path: Path) -> None:
     file = tmp_path / "c.json"
     file.write_text(json.dumps(doc))
     data = get_format("coco").read(file)
-    assert len(data.images[0].shapes) == 2
+    kinds = [s.type for s in data.images[0].shapes]
+    assert kinds == ["mask", "polygon", "polygon"]
+    read = data.images[0].shapes[0].geometry
+    assert read["size"] == [4, 3]
+    cells = rle.decode(str(read["rle"]), 4, 3)
+    assert [i for i, on in enumerate(cells) if on] == [1, 5, 9]  # x = 1 on each of three rows
     reasons = " | ".join(n.reason for n in data.notes)
-    assert "Run-length" in reasons and "Split into 2" in reasons and "not listed" in reasons
+    assert "crowd region with no mask" in reasons
+    assert "Split into 2" in reasons and "not listed" in reasons
 
 
-def test_detection() -> None:
+def test_detection(tmp_path: Path) -> None:
     assert detect_format(GOLDEN / "coco" / "annotations.json").id == "coco"
     assert detect_format(GOLDEN / "yolo").id == "yolo-detect"
+    (tmp_path / "holiday.jpg").write_bytes(b"not a dataset")
     with pytest.raises(FormatError):
-        detect_format(GOLDEN)
+        detect_format(tmp_path)
 
 
 def test_not_a_coco_file(tmp_path: Path) -> None:

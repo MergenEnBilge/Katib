@@ -10,7 +10,7 @@ from katib.api.deps import RunnerDep, SessionDep, StorageDep, UserDep, may_brows
 from katib.api.jobs import job_out
 from katib.api.schemas import DatasetImportIn, ExportIn, FormatOut, JobOut
 from katib.core.dataset import ExportOptions, SplitSpec
-from katib.formats import REGISTRY
+from katib.formats import REGISTRY, writes
 from katib.jobs.runner import Progress
 from katib.services import exchange, images, projects
 from katib.services.errors import Forbidden, InvalidInput, NotFound
@@ -21,7 +21,8 @@ router = APIRouter(tags=["exchange"])
 @router.get("/formats", response_model=list[FormatOut])
 def list_formats(_user: UserDep) -> list[FormatOut]:
     return [
-        FormatOut(id=f.id, label=f.label, supports=sorted(f.supports)) for f in REGISTRY.values()
+        FormatOut(id=f.id, label=f.label, supports=sorted(f.supports), can_export=writes(f))
+        for f in REGISTRY.values()
     ]
 
 
@@ -73,6 +74,8 @@ def export_dataset(
     projects.get_project(session, project_id)
     if body.format not in REGISTRY:
         raise InvalidInput(f"Unknown format {body.format!r}.")
+    if not writes(REGISTRY[body.format]):
+        raise InvalidInput(f"Katib reads {REGISTRY[body.format].label} but cannot export to it.")
     statuses: list[str] | None = [str(x) for x in body.statuses] if body.statuses else None
     if exchange.count_export(session, project_id, statuses) == 0:
         raise InvalidInput("There are no images to export with that filter.")

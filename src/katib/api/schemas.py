@@ -286,6 +286,8 @@ class FormatOut(BaseModel):
     id: str
     label: str
     supports: list[str]
+    #: Some formats Katib only reads, such as segmentation masks saved as pictures.
+    can_export: bool = True
 
 
 class DatasetImportIn(BaseModel):

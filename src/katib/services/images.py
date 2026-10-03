@@ -20,6 +20,7 @@ from katib import net
 from katib.core.split import split_from_names
 from katib.db.ids import new_id
 from katib.db.models import Annotation, Image
+from katib.formats.mask_pngs import mask_files
 from katib.services.errors import ImportNotAllowed, InvalidInput, NotFound
 from katib.storage.imaging import (
     ALLOWED_SUFFIXES,
@@ -204,11 +205,14 @@ def import_folder(
     """Index every supported image under `folder` in place. Commits every few images."""
     root = resolve_folder(folder, ctx.allowed_roots)
     roots = resolved_roots(ctx.allowed_roots)
+    # A segmentation dataset's masks are labels, not more pictures to label.
+    masks = mask_files(root)
     files: list[Path] = []
     for dirpath, _dirs, names in os.walk(root):
         for name in names:
-            if Path(name).suffix.lower() in ALLOWED_SUFFIXES:
-                files.append(Path(dirpath) / name)
+            path = Path(dirpath) / name
+            if path.suffix.lower() in ALLOWED_SUFFIXES and path.resolve() not in masks:
+                files.append(path)
     files.sort(key=lambda p: str(p).lower())
 
     report = ImportReport()

@@ -1,4 +1,8 @@
-"""Pascal VOC: one XML file per image with pixel boxes."""
+"""Pascal VOC: one XML file per image with pixel boxes.
+
+The official layout nests it: VOCdevkit/VOC2012/Annotations, with the splits listed in
+ImageSets/Main. Choosing VOCdevkit, the year folder or the Annotations folder all work.
+"""
 
 from collections.abc import Mapping
 from pathlib import Path
@@ -20,22 +24,54 @@ from katib.core.geometry import obb_to_polygon, pixels_to_box, polygon_to_box
 from katib.core.types import Box, GeometryError, Obb, Polygon, validate_geometry
 from katib.formats.common import FormatError, copy_image, unique_names
 
+#: How far below the chosen folder to look for Annotations: VOCdevkit/VOC2012/Annotations.
+SEARCH_DEPTH = 3
+
+
+def _voc_root(path: Path) -> Path:
+    """The folder holding Annotations and ImageSets: the chosen one, or a year folder below."""
+    if (path / "Annotations").is_dir() or path.name.lower() == "annotations":
+        return path.parent if path.name.lower() == "annotations" else path
+    level = [path]
+    for _ in range(SEARCH_DEPTH):
+        following: list[Path] = []
+        for folder in level:
+            try:
+                children = sorted(c for c in folder.iterdir() if c.is_dir())
+            except OSError:
+                continue
+            for child in children:
+                if (child / "Annotations").is_dir():
+                    return child
+                following.append(child)
+        level = following
+    return path
+
 
 def _xml_files(path: Path) -> list[Path]:
-    base = path / "Annotations" if (path / "Annotations").is_dir() else path
+    root = _voc_root(path)
+    base = root / "Annotations" if (root / "Annotations").is_dir() else root
     return sorted(base.glob("*.xml"))
 
 
 def _listed_splits(path: Path) -> dict[str, str]:
-    """Splits from ImageSets/Main/train.txt and friends. Keys are lowercase image stems."""
-    listed: dict[str, str] = {}
-    for split in ("train", "val", "test"):
-        file = path / "ImageSets" / "Main" / f"{split}.txt"
+    """Splits from ImageSets/Main/train.txt and friends. Keys are lowercase image stems.
+
+    trainval.txt counts as train when there are no separate train and val lists. Per-class lists
+    such as car_train.txt repeat what the main lists say, so they are not needed.
+    """
+    main = _voc_root(path) / "ImageSets" / "Main"
+    seen: dict[str, set[str]] = {}
+    files = {split: main / f"{split}.txt" for split in ("train", "val", "test")}
+    if not files["train"].is_file() and not files["val"].is_file():
+        files["train"] = main / "trainval.txt"
+    for split, file in files.items():
         if file.is_file():
             for line in file.read_text(encoding="utf-8").splitlines():
                 if line.strip():
-                    listed[line.split()[0].lower()] = split
-    return listed
+                    seen.setdefault(line.split()[0].lower(), set()).add(split)
+    # A picture listed under two splits says nothing reliable about either.
+    return {stem: next(iter(splits)) for stem, splits in seen.items() if len(splits) == 1}
 
 
 def _read_root(file: Path) -> Element | None:
@@ -62,8 +98,7 @@ class PascalVoc:
     def detect(self, path: Path) -> bool:
         if not path.is_dir():
             return False
-        files = _xml_files(path)
-        return bool(files) and _read_root(files[0]) is not None
+        return any(_read_root(f) is not None for f in _xml_files(path)[:5])
 
     def read(self, path: Path, sizes: Mapping[str, tuple[int, int]] | None = None) -> ParsedDataset:
         if not path.is_dir():

@@ -1,6 +1,10 @@
 """COCO format: one JSON file with images, annotations and categories.
 
-Boxes, polygons and keypoints. Rotated boxes are written as polygons.
+Boxes, polygons, keypoints and run-length masks. Rotated boxes are written as polygons.
+
+A dataset may hold one file per split, named for it (instances_train2017.json), in an
+annotations folder, or one in each split's own folder the way Roboflow exports it
+(train/_annotations.coco.json). The split comes from the file's name or its folder.
 """
 
 import json
@@ -30,7 +34,8 @@ from katib.core.types import (
     geometry_bounds,
     validate_geometry,
 )
-from katib.formats.common import FormatError, copy_image, unique_names
+from katib.formats import masks
+from katib.formats.common import FormatError, copy_image, parent_folders, unique_names
 
 OUTPUT = "annotations.json"
 
@@ -51,7 +56,9 @@ def _load(path: Path) -> list[tuple[Path, dict[str, Any]]]:
     """Every COCO file at `path`. A folder may hold one per split, as our own export writes."""
     if not path.is_dir():
         return [(path, _read_file(path))]
-    candidates = sorted(path.glob("*.json")) + sorted((path / "annotations").glob("*.json"))
+    # The top, an annotations folder, and one folder down for a file per split. No deeper: a
+    # photo library with a .json somewhere in it should not have every file opened.
+    candidates = sorted(path.glob("*.json")) + sorted(path.glob("*/*.json"))
     if not candidates:
         raise FormatError("No .json annotation file found in that folder.")
     found: list[tuple[Path, dict[str, Any]]] = []
@@ -84,13 +91,18 @@ class Coco:
 
     def read(self, path: Path, sizes: Mapping[str, tuple[int, int]] | None = None) -> ParsedDataset:
         result = ParsedDataset(class_names=[], images=[])
+        root = path if path.is_dir() else path.parent
         for file, data in _load(path):
-            self._read_file(file, data, result)
+            self._read_file(file, data, result, root)
         return result
 
-    def _read_file(self, file: Path, data: dict[str, Any], result: ParsedDataset) -> None:
-        # instances_train2017.json and val.json say which split they hold.
-        split = split_from_names(re.findall(r"[a-z]+", file.stem.lower()))
+    def _read_file(
+        self, file: Path, data: dict[str, Any], result: ParsedDataset, root: Path
+    ) -> None:
+        # instances_train2017.json and val.json say which split they hold, and so does the folder
+        # a per-split file sits in: train/_annotations.coco.json.
+        here = parent_folders(file, root)
+        split = split_from_names(re.findall(r"[a-z]+", file.stem.lower())) or split_from_names(here)
         categories: dict[int, str] = {int(c["id"]): str(c["name"]) for c in data["categories"]}
         result.class_names.extend(n for n in categories.values() if n not in result.class_names)
         for category in data["categories"]:
@@ -102,11 +114,14 @@ class Coco:
                 )
         by_id: dict[int, ImageLabels] = {}
         for img in data["images"]:
+            named = Path(str(img["file_name"]).replace("\\", "/"))
+            folders = here + tuple(p for p in named.parts[:-1] if p not in ("..", "."))
             labels = ImageLabels(
-                filename=Path(str(img["file_name"])).name,
+                filename=named.name,
                 width=img.get("width"),
                 height=img.get("height"),
-                split=split,
+                split=split or split_from_names(folders),
+                folders=folders,
             )
             by_id[int(img["id"])] = labels
             result.images.append(labels)
@@ -131,8 +146,21 @@ class Coco:
             return
         w, h = int(labels.width), int(labels.height)
         seg = ann.get("segmentation")
-        if ann.get("iscrowd") or isinstance(seg, dict):
-            result.notes.append(Note(where, "Run-length masks are not supported yet."))
+        if ann.get("iscrowd") and not isinstance(seg, dict):
+            # A crowd is a region of many objects, not one; without its mask there is nothing
+            # faithful to draw.
+            result.notes.append(Note(where, "A crowd region with no mask was left out."))
+            return
+        if isinstance(seg, dict):
+            try:
+                mask = masks.from_coco(seg)  # type: ignore[arg-type]
+            except (ValueError, TypeError, IndexError):
+                result.notes.append(Note(where, "The run-length mask could not be read."))
+                return
+            if mask is None:
+                result.notes.append(Note(where, "The mask is empty."))
+            else:
+                labels.shapes.append(Shape(name, "mask", mask))
             return
         try:
             points = ann.get("keypoints")
