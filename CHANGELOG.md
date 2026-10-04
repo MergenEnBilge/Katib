@@ -5,15 +5,19 @@ All notable changes to Katib are listed here, newest first. Each release is also
 
 ## 0.6.0
 
-### Fixed
+### Text documents
 
-- Two people creating a project at the same moment could both be given the same web address for
-  it, and the second one saw a server error. Katib now takes the next address along.
-- Exporting with **move** could take pictures that another project was also reading. It is now
-  refused, and says which project to look at.
-- A restored backup left the files holding secrets readable by anyone on the machine, because a zip
-  carries no permissions. They are made private again.
-- A document with many labelled spans is quicker to draw.
+Katib can now label text, not only pictures. Choose **Text spans** when you create a project and it
+holds documents instead of images.
+
+- Add documents from `.txt` and `.md` files, one each, or from a `.jsonl` file with one document
+  per line. Spans and tags already in a `.jsonl` line come in with it, and their classes are created.
+- Label words by choosing a class and selecting them. Spans can overlap, and space at the edges of a
+  selection is left out. Click a span to change its class or remove it.
+- Export with **Text spans (JSON Lines)**. Each line holds the words and the spans, so the file
+  stands on its own, and it can be imported again.
+- Everything else works as it does for pictures: roles, the queue of work, review, splits, comments,
+  and 30 days of undo.
 
 ### Pictures from cloud storage
 
@@ -29,19 +33,15 @@ All notable changes to Katib are listed here, newest first. Each release is also
 - Keys are kept in a file only Katib can read, and are never sent back to a browser. Katib only ever
   reads from a bucket, so give it a key that can only read.
 
-### Text documents
+### Export to a folder
+- Exporting to a folder can **move** the pictures instead of copying them. They go into the
+  export folder's `images` folder, and the label files refer to them by name. This needs a typed
+  confirmation. Katib keeps reading the pictures from their new place, and if the export fails
+  partway, every picture goes back where it was.
 
-Katib can now label text, not only pictures. Choose **Text spans** when you create a project and it
-holds documents instead of images.
 
-- Add documents from `.txt` and `.md` files, one each, or from a `.jsonl` file with one document
-  per line. Spans and tags already in a `.jsonl` line come in with it, and their classes are created.
-- Label words by choosing a class and selecting them. Spans can overlap, and space at the edges of a
-  selection is left out. Click a span to change its class or remove it.
-- Export with **Text spans (JSON Lines)**. Each line holds the words and the spans, so the file
-  stands on its own, and it can be imported again.
-- Everything else works as it does for pictures: roles, the queue of work, review, splits, comments,
-  and 30 days of undo.
+- Exports can be written straight into a folder on the Katib computer, as an alternative to a zip.
+  The folder must be empty or new, so nothing is overwritten. Only administrators can choose one.
 
 ### Faster and clearer imports
 
@@ -53,15 +53,12 @@ holds documents instead of images.
 - A `data.yaml` in a folder above the one you connect is now used, when it lists that folder as a
   split. Classes come from it even when there are no label files yet.
 
-### Export to a folder
-- Exporting to a folder can **move** the pictures instead of copying them. They go into the
-  export folder's `images` folder, and the label files refer to them by name. This needs a typed
-  confirmation. Katib keeps reading the pictures from their new place, and if the export fails
-  partway, every picture goes back where it was.
+### Labels
 
-
-- Exports can be written straight into a folder on the Katib computer, as an alternative to a zip.
-  The folder must be empty or new, so nothing is overwritten. Only administrators can choose one.
+- The labels dialog has a **Choose labels** button. It opens the same folder browser as the pictures,
+  and it lists label files so you can pick a `data.yaml` or `obj.data` directly. Typing a path still works.
+- Administrators, and anyone on a server without accounts, can import labels from any folder they can
+  browse to.
 
 ### Sharing and uploads
 
@@ -73,12 +70,15 @@ holds documents instead of images.
   Label files are still sent. On a plain http address, where the browser cannot compute checksums,
   everything is sent as before.
 
-### Labels
+### Fixed
 
-- The labels dialog has a **Choose labels** button. It opens the same folder browser as the pictures,
-  and it lists label files so you can pick a `data.yaml` or `obj.data` directly. Typing a path still works.
-- Administrators, and anyone on a server without accounts, can import labels from any folder they can
-  browse to.
+- Two people creating a project at the same moment could both be given the same web address for
+  it, and the second one saw a server error. Katib now takes the next address along.
+- Exporting with **move** could take pictures that another project was also reading. It is now
+  refused, and says which project to look at.
+- A restored backup left the files holding secrets readable by anyone on the machine, because a zip
+  carries no permissions. They are made private again.
+- A document with many labelled spans is quicker to draw.
 
 ## 0.5.1
 
