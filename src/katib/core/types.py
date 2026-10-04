@@ -119,6 +119,26 @@ class Text(BaseModel):
     text: str = Field(max_length=MAX_TEXT)
 
 
+class Span(BaseModel):
+    """A run of characters in a text document, counted from the start of the text.
+
+    `start` is the first character and `end` the one just past the last, the way Python slices
+    work, so `text[start:end]` is what was labelled. Offsets are characters, not bytes, so
+    accents and emoji count as one each.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    start: int = Field(ge=0)
+    end: int = Field(ge=0)
+
+    @model_validator(mode="after")
+    def _not_empty(self) -> "Span":
+        if self.end <= self.start:
+            raise ValueError("a span has to end after it starts")
+        return self
+
+
 def box_bounds(g: Box, size: Size | None = None) -> Bounds:
     return (g.x, g.y, g.w, g.h)
 
@@ -161,6 +181,11 @@ def mask_bounds(g: Mask, size: Size | None = None) -> Bounds:
     return rle.bounds(g.rle, g.size[0], g.size[1]) or (0.0, 0.0, 0.0, 0.0)
 
 
+def span_bounds(g: Span, size: Size | None = None) -> Bounds:
+    """A span has no place on a picture, so it covers the whole item like a tag does."""
+    return (0.0, 0.0, 1.0, 1.0)
+
+
 def tag_bounds(g: Tag, size: Size | None = None) -> Bounds:
     return (0.0, 0.0, 1.0, 1.0)
 
@@ -184,10 +209,15 @@ _REGISTRY: dict[str, AnnotationType] = {
     "mask": AnnotationType("mask", Mask, mask_bounds),
     "tag": AnnotationType("tag", Tag, tag_bounds),
     "text": AnnotationType("text", Text, text_bounds),
+    "span": AnnotationType("span", Span, span_bounds),
 }
 
 # Shapes about the image as a whole. They are listed beside it, not drawn on it.
 WHOLE_IMAGE = frozenset({"tag", "text"})
+
+#: Shapes that belong to a text document rather than a picture. A project that uses these holds
+#: documents instead of images, and the workspace shows the words instead of a canvas.
+DOCUMENT_TYPES = frozenset({"span"})
 
 
 def known_types() -> list[str]:

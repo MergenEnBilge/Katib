@@ -13,7 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from katib.core.attributes import AttributeError_, check_attrs
-from katib.core.types import MAX_TEXT, GeometryError, validate_geometry
+from katib.core.types import DOCUMENT_TYPES, MAX_TEXT, WHOLE_IMAGE, GeometryError, validate_geometry
 from katib.db.base import utcnow
 from katib.db.models import Annotation, Class, Image, Project
 from katib.services.errors import InvalidInput, NotFound
@@ -83,6 +83,22 @@ def _check_type(session: Session, image: Image, type_name: str) -> None:
         raise InvalidInput(f"This project does not use {type_name} annotations.")
 
 
+def _check_fits(image: Image, type_name: str, geometry: dict[str, Any]) -> None:
+    """Keep each shape with the kind of item it belongs to, and inside it.
+
+    A span is a run of characters in a document, so it cannot reach past the last one, and it
+    makes no sense on a picture. Drawn shapes make no sense on a document, while a tag or a
+    caption is about the item as a whole and works on either.
+    """
+    document = image.kind == "text"
+    if type_name in DOCUMENT_TYPES and not document:
+        raise InvalidInput("Spans belong to a text document, not a picture.")
+    if document and type_name not in DOCUMENT_TYPES and type_name not in WHOLE_IMAGE:
+        raise InvalidInput(f"A text document cannot hold a {type_name}.")
+    if type_name == "span" and int(geometry.get("end", 0)) > image.width:
+        raise InvalidInput("That span reaches past the end of the document.")
+
+
 def _create(session: Session, image: Image, op: Op, user_id: uuid.UUID | None) -> OpResult:
     existing = session.get(Annotation, op.id)
     if existing is not None:
@@ -95,6 +111,7 @@ def _create(session: Session, image: Image, op: Op, user_id: uuid.UUID | None) -
         _check_type(session, image, op.type)
         _check_class(session, image, op.class_id, op.type)
         geometry = validate_geometry(op.type, op.geometry).model_dump()
+        _check_fits(image, op.type, geometry)
         _check_values(session, op.class_id, op.attrs or {})
     except (InvalidInput, GeometryError) as err:
         return OpResult(op.id, "invalid", error=str(err))
@@ -130,6 +147,7 @@ def _update(session: Session, image: Image, op: Op) -> OpResult:
             _check_class(session, image, new_class, ann.type)
         if "geometry" in op.patch:
             new_geometry = validate_geometry(ann.type, op.patch["geometry"]).model_dump()
+            _check_fits(image, ann.type, new_geometry)
         if "attrs" in op.patch:
             new_attrs = dict(op.patch["attrs"])
             _check_values(session, new_class or ann.class_id, new_attrs)
