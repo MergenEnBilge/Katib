@@ -10,6 +10,7 @@
   import type { CloudSource } from '../../lib/api/types';
   import Button from '../../lib/ui/Button.svelte';
   import Callout from '../../lib/ui/Callout.svelte';
+  import Modal from '../../lib/ui/Modal.svelte';
   import TextField from '../../lib/ui/TextField.svelte';
 
   let sources = $state<CloudSource[]>([]);
@@ -78,14 +79,10 @@
     }
   }
 
+  let forgetting = $state<CloudSource | null>(null);
+
   async function forget(source: CloudSource): Promise<void> {
-    if (
-      !confirm(
-        `Forget ${source.name}? Pictures already in a project cannot be opened until it is set up again.`,
-      )
-    ) {
-      return;
-    }
+    forgetting = null;
     busy = true;
     error = '';
     try {
@@ -125,7 +122,7 @@
             class="drop"
             aria-label="Forget {source.name}"
             disabled={busy}
-            onclick={() => forget(source)}><Trash2 size={14} /></button
+            onclick={() => (forgetting = source)}><Trash2 size={14} /></button
           >
         </li>
       {/each}
@@ -158,6 +155,7 @@
       <TextField
         label={azure ? 'Account key' : 'Secret key'}
         bind:value={secret}
+        secret
         hint="Kept on this server, in a file only Katib can read. It is never shown again."
       />
       {#if !azure}
@@ -195,6 +193,24 @@
     <div><Button onclick={() => (adding = true)}><Cloud size={16} />Add a bucket</Button></div>
   {/if}
 </section>
+
+{#if forgetting}
+  {@const source = forgetting}
+  <Modal
+    title="Forget this bucket?"
+    description="Katib keeps no copy of the key, so it has to be typed again to set the bucket up."
+    onclose={() => (forgetting = null)}
+  >
+    <Callout tone="danger">
+      Pictures already brought into a project from <strong>{source.name}</strong> cannot be opened
+      again until it is set up once more. Their labels stay where they are.
+    </Callout>
+    {#snippet footer()}
+      <Button onclick={() => (forgetting = null)}>Keep it</Button>
+      <Button variant="danger" loading={busy} onclick={() => forget(source)}>Forget it</Button>
+    {/snippet}
+  </Modal>
+{/if}
 
 <style>
   .cloud {

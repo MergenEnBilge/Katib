@@ -55,6 +55,12 @@
 
   const chosen = $derived(status?.models.find((m) => m.name === model) ?? null);
   const needsNames = $derived(chosen !== null && chosen.classes === null);
+  const typedNames = $derived(
+    names
+      .split('\n')
+      .map((n) => n.trim())
+      .filter(Boolean),
+  );
   const ready = $derived(!!status?.enabled && status.installed && status.models.length > 0);
 
   async function run(): Promise<void> {
@@ -164,6 +170,13 @@
         <span>Class names, one per line, in the model's order</span>
         <textarea rows="4" bind:value={names} disabled={busy}></textarea>
       </label>
+      <p class="hint">
+        {typedNames.length === 0
+          ? 'This model does not say what it finds, so the names have to be given here.'
+          : `${plural(typedNames.length, 'name')} so far.`}
+        Use the same order as the <code>data.yaml</code> the model was trained from. The order is
+        what matters: the wrong order labels every box as the wrong class, and Katib cannot tell.
+      </p>
     {/if}
 
     <label class="field">

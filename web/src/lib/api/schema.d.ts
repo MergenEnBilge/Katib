@@ -2104,6 +2104,11 @@ export interface components {
              * @default []
              */
             label_files: components["schemas"]["PlaceOut"][];
+            /**
+             * Example
+             * @default
+             */
+            example: string;
         };
         /** ForgotMissingOut */
         ForgotMissingOut: {
