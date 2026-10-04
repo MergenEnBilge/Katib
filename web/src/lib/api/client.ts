@@ -419,6 +419,7 @@ export const api = {
       split?: { train: number; val: number; test: number; seed: number; stratify: boolean },
       useSavedSplits = true,
       destination?: string,
+      move = false,
     ) =>
       request<Job>('POST', `/projects/${projectId}/exports`, {
         format,
@@ -427,6 +428,8 @@ export const api = {
         split,
         use_saved_splits: useSavedSplits,
         destination: destination || null,
+        move_originals: move,
+        confirm_move: move,
       }),
   },
 };

@@ -431,3 +431,41 @@ def test_export_can_be_saved_to_a_folder_on_the_server(
         json={"format": "yolo-detect", "destination": str(destination)},
     )
     assert again.status_code == 422
+
+
+def test_moving_pictures_into_an_export_takes_them_out_of_their_folder(
+    api: TestClient, library: Path, tmp_path: Path
+) -> None:
+    p = make_project(api)
+    import_library(api, p, library)
+    api.post(f"{API}/projects/{p['id']}/classes", json={"name": "car"})
+    before = sorted(library.glob("*.png"))
+    assert len(before) == 3
+    destination = tmp_path / "moved-export"
+
+    refused = api.post(
+        f"{API}/projects/{p['id']}/exports",
+        json={"format": "yolo-detect", "destination": str(destination), "move_originals": True},
+    )
+    assert refused.status_code == 422, refused.text
+    assert not library.joinpath("images").exists() and all(f.exists() for f in before)
+
+    res = api.post(
+        f"{API}/projects/{p['id']}/exports",
+        json={
+            "format": "yolo-detect",
+            "destination": str(destination),
+            "move_originals": True,
+            "confirm_move": True,
+        },
+    )
+    assert res.status_code == 202, res.text
+    job = wait_job(api, res.json()["id"])
+    assert job["status"] == "done", job
+    assert sorted(f.name for f in (destination / "images").iterdir()) == sorted(
+        f.name for f in before
+    )
+    assert not any(f.exists() for f in before)
+
+    image = api.get(f"{API}/projects/{p['id']}/images").json()["items"][0]
+    assert api.get(f"{API}/images/{image['id']}/file").status_code == 200

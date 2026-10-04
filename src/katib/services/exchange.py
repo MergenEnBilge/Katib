@@ -4,6 +4,7 @@ Formats work on plain dataclasses. This module maps them to and from the databas
 images by filename, resolving class names and aliases, and streaming a project out.
 """
 
+import shutil
 import uuid
 from collections.abc import Iterator
 from dataclasses import dataclass, field
@@ -23,11 +24,12 @@ from katib.core.dataset import (
 )
 from katib.core.types import GeometryError, validate_geometry
 from katib.db.ids import new_id
-from katib.db.models import Annotation, Class, Image, Project
+from katib.db.models import Annotation, Class, Image, Project, ProjectFolder
 from katib.formats import UNRECOGNISED, FormatError, detect_format, get_format
 from katib.formats.yolo import yaml_covers
 from katib.services import classes, splits
 from katib.services.errors import InvalidInput, NotFound
+from katib.services.folders import allow_folder
 from katib.services.images import FILE_PREFIX, StorageContext, image_path
 
 CHUNK = 200
@@ -346,6 +348,67 @@ def _assign_splits(
         return {}
     # Images with no split yet go with the training images.
     return {image_id: name or "train" for image_id, name in saved.items()}
+
+
+#: What a move did, so a failed export can put each picture back.
+#: The tuple is (image, old storage key, old file, new file).
+MovedPicture = tuple[Image, str, Path, Path]
+
+
+def move_pictures(
+    session: Session,
+    project_id: uuid.UUID,
+    ctx: StorageContext,
+    destination: Path,
+    statuses: list[str] | None,
+) -> list[MovedPicture]:
+    """Move the pictures in an export's scope into `destination/images`.
+
+    Covers both kinds: pictures connected from a folder, which leave that folder, and pictures
+    uploaded into Katib, which leave its data folder. The project then reads them from their new
+    place, and the new folder is remembered as one of its folders so that survives a restart.
+    """
+    rows = list(
+        session.scalars(
+            select(Image).where(Image.project_id == project_id).order_by(Image.position)
+        )
+    )
+    if statuses:
+        rows = [r for r in rows if r.status in statuses]
+    images_dir = destination / "images"
+    images_dir.mkdir(parents=True, exist_ok=True)
+    moved: list[MovedPicture] = []
+    try:
+        for image in rows:
+            source = image_path(image, ctx)
+            target = images_dir / source.name
+            if target.exists():
+                target = images_dir / f"{image.id.hex[:8]}-{source.name}"
+            shutil.move(str(source), str(target))
+            moved.append((image, image.storage_key, source, target))
+            image.storage_key = FILE_PREFIX + str(target.resolve())
+    except BaseException:
+        restore_pictures(moved)
+        raise
+    if moved:
+        allow_folder(ctx, images_dir.resolve())
+        known = session.scalar(
+            select(ProjectFolder).where(
+                ProjectFolder.project_id == project_id,
+                ProjectFolder.path == str(images_dir.resolve()),
+            )
+        )
+        if known is None:
+            session.add(ProjectFolder(project_id=project_id, path=str(images_dir.resolve())))
+    return moved
+
+
+def restore_pictures(moved: list[MovedPicture]) -> None:
+    """Undo `move_pictures`: each file goes back to where it was, and the project reads it there."""
+    for image, old_key, old_file, new_file in reversed(moved):
+        if new_file.exists():
+            shutil.move(str(new_file), str(old_file))
+        image.storage_key = old_key
 
 
 def export_info(session: Session, project_id: uuid.UUID) -> dict[str, object]:

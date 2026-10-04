@@ -91,6 +91,11 @@ def export_dataset(
     need(session, user, project_id, "manage")
     projects.get_project(session, project_id)
     target = _export_target(body.destination, anywhere)
+    if body.move_originals:
+        if target is None:
+            raise InvalidInput("Moving pictures needs a folder to move them into.")
+        if not body.confirm_move:
+            raise InvalidInput("Moving pictures needs your confirmation.")
     if body.format not in REGISTRY:
         raise InvalidInput(f"Unknown format {body.format!r}.")
     if not writes(REGISTRY[body.format]):
@@ -103,8 +108,11 @@ def export_dataset(
     if body.split:
         ratios = {"train": body.split.train, "val": body.split.val, "test": body.split.test}
         split = SplitSpec(ratios, body.split.seed, body.split.stratify)
+    # A move already puts the pictures in the export folder, so they are not copied as well.
     opts = ExportOptions(
-        copy_images=body.copy_images, split=split, use_saved_splits=body.use_saved_splits
+        copy_images=body.copy_images and not body.move_originals,
+        split=split,
+        use_saved_splits=body.use_saved_splits,
     )
 
     def work(progress: Progress) -> dict[str, object]:
@@ -162,10 +170,21 @@ def _export_to_folder(
     created = not target.exists()
     try:
         with factory() as s:
-            report = exchange.export_dataset(
-                s, project_id, body.format, target, storage, opts, statuses
+            moved = (
+                exchange.move_pictures(s, project_id, storage, target, statuses)
+                if body.move_originals
+                else []
             )
             s.commit()
+            try:
+                report = exchange.export_dataset(
+                    s, project_id, body.format, target, storage, opts, statuses
+                )
+                s.commit()
+            except BaseException:
+                exchange.restore_pictures(moved)
+                s.commit()
+                raise
     except BaseException:
         if created:
             shutil.rmtree(target, ignore_errors=True)

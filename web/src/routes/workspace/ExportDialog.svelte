@@ -19,6 +19,9 @@
   let copyImages = $state(false);
   let saveHere = $state(false);
   let destination = $state('');
+  let moveFiles = $state(false);
+  let moveConfirmation = $state('');
+  const moveReady = $derived(!moveFiles || moveConfirmation.trim() === 'MOVE');
   let splitMode = $state<'saved' | 'new' | 'none'>('none');
   let saved = $state<{ train: number; val: number; test: number; none: number } | null>(null);
   let train = $state(80);
@@ -81,6 +84,7 @@
         split,
         splitMode === 'saved',
         saveHere && destination.trim() ? destination.trim() : undefined,
+        saveHere && moveFiles,
       );
       const job = await waitForJob(started.id);
       if (job.status === 'failed') {
@@ -124,6 +128,13 @@
     <label class="check"><input type="checkbox" bind:checked={saveHere} disabled={busy} /> Save into a folder on the Katib computer instead of a zip</label>
     {#if saveHere}
       <TextField label="Folder to write into" placeholder="/data/exports/street" bind:value={destination} hint="Must be empty or new. Only administrators can save to a folder on the server." />
+      <label class="check"><input type="checkbox" bind:checked={moveFiles} disabled={busy} /> Move the pictures there instead of copying them</label>
+      {#if moveFiles}
+        <Callout>
+          The pictures leave their current folders and go into the export folder. Label files refer to them by name. Katib cannot undo this for you. Type MOVE to confirm.
+        </Callout>
+        <TextField label="Type MOVE to confirm" bind:value={moveConfirmation} />
+      {/if}
     {/if}
 
     <fieldset disabled={busy}>
@@ -180,7 +191,7 @@
 
   {#snippet footer()}
     <Button onclick={onclose}>Close</Button>
-    <Button variant="primary" loading={busy} disabled={ws.classes.length === 0} onclick={run}>
+    <Button variant="primary" loading={busy} disabled={ws.classes.length === 0 || !moveReady} onclick={run}>
       {busy ? 'Exporting...' : 'Export'}
     </Button>
   {/snippet}
