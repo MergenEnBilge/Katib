@@ -60,13 +60,24 @@ export function segments(length: number, spans: Shape[]): Segment[] {
     edges.add(span.end);
   }
   const points = [...edges].filter((n) => n >= 0 && n <= length).sort((a, b) => a - b);
+  // One pass through both lists, rather than looking at every span for every stretch: a long
+  // document with many spans is otherwise slow to draw.
+  const byStart = [...ranges].sort((a, b) => a.start - b.start);
+  let waiting = 0;
+  let open: typeof byStart = [];
   const out: Segment[] = [];
   for (let i = 0; i < points.length - 1; i++) {
     const start = points[i] ?? 0;
     const end = points[i + 1] ?? 0;
     if (end <= start) continue;
-    const over = ranges
-      .filter((s) => s.start <= start && s.end >= end)
+    while (waiting < byStart.length && (byStart[waiting]?.start ?? 0) <= start) {
+      const next = byStart[waiting];
+      if (next) open.push(next);
+      waiting++;
+    }
+    // Every stretch begins and ends on a span's edge, so a span still open here covers all of it.
+    open = open.filter((s) => s.end > start);
+    const over = [...open]
       .sort((a, b) => b.end - b.start - (a.end - a.start))
       .map((s) => s.shape);
     out.push({ start, end, spans: over, top: over[0] ?? null });
