@@ -323,3 +323,7 @@ class ExportIn(BaseModel):
     #: A folder on the Katib computer to write the export into, instead of a zip to download.
     #: Only administrators can choose one, and it must be empty or not exist yet.
     destination: str | None = Field(default=None, max_length=1024)
+    #: Move the pictures into the destination instead of copying them. Pictures leave their folder
+    #: and the label files refer to them by name. Needs confirm_move, so it is never by accident.
+    move_originals: bool = False
+    confirm_move: bool = False

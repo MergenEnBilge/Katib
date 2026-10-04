@@ -16,6 +16,11 @@ All notable changes to Katib are listed here, newest first. Each release is also
   split. Classes come from it even when there are no label files yet.
 
 ### Export to a folder
+- Exporting to a folder can **move** the pictures instead of copying them. They go into the
+  export folder's `images` folder, and the label files refer to them by name. This needs a typed
+  confirmation. Katib keeps reading the pictures from their new place, and if the export fails
+  partway, every picture goes back where it was.
+
 
 - Exports can be written straight into a folder on the Katib computer, as an alternative to a zip.
   The folder must be empty or new, so nothing is overwritten. Only administrators can choose one.

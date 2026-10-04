@@ -55,10 +55,11 @@ class Listing:
 def load_connected(session: Session, ctx: StorageContext) -> None:
     """Allow every folder that was connected in an earlier run. Call once at startup."""
     for (path,) in session.execute(select(ProjectFolder.path).distinct()):
-        _allow(ctx, Path(path))
+        allow_folder(ctx, Path(path))
 
 
-def _allow(ctx: StorageContext, path: Path) -> None:
+def allow_folder(ctx: StorageContext, path: Path) -> None:
+    """Let Katib read pictures inside `path`."""
     if path not in ctx.allowed_roots:
         ctx.allowed_roots.append(path)
 
@@ -181,7 +182,7 @@ def connect(
             raise InvalidInput(f"That folder does not exist.{container_hint()}") from None
         if not path.is_dir():
             raise InvalidInput("That path is not a folder.")
-        _allow(ctx, path)
+        allow_folder(ctx, path)
     else:
         path = resolve_folder(raw, ctx.allowed_roots)
 
