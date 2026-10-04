@@ -22,7 +22,15 @@
   let destination = $state('');
   let moveFiles = $state(false);
   let moveConfirmation = $state('');
-  const moveReady = $derived(!moveFiles || moveConfirmation.trim() === 'MOVE');
+  const moveReady = $derived(!saveHere || !moveFiles || moveConfirmation.trim() === 'MOVE');
+  const folderReady = $derived(!saveHere || destination.trim() !== '');
+
+  /** Forget the move and its confirmation when the folder they belong to is turned off. */
+  function folderToggled(): void {
+    if (saveHere) return;
+    moveFiles = false;
+    moveConfirmation = '';
+  }
   let splitMode = $state<'saved' | 'new' | 'none'>('none');
   let saved = $state<{ train: number; val: number; test: number; none: number } | null>(null);
   let train = $state(80);
@@ -57,12 +65,14 @@
     api
       .formats()
       // Text and pictures are different worlds, so a project is only offered its own formats.
-      .then(
-        (f) =>
-          (formats = f.filter(
-            (x) => x.can_export !== false && x.supports.includes('span') === isText,
-          )),
-      )
+      .then((f) => {
+        formats = f.filter(
+          (x) => x.can_export !== false && x.supports.includes('span') === isText,
+        );
+        // The starting format suits a picture project. A text project has its own, so move to
+        // the first of those rather than leaving a format it cannot export in the box.
+        if (!formats.some((x) => x.id === format)) format = formats[0]?.id ?? '';
+      })
       .catch((err: unknown) => {
         error = err instanceof ApiError ? err.message : 'Could not load the list of formats.';
       });
@@ -136,9 +146,12 @@
       <label class="check"><input type="checkbox" bind:checked={copyImages} disabled={busy} /> Include the image files</label>
     {/if}
 
-    <label class="check"><input type="checkbox" bind:checked={saveHere} disabled={busy} /> Save into a folder on the Katib computer instead of a zip</label>
+    <label class="check"><input type="checkbox" bind:checked={saveHere} onchange={folderToggled} disabled={busy} /> Save into a folder on the Katib computer instead of a zip</label>
     {#if saveHere}
       <TextField label="Folder to write into" placeholder="/data/exports/street" bind:value={destination} hint="Must be empty or new. Only administrators can save to a folder on the server." />
+      {#if !folderReady}
+        <p class="note">Name the folder to write into, or turn this off to download a zip instead.</p>
+      {/if}
       <label class="check"><input type="checkbox" bind:checked={moveFiles} disabled={busy} /> Move the pictures there instead of copying them</label>
       {#if moveFiles}
         <Callout>
@@ -173,7 +186,7 @@
     <div class="order">
       <p class="label">Class order</p>
       <p class="mono">{ws.classes.map((c, i) => `${i} ${c.name}`).join(', ') || 'No classes yet'}</p>
-      <p class="note">Formats that number classes use this order. Reordering classes changes the numbers.</p>
+      <p class="note">Formats that number classes use this order. Change it in the class manager, and the numbers change with it.</p>
       {#if orderChanged}
         <Callout>The class order changed since your last export, so class numbers no longer match models trained on it.</Callout>
       {/if}
@@ -202,7 +215,12 @@
 
   {#snippet footer()}
     <Button onclick={onclose}>Close</Button>
-    <Button variant="primary" loading={busy} disabled={ws.classes.length === 0 || !moveReady} onclick={run}>
+    <Button
+      variant="primary"
+      loading={busy}
+      disabled={ws.classes.length === 0 || !format || !moveReady || !folderReady}
+      onclick={run}
+    >
       {busy ? 'Exporting...' : 'Export'}
     </Button>
   {/snippet}

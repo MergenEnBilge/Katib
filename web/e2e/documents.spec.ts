@@ -141,3 +141,47 @@ test('move between documents while a span is picked', async ({ page }) => {
   await page.keyboard.press('ArrowRight');
   await expect(page.getByTestId('document-words')).toContainText('Another review here.');
 });
+
+test('a text project opens Export on a format it can use', async ({ page }) => {
+  test.skip(test.info().project.name === 'phone', 'Export sits behind the More menu on a phone.');
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'New project' }).first().click();
+  await page.getByLabel('Project name').fill(`Export text ${Date.now()}`);
+  await page.getByRole('checkbox', { name: /Boxes/ }).uncheck();
+  await page.getByRole('checkbox', { name: /Polygons/ }).uncheck();
+  await page.getByRole('checkbox', { name: /Text spans/ }).check();
+  await page.getByRole('button', { name: 'Create project' }).click();
+
+  const dialog = page.getByRole('dialog');
+  await page.getByRole('button', { name: 'Add documents' }).last().click();
+  await dialog.getByLabel('Add documents').setInputFiles({
+    name: 'review.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from(REVIEW, 'utf-8'),
+  });
+  await expect(dialog.getByText('1 document added.')).toBeVisible();
+  await dialog.getByRole('button', { name: 'Done' }).click();
+
+  await openPanel(page);
+  await page.getByLabel('New class name').fill('product');
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  await expect(page.getByRole('button', { name: /product/ }).first()).toBeVisible();
+
+  // The box used to start on YOLO, which is not in a text project's list, so it showed nothing
+  // and exporting sent a format the server would refuse.
+  await page.getByRole('button', { name: 'Export' }).click();
+  const exporter = page.getByRole('dialog');
+  await expect(exporter.getByLabel('Format')).toHaveValue('jsonl-spans');
+  await expect(exporter.getByRole('button', { name: 'Export' })).toBeEnabled();
+
+  // Asking to write into a folder without naming one no longer quietly sends a zip instead.
+  await exporter.getByRole('checkbox', { name: /Save into a folder/ }).check();
+  await expect(exporter.getByRole('button', { name: 'Export' })).toBeDisabled();
+  await expect(exporter.getByText(/Name the folder to write into/)).toBeVisible();
+
+  // Turning it back off clears the move it was holding, instead of staying stuck.
+  await exporter.getByRole('checkbox', { name: /Move the pictures there/ }).check();
+  await exporter.getByRole('checkbox', { name: /Save into a folder/ }).uncheck();
+  await expect(exporter.getByRole('button', { name: 'Export' })).toBeEnabled();
+});
