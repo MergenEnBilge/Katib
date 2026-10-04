@@ -21,9 +21,10 @@ with one command, or run it on a server that your whole team uses.
 | Area | Details |
 |------|---------|
 | Shapes | Boxes, polygons, rotated boxes, keypoints, brush masks and whole-picture tags |
-| Text | Documents with labelled spans of words, and tags for a whole document |
+| Text | Spans of words in a document, relations joining them, labels for a whole document, and written answers |
 | Classes | Rename, merge and delete across a project. Preview first, and undo for 30 days |
-| Datasets | YOLO, COCO, Pascal VOC, LabelMe, CVAT, CreateML, class folders and JSON Lines, with train, validation and test splits |
+| Picture datasets | YOLO, COCO, Pascal VOC, LabelMe, CVAT, CreateML, class folders and JSON Lines, with train, validation and test splits |
+| Text datasets | CoNLL, Hugging Face token classification, spaCy, Prodigy, Label Studio, BRAT and plain CSV |
 | Quality checks | Finds tiny and duplicate shapes, near-identical pictures and unbalanced classes |
 | Teams | Invite links, five roles, a queue of pictures for each annotator, review, and a view of who is online |
 | Devices | Works in a browser on desktop, tablet and phone. Can be added to a phone's home screen. Android app included |
