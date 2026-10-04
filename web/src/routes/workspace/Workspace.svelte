@@ -309,7 +309,8 @@
     if (dialog || target.closest('input, textarea, select, [contenteditable="true"]')) return;
     const engine = ws.engine;
     if (!engine) return;
-    if (engine.keyDown(e)) {
+    // A document has no canvas, so the drawing tools never see its keys.
+    if (!ws.isDocument && engine.keyDown(e)) {
       e.preventDefault();
       return;
     }

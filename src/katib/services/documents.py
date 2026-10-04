@@ -76,6 +76,11 @@ def add_document(
     position: int | None = None,
 ) -> Image | str:
     """Store `text` as a document in the project. Returns the item, or why it was skipped."""
+    # Settle the line endings once, here, where every caller passes through. A file written
+    # on Windows arrives with a carriage return on each line, while its words are read back
+    # with those collapsed, so storing it as it came would put every span offset out by one
+    # character per line before it.
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
     if not text.strip():
         return "the document is empty"
     if len(text) > MAX_CHARS:

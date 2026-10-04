@@ -240,3 +240,42 @@ def test_a_file_katib_cannot_read_says_so(api: TestClient) -> None:
     )
     assert binary.status_code == 422
     assert "UTF-8" in binary.json()["message"]
+
+
+def test_a_file_written_on_windows_lines_up_with_its_spans(api: TestClient) -> None:
+    """A carriage return on each line must not shift every span that follows it.
+
+    The words are served with line endings settled, so the length Katib records has to be
+    measured the same way. Otherwise a span drawn near the end of a long document is saved
+    against offsets that no longer point at the words the person picked.
+    """
+    project = text_project(api)
+    windows = "Katib runs here.\r\nThe canvas is quick.\r\nIt reads text too.\r\n"
+    add_file(api, project, "windows.txt", windows)
+
+    [document] = items(api, project)
+    words = api.get(f"{API}/images/{document['id']}/text").json()["text"]
+    assert "\r" not in words
+    assert document["width"] == len(words)
+
+    # The last word of the last line, counted in the text the browser is given.
+    start = words.index("too")
+    label = api.post(f"{API}/projects/{project}/classes", json={"name": "thing"}).json()
+    res = api.post(
+        f"{API}/images/{document['id']}/annotations:batch",
+        json={
+            "ops": [
+                {
+                    "op": "create",
+                    "id": str(uuid.uuid4()),
+                    "type": "span",
+                    "class_id": label["id"],
+                    "geometry": {"start": start, "end": start + 3},
+                }
+            ]
+        },
+    )
+    assert res.json()["results"][0]["status"] == "ok", res.text
+    saved = api.get(f"{API}/images/{document['id']}/annotations").json()
+    geometry = saved[0]["geometry"]
+    assert words[geometry["start"] : geometry["end"]] == "too"

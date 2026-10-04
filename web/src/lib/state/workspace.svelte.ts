@@ -10,8 +10,8 @@ import type {
   ProjectClass,
 } from '../api/types';
 import type { ClassStyle, Shape } from '../canvas/types';
-import { isBox, isDrawn } from '../canvas/types';
-import { spanRange } from '../text/spans';
+import { isBox, isPartLabel } from '../canvas/types';
+import { same, spanRange } from '../text/spans';
 import type { Engine } from '../canvas/engine';
 import { Autosave, shapeFromAnnotation, type SaveState } from '../sync/autosave';
 import { browserOutbox } from '../sync/outbox';
@@ -220,6 +220,15 @@ export class Workspace {
     if (!model || this.readOnly || !this.activeClassId || end <= start) return null;
     const words = this.documentText ?? '';
     if (end > words.length) return null;
+    // Selecting the same words again picks the span that is already there rather than stacking a
+    // second one on top of it, which would look like nothing happened.
+    const already = this.spans().find(
+      (s) => s.classId === this.activeClassId && same(spanRange(s), { start, end }),
+    );
+    if (already) {
+      this.selectSpan(already.id);
+      return already;
+    }
     const shape: Shape = {
       id: crypto.randomUUID(),
       type: 'span',
@@ -301,7 +310,7 @@ export class Workspace {
       engine.model.onChange((_changes, origin) => {
         sync();
         if (origin === 'remote') return;
-        if (origin === 'edit' && _changes.some((c) => c.kind === 'create' && isDrawn(c.shape))) {
+        if (origin === 'edit' && _changes.some((c) => c.kind === 'create' && isPartLabel(c.shape))) {
           onboarding.mark('shape');
         }
         const item = this.current;
@@ -492,6 +501,7 @@ export class Workspace {
 
   private clearCurrent(): void {
     this.currentId = null;
+    this.documentText = null;
     this.engine?.clearImage();
     this.engine?.model.load([]);
   }
@@ -531,6 +541,9 @@ export class Workspace {
     const token = ++this.openToken;
     this.currentId = imageId;
     this.imageLoading = true;
+    // Let go of the old words straight away. Keeping them would show this document's spans over
+    // the last one's text, and a selection made in that moment would be saved at the wrong place.
+    this.documentText = null;
     const item = this.images.find((i) => i.id === imageId);
     try {
       const annotations: Annotation[] = await api.annotations.list(imageId);
