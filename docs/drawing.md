@@ -78,26 +78,49 @@ the home screen, **[** shrinks the sidebar to icons.
 
 ## Text documents
 
-In a project that uses **Text spans**, Katib shows the words of a document instead of a canvas.
+In a project of text, Katib shows the words of a document instead of a canvas.
 
 1. Choose a class on the right.
 2. Select the words you want to label, with the mouse or by holding on a touch screen.
 3. The span appears as soon as you let go, in that class's colour.
 
 Katib leaves out any space at the edges of what you selected, so a span never ends with a blank.
+Selecting the same words again picks the span that is already there rather than making a second
+one.
 
 | To do this | How |
 |------------|-----|
 | Change a span's class | Click it, then press a number key or choose a class |
 | Remove a span | Click it and press Delete, or use the bin button in the list |
 | See every span | The list under the words. Each one shows its class and the words it covers |
+| Move to the next document | The arrow keys, as with pictures |
 | Undo | **Ctrl+Z**, the same as anywhere else |
 
 Spans can overlap, which is what you want when a phrase and a word inside it both need a label.
 Where they do, the words take the colour of the longer span, and both are listed underneath.
 
-You can also tag a whole document from the Classes tab, which suits sorting documents into
-categories, and write captions in the Text tab.
+### Joining two spans
+
+In a project that uses relations, each span in the list has a link button beside it.
+
+1. Choose the class for the link, such as `works for`. A link has its own class, separate from the
+   classes on the spans it joins.
+2. Press the link button beside the span the link starts from.
+3. Choose the span it points at, either in the list or in the words themselves.
+
+Links are listed under the spans, each reading from one to the other, so a wrong one is easy to
+spot. A link has a direction: `Ada -> Katib` as `works for` does not also mean the reverse.
+
+Removing a span removes the links that pointed at it, since a link with one end missing means
+nothing.
+
+Only two of the formats carry links: Label Studio and BRAT. See
+[Pictures, folders and formats](data.md#formats-for-text).
+
+### Labelling a whole document
+
+You can tag a whole document from the Classes tab, which is what to use for sorting documents into
+categories, and write an answer about it in the Text tab, for a summary, a translation or a reply.
 
 ## On a phone or tablet
 

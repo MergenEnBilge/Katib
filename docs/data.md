@@ -175,7 +175,9 @@ Katib reads and writes these formats. Read-only formats can be imported but not 
 | Mask pictures (PNG) | Masks | No | A `masks` or `SegmentationClass` folder with PNG files named like the pictures. A `classes.txt` or `labelmap.txt` file says which value or colour is which class |
 | Class folders | Tags | Yes | Pictures sorted into folders named after their class, such as `train/cat/1.jpg`. Katib only finds this format under split folders. Otherwise choose it by hand |
 | JSON Lines | Tags, captions, text, every shape type | Yes | A `metadata.jsonl` file. Hugging Face can load it directly |
-| Text spans (JSON Lines) | Spans in documents, document tags | Yes | A `.jsonl` file whose lines hold `text` and `spans`. Used by text projects. The words are written into the file, so the export stands alone |
+
+Formats for text are listed separately, under [Text documents](#text-documents). A project is
+offered only the formats for what it holds, so a project of pictures never sees them.
 
 Katib also finds a dataset that sits one folder down inside the folder you chose, such as a
 `data.yaml` in a subfolder.
@@ -222,8 +224,21 @@ classes, Katib warns you before the next export, because the numbers will change
 
 ## Text documents
 
-A project that uses **Text spans** holds documents instead of pictures. Everything else works the
-same way: the same roles, the same queue of work, the same splits, and the same 30 days of undo.
+Choose **Text** when you create a project and it holds documents instead of pictures. Everything
+else works the same way: the same roles, the same queue of work, the same splits, the same review,
+and the same 30 days of undo.
+
+A project holds either pictures or text, never both. The shapes, the formats and the workspace all
+differ, so mixing them would leave both halves half usable.
+
+### What you can label in a document
+
+| Job | What you label | Choose |
+|-----|----------------|--------|
+| Named entities | A run of words: a name, a place, an amount | **Find things in the words** |
+| Relation extraction | A link from one span to another, such as who works where | **Find things and how they relate** |
+| Classification | One or more labels for a whole document | **Sort documents** |
+| Summaries, translations, replies | Words you write about a document | **Write an answer** |
 
 ### Adding documents
 
@@ -235,29 +250,47 @@ Choose **Add documents** and pick your files.
 - If a line already carries spans, in `spans` or `entities`, they come in as labels, and any class
   they name is created. Both shapes are read: `{"start": 0, "end": 5, "label": "product"}` and
   `[0, 5, "product"]`.
-- A line can also carry `tags`, which label the whole document. That is what to use for sorting
-  documents into categories.
+- A line can also carry `tags`, `accept` or `cats`, which label the whole document.
 
-The same words are only added once, however many times you add the file.
+The same words are only added once, however many times you add the file. A document can be up to
+400,000 characters, which is about 100 pages.
 
-A document can be up to 400,000 characters, which is about 100 pages.
+You can also bring documents in through the **Labels** tab. Most of the formats below carry the
+words as well as the labels, so importing one into an empty project makes the documents too.
 
 ### Labelling words
 
-See [Drawing and shortcuts](drawing.md#text-documents) for how to label spans.
+See [Drawing and shortcuts](drawing.md#text-documents) for how to label spans and join them up.
 
-### Exporting
+### Formats for text
 
-Export with **Text spans (JSON Lines)**. Each line holds the document's words and its spans:
+| Format | Holds | Reads | Writes | What it looks like |
+|--------|-------|-------|--------|--------------------|
+| Text spans (JSON Lines) | Spans, document labels, written answers | Yes | Yes | One JSON object per line with the words and character offsets. Also written under the names spaCy and Prodigy read, so all three load the same file |
+| CoNLL | Spans | Yes | Yes | One word per line with a BIO tag beside it, a blank line between documents. The oldest and most widely read shape for named entities |
+| Hugging Face token classification | Spans | Yes | Yes | One JSON object per line with `tokens` and `ner_tags`, and a `labels.txt` beside it. `load_dataset("json", data_files=...)` reads it straight into a run |
+| Label Studio | Spans, document labels, relations | Yes | Yes | A `tasks.json` of tasks and results. Use this to move a project to or from Label Studio |
+| BRAT standoff | Spans, relations | Yes | Yes | The words in a `.txt` file and the labels in a `.ann` beside it. Usual in biomedical and academic work |
+| Text and a label | Document labels, written answers | Yes | Yes | A `documents.csv` or `.jsonl` of `text`, `label` and `answer`. For sorting documents, and for prompt-and-answer files |
+
+Katib stores a span as a run of characters, which is exact. **CoNLL and Hugging Face label whole
+words instead**, so a span that stops in the middle of a word is stretched to that word's edges on
+export, and the report says how many were stretched. The other four keep character offsets, so they
+come back exactly as they went out.
+
+Relations are only carried by **Label Studio** and **BRAT**. Exporting a project that has them in
+any other format says how many were left out.
+
+The spans file looks like this:
 
 ```json
 {"id": "review-1", "text": "Katib runs on my laptop.", "split": "train",
- "tags": ["positive"], "spans": [{"start": 0, "end": 5, "label": "product", "text": "Katib"}]}
+ "tags": ["positive"], "spans": [{"start": 0, "end": 5, "label": "product", "text": "Katib"}],
+ "entities": [[0, 5, "product"]]}
 ```
 
 `start` is the first character and `end` the one just past the last, so `text[start:end]` is the
-labelled words. Offsets count characters, so an accent or an emoji counts as one. The same file can
-be imported again, and spans attach to the documents whose names match.
+labelled words. Offsets count characters, so an accent or an emoji counts as one.
 
 ## Duplicates and dataset health
 
