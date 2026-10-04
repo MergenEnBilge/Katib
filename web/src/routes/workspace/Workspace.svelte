@@ -4,6 +4,7 @@
     Check,
     Download,
     CircleHelp,
+    Ellipsis,
     Keyboard,
     LayoutGrid,
     Stethoscope,
@@ -51,6 +52,7 @@
   import Callout from '../../lib/ui/Callout.svelte';
   import EmptyState from '../../lib/ui/EmptyState.svelte';
   import IconButton from '../../lib/ui/IconButton.svelte';
+  import Modal from '../../lib/ui/Modal.svelte';
   import Toast from '../../lib/ui/Toast.svelte';
   import CanvasView from './CanvasView.svelte';
   import DocumentView from './DocumentView.svelte';
@@ -100,6 +102,7 @@
   let tool = $state<ToolName>('select');
   let tab = $state<Tab>(layout.tab as Tab);
   let dialog = $state<Dialog>(null);
+  let moreOpen = $state(false);
   let railOpen = $state(false);
   let panelOpen = $state(false);
   let zoom = $state(100);
@@ -171,6 +174,41 @@
   );
 
   const shared = $derived(session.mode === 'local');
+
+  /**
+   * The header has room for these buttons on a wide screen and hides them on a narrow one, so a
+   * phone reaches the same things through one menu instead of losing them.
+   */
+  const moreActions = $derived([
+    ...(ws.canManage
+      ? [
+          { label: 'Import', icon: Upload, run: () => (dialog = 'import-images') },
+          { label: 'Export', icon: Download, run: () => (dialog = 'export') },
+          {
+            label: 'Train, validation and test split',
+            icon: Shuffle,
+            run: () => (dialog = 'splits'),
+          },
+        ]
+      : []),
+    ...(shared ? [{ label: 'Team', icon: Users, run: () => (dialog = 'team') }] : []),
+    ...(ws.canManage && ws.types.includes('box')
+      ? [{ label: 'Pre-label with a model', icon: Sparkles, run: () => (dialog = 'prelabel') }]
+      : []),
+    {
+      label: 'Class gallery',
+      icon: LayoutGrid,
+      run: () => router.navigate(`/p/${projectId}/gallery`),
+    },
+    { label: 'Dataset health', icon: Stethoscope, run: () => (dialog = 'health') },
+    { label: 'Class manager', icon: Tags, run: () => (dialog = 'classes') },
+    { label: 'Help and tour', icon: CircleHelp, run: () => (dialog = 'help') },
+    {
+      label: theme.current === 'dark' ? 'Switch to light theme' : 'Switch to dark theme',
+      icon: theme.current === 'dark' ? Sun : Moon,
+      run: () => theme.toggle(),
+    },
+  ]);
 
   const panelTabs = $derived([
     ['classes', 'Classes'],
@@ -435,6 +473,9 @@
           {#if layout.panel}<PanelRightOpen size={16} class="mirror" />{:else}<PanelRightClose size={16} class="mirror" />{/if}
         </IconButton>
       </span>
+      <span class="only-tiny">
+        <IconButton label="More" onclick={() => (moreOpen = true)}><Ellipsis size={16} /></IconButton>
+      </span>
       <span class="only-narrow">
         <IconButton label="Show classes and details" onclick={() => ((panelOpen = !panelOpen), (railOpen = false))}>
           <PanelRight size={16} class="mirror" />
@@ -622,6 +663,27 @@
   />
 {:else if dialog === 'picker'}
   <ClassPicker {ws} onclose={() => (dialog = null)} />
+{/if}
+
+{#if moreOpen}
+  <Modal title="More" description="The rest of what you can do with this project." onclose={() => (moreOpen = false)}>
+    <div class="menu">
+      {#each moreActions as action (action.label)}
+        {@const Icon = action.icon}
+        <button
+          type="button"
+          class="menu-row"
+          onclick={() => {
+            moreOpen = false;
+            action.run();
+          }}
+        >
+          <Icon size={16} />
+          <span>{action.label}</span>
+        </button>
+      {/each}
+    </div>
+  </Modal>
 {/if}
 
 {#if touring && ws.project}
@@ -939,8 +1001,34 @@
     padding: var(--space-6);
   }
 
-  .only-narrow {
+  .only-narrow,
+  .only-tiny {
     display: none;
+  }
+
+  .menu {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .menu-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    width: 100%;
+    min-height: var(--h-button);
+    padding: var(--space-2);
+    background: none;
+    border: 0;
+    border-radius: var(--radius-control);
+    color: var(--text);
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+  }
+
+  .menu-row:hover {
+    background: var(--surface-1);
   }
 
   @media (max-width: 1099px) {
@@ -997,12 +1085,25 @@
 
     .group.end {
       gap: 0;
+      /* The save state, More and the panel toggle always stay reachable. */
+      flex: none;
+    }
+
+    /* With little room the tools scroll sideways rather than push the rest off the bar. */
+    .group.tools {
+      min-width: 0;
+      overflow-x: auto;
+      scrollbar-width: none;
     }
 
     .hide-narrow,
     .crumb,
     .save-text {
       display: none;
+    }
+
+    .only-tiny {
+      display: inline-flex;
     }
 
     .panel-wrap {
