@@ -5,6 +5,7 @@ are made again when needed, so they are left out too. Restoring is the reverse a
 outside the data folder.
 """
 
+import contextlib
 import json
 import shutil
 import sqlite3
@@ -24,6 +25,9 @@ from katib.services.errors import InvalidInput
 DB_NAME = "katib.db"
 MANIFEST = "backup.json"
 KEPT_FOLDERS = ("uploads", "operations")
+#: Files kept beside the database. Both hold secrets, so a restore makes them private again.
+#: The cache of pictures fetched from a bucket is left out: it can always be fetched again.
+PRIVATE_FILES = (SAVED_FILE, "cloud-sources.json")
 Progress = Callable[[float], None]
 
 
@@ -75,9 +79,10 @@ def create(
             live.close()
         archive.write(copy, DB_NAME, zipfile.ZIP_DEFLATED)
         written += copy.stat().st_size
-        settings = data_dir / SAVED_FILE
-        if settings.is_file():
-            archive.write(settings, SAVED_FILE, zipfile.ZIP_DEFLATED)
+        for name in PRIVATE_FILES:
+            beside = data_dir / name
+            if beside.is_file():
+                archive.write(beside, name, zipfile.ZIP_DEFLATED)
         manifest = {
             "katib": version("katib"),
             "created": datetime.now(UTC).isoformat(timespec="seconds"),
@@ -137,4 +142,10 @@ def restore(archive_path: Path, data_dir: Path, replace: bool = False) -> Backup
             existing.replace(root / f"{DB_NAME}.before-restore")
         root.mkdir(parents=True, exist_ok=True)
         archive.extractall(root)
+        # A zip carries no permissions, so the files holding secrets are made private again.
+        for name in PRIVATE_FILES:
+            restored = root / name
+            if restored.is_file():
+                with contextlib.suppress(OSError):
+                    restored.chmod(0o600)
     return BackupReport(len(names) - 1, total)
