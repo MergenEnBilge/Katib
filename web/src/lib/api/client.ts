@@ -8,6 +8,8 @@ import type {
   AuthStatus,
   BatchOp,
   ClassOp,
+  CloudSource,
+  CloudSourceInput,
   Comment,
   ConnectedFolder,
   ConnectResult,
@@ -376,6 +378,21 @@ export const api = {
       if (!response.ok) return fail(response);
       return (await response.json()) as ConnectResult;
     },
+  },
+
+  cloud: {
+    /** The buckets this server can read from. Keys are never included. Administrators only. */
+    list: () => request<CloudSource[]>('GET', '/settings/cloud'),
+    /** Just the names, for choosing one when importing. */
+    names: () => request<{ name: string; provider: string }[]>('GET', '/cloud-sources'),
+    /** Add or replace a bucket. Katib tries the details and says what it can see. */
+    save: (source: CloudSourceInput) =>
+      request<{ objects: number }>('PUT', '/settings/cloud', source),
+    forget: (name: string) =>
+      request<void>('DELETE', `/settings/cloud/${encodeURIComponent(name)}`),
+    /** Bring the pictures under a name in the bucket into a project. */
+    importInto: (projectId: string, source: string, prefix: string) =>
+      request<Job>('POST', `/projects/${projectId}/cloud-imports`, { source, prefix }),
   },
 
   documents: {

@@ -741,6 +741,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/settings/cloud": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Sources
+         * @description The buckets set up on this server.
+         */
+        get: operations["list_sources_api_v1_settings_cloud_get"];
+        /**
+         * Save Source
+         * @description Add a bucket, or replace one of the same name. The details are tried before they are kept.
+         */
+        put: operations["save_source_api_v1_settings_cloud_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settings/cloud/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Forget Source
+         * @description Forget a bucket. Pictures already in a project cannot be opened until it is set up again.
+         */
+        delete: operations["forget_source_api_v1_settings_cloud__name__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/cloud-imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import From Cloud
+         * @description Bring the pictures under a name in the bucket into this project, without copying them in.
+         */
+        post: operations["import_from_cloud_api_v1_projects__project_id__cloud_imports_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}/splits": {
         parameters: {
             query?: never;
@@ -1740,6 +1804,73 @@ export interface components {
              * @default true
              */
             positive: boolean;
+        };
+        /** CloudImportIn */
+        CloudImportIn: {
+            /** Source */
+            source: string;
+            /**
+             * Prefix
+             * @default
+             */
+            prefix: string;
+        };
+        /**
+         * CloudSourceIn
+         * @description A bucket to read pictures from. The secret is kept on the server and never sent back.
+         */
+        CloudSourceIn: {
+            /** Name */
+            name: string;
+            /**
+             * Provider
+             * @default s3
+             * @enum {string}
+             */
+            provider: "s3" | "azure";
+            /** Bucket */
+            bucket: string;
+            /** Access Key */
+            access_key: string;
+            /** Secret */
+            secret: string;
+            /**
+             * Region
+             * @default us-east-1
+             */
+            region: string;
+            /**
+             * Endpoint
+             * @default
+             */
+            endpoint: string;
+            /**
+             * Prefix
+             * @default
+             */
+            prefix: string;
+        };
+        /** CloudSourceOut */
+        CloudSourceOut: {
+            /** Name */
+            name: string;
+            /** Provider */
+            provider: string;
+            /** Bucket */
+            bucket: string;
+            /** Region */
+            region: string;
+            /** Endpoint */
+            endpoint: string;
+            /** Prefix */
+            prefix: string;
+            /** Access Key */
+            access_key: string;
+        };
+        /** CloudTestOut */
+        CloudTestOut: {
+            /** Objects */
+            objects: number;
         };
         /** CommentIn */
         CommentIn: {
@@ -4454,6 +4585,123 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DocumentTextOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_sources_api_v1_settings_cloud_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CloudSourceOut"][];
+                };
+            };
+        };
+    };
+    save_source_api_v1_settings_cloud_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CloudSourceIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CloudTestOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    forget_source_api_v1_settings_cloud__name__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_from_cloud_api_v1_projects__project_id__cloud_imports_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CloudImportIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobOut"];
                 };
             };
             /** @description Validation Error */
