@@ -17,7 +17,7 @@
   let format = $state('yolo-detect');
   let which = $state<'all' | 'done' | 'notdone'>('all');
   let copyImages = $state(false);
-  const isText = $derived(ws.types.includes('span'));
+  const isText = $derived(ws.medium === 'text');
   let saveHere = $state(false);
   let destination = $state('');
   let moveFiles = $state(false);
@@ -66,9 +66,7 @@
       .formats()
       // Text and pictures are different worlds, so a project is only offered its own formats.
       .then((f) => {
-        formats = f.filter(
-          (x) => x.can_export !== false && x.supports.includes('span') === isText,
-        );
+        formats = f.filter((x) => x.can_export !== false && x.medium === ws.medium);
         // The starting format suits a picture project. A text project has its own, so move to
         // the first of those rather than leaving a format it cannot export in the box.
         if (!formats.some((x) => x.id === format)) format = formats[0]?.id ?? '';

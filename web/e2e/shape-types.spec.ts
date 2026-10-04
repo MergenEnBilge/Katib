@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { connectLibrary } from './fixtures';
+import { connectLibrary, pickKind } from './fixtures';
 
 const API = '/api/v1';
 
@@ -15,6 +15,7 @@ test('draw a rotated box, landmarks, a mask and a tag, and keep them after a rel
   await page.goto('/');
   await page.getByRole('button', { name: 'New project' }).first().click();
   await page.getByLabel('Project name').fill(`Shapes ${Date.now()}`);
+  await pickKind(page, 'Pictures', /^Choose the shapes myself/);
   for (const label of ['Rotated boxes', 'Keypoints', 'Brush masks', 'Image tags']) {
     await page.getByLabel(label).check();
   }
