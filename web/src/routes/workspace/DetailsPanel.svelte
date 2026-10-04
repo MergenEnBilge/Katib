@@ -5,6 +5,7 @@
   import { maskCells } from '../../lib/canvas/mask';
   import { isBox, isKeypoints, isMask, isObb, isPolygon, type Shape } from '../../lib/canvas/types';
   import { plural } from '../../lib/format';
+  import { spanRange } from '../../lib/text/spans';
   import type { Workspace } from '../../lib/state/workspace.svelte';
   import Button from '../../lib/ui/Button.svelte';
 
@@ -61,6 +62,10 @@
   /** One line about a shape that has no box fields to edit. */
   function describe(s: Shape): string {
     const g = s.geometry;
+    if (s.type === 'span') {
+      const { start, end } = spanRange(s);
+      return `Characters ${start.toLocaleString()} to ${end.toLocaleString()}, ${plural(end - start, 'character')} in all.`;
+    }
     if (isPolygon(g)) {
       const area = item ? Math.round(polygonArea(g.points) * item.width * item.height) : 0;
       return `${plural(g.points.length, 'point')}, ${pixels(s)}, area ${area.toLocaleString()} px`;
