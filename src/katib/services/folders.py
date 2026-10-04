@@ -50,6 +50,17 @@ class Listing:
     in_container: bool = False
     #: Files here that look like label files, so the labels picker can offer them.
     label_files: list[Place] = field(default_factory=list[Place])
+    #: A real folder on the Katib computer, for the boxes that take a typed path. A Windows
+    #: server and a Linux one write paths differently, and only the server knows which it is.
+    example: str = ""
+
+
+def example_path(ctx: StorageContext) -> str:
+    """A folder worth showing as an example of what a path here looks like."""
+    roots = resolved_roots(ctx.allowed_roots)
+    if roots:
+        return str(roots[0])
+    return str(Path(ctx.data_dir).resolve())
 
 
 def load_connected(session: Session, ctx: StorageContext) -> None:
@@ -163,6 +174,7 @@ def browse(ctx: StorageContext, raw: str | None, *, unrestricted: bool) -> Listi
         can_connect=unrestricted or inside(path, roots),
         in_container=in_container,
         label_files=_label_files_here(path),
+        example=example_path(ctx),
     )
 
 

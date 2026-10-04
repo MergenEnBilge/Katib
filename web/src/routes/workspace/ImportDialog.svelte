@@ -13,13 +13,11 @@
 
   let {
     projectId,
-    initialTab = 'images',
     documents = false,
     ondone,
     onclose,
   }: {
     projectId: string;
-    initialTab?: 'images' | 'labels';
     /** The project labels text documents rather than pictures, so this adds those instead. */
     documents?: boolean;
     ondone: () => void;
@@ -31,8 +29,7 @@
     reason: string;
   }
 
-  // svelte-ignore state_referenced_locally
-  let tab = $state<'images' | 'labels'>(initialTab);
+  let tab = $state<'images' | 'labels'>('images');
   let typedFolder = $state('');
   let connected = $state<ConnectedFolder[]>([]);
   let picking = $state(false);
@@ -107,10 +104,17 @@
   }
   let format = $state('');
   let formats = $state<FormatInfo[]>([]);
+  let connectedFailed = $state(false);
+  let bucketsFailed = $state(false);
+  let example = $state('/data/photos');
   let busy = $state(false);
   let progress = $state(0);
   let error = $state('');
   let summary = $state<string[]>([]);
+  /** The last import added items but found no labels, so bringing some in is the next step. */
+  let noLabels = $state(false);
+  /** True while files are being read to see which the project already has. */
+  let checking = $state(false);
   let notes = $state<Note[]>([]);
   let folderInput: HTMLInputElement | null = $state(null);
   let picker: HTMLInputElement | null = $state(null);
@@ -134,18 +138,37 @@
         error = err instanceof ApiError ? err.message : 'Could not load the list of formats.';
       });
     void loadConnected();
-    // Buckets are only offered when somebody has set one up.
-    api
-      .cloud.names()
-      .then((found) => (buckets = found))
-      .catch(() => (buckets = []));
+    void loadBuckets();
+    void loadExample();
   });
 
   async function loadConnected(): Promise<void> {
     try {
       connected = await api.folders.connected(projectId);
+      connectedFailed = false;
     } catch {
       connected = [];
+      // Saying nothing here would make a folder that is connected look as though it is not.
+      connectedFailed = true;
+    }
+  }
+
+  async function loadBuckets(): Promise<void> {
+    try {
+      buckets = await api.cloud.names();
+      bucketsFailed = false;
+    } catch {
+      buckets = [];
+      bucketsFailed = true;
+    }
+  }
+
+  /** A real folder on the server, so a box that takes a path shows the right shape of one. */
+  async function loadExample(): Promise<void> {
+    try {
+      example = (await api.folders.browse()).example || example;
+    } catch {
+      // Only a placeholder, so there is nothing worth saying when it cannot be read.
     }
   }
 
@@ -158,6 +181,8 @@
     error = '';
     summary = [];
     notes = [];
+    noLabels = false;
+    checking = false;
     progress = 0;
   }
 
@@ -195,6 +220,7 @@
     const result = done.result as unknown as FolderImportResult;
     changed = true;
     const dataset = result.dataset;
+    noLabels = result.added > 0 && dataset.state !== 'read';
     if (folder && result.missing) missing = { folder, count: result.missing };
     summary = [
       `${plural(result.added, 'image')} added.`,
@@ -240,8 +266,15 @@
     const batch = crypto.randomUUID();
     let kept = 0;
     try {
-      // Pictures the project already has are not sent again. Checking costs one small request.
-      const known = await knownPictures(projectId, items);
+      // Pictures the project already has are not sent again. Working out which means reading
+      // each one, which takes a moment on a big folder, so it says so while it happens.
+      checking = true;
+      const known = await knownPictures(projectId, items, (done, total) => {
+        currentFile = `Checking which pictures you already have: ${done} of ${total}`;
+        progress = total ? done / total : 0;
+      });
+      checking = false;
+      progress = 0;
       for (const [i, file] of items.entries()) {
         currentFile = relativePath(file);
         progress = i / items.length;
@@ -403,6 +436,12 @@
       </div>
     </div>
   {:else if tab === 'images'}
+    {#if connectedFailed}
+      <p class="note">
+        Katib could not check which folders this project already reads, so any it has are not
+        listed below. <button type="button" class="again" onclick={loadConnected}>Try again</button>
+      </p>
+    {/if}
     {#if connected.length > 0}
       <div class="section">
         <ul class="connected" aria-label="Connected folders">
@@ -446,10 +485,20 @@
         {/if}
         <details class="typed">
           <summary>Type a folder path instead</summary>
-          <TextField label="Folder on the Katib computer" placeholder="/data/photos" bind:value={typedFolder} />
+          <TextField label="Folder on the Katib computer" placeholder={example} bind:value={typedFolder} />
           <div><Button disabled={busy || !typedFolder.trim()} onclick={() => connectFolder(typedFolder.trim())}>Connect</Button></div>
         </details>
       </div>
+
+      {#if bucketsFailed}
+        <div class="option">
+          <h3>From a bucket</h3>
+          <p class="note">
+            Katib could not check which buckets are set up, so none can be chosen here yet.
+          </p>
+          <div><Button onclick={loadBuckets}>Try again</Button></div>
+        </div>
+      {/if}
 
       {#if buckets.length > 0}
         <div class="option">
@@ -515,9 +564,16 @@
   {:else}
     <div class="section">
       <p class="note">
-        Choose the dataset folder, or its <code>data.yaml</code> or <code>obj.data</code> file. YOLO
-        (old or new, including pose and rotated boxes), COCO, Pascal VOC, LabelMe, CVAT, CreateML,
-        mask pictures and class folders are all read, with their splits.
+        {#if documents}
+          Choose the file your labels are in. CoNLL, Hugging Face token files, spaCy and Prodigy
+          JSON Lines, Label Studio tasks, BRAT folders and plain CSV are all read. Labels attach to
+          the documents whose names match, and a file that carries its own words brings any
+          document this project does not have yet.
+        {:else}
+          Choose the dataset folder, or its <code>data.yaml</code> or <code>obj.data</code> file.
+          YOLO (old or new, including pose and rotated boxes), COCO, Pascal VOC, LabelMe, CVAT,
+          CreateML, mask pictures and class folders are all read, with their splits.
+        {/if}
       </p>
       {#if pickingLabels}
         <FolderPicker
@@ -536,7 +592,7 @@
         </div>
         <details class="typed">
           <summary>Type a path instead</summary>
-          <TextField label="Folder or file on the Katib computer" placeholder="/data/labels" bind:value={labelPath} />
+          <TextField label="Folder or file on the Katib computer" placeholder={example} bind:value={labelPath} />
         </details>
       {/if}
       <label class="select">
@@ -552,7 +608,11 @@
   {/if}
 
   {#if busy}
-    {#if currentFile}<p class="current mono">Uploading {currentFile}…</p>{/if}
+    {#if currentFile}
+      <p class="current mono">
+        {#if checking}{currentFile}{:else}Uploading {currentFile}…{/if}
+      </p>
+    {/if}
     <div class="bar" role="progressbar" aria-label="Import progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(progress * 100)}>
       <span style:width="{Math.round(progress * 100)}%"></span>
     </div>
@@ -561,6 +621,11 @@
   {#if summary.length}
     <Callout>
       {#each summary as line (line)}<p class="line">{line}</p>{/each}
+      {#snippet action()}
+        {#if noLabels}
+          <Button onclick={() => ((tab = 'labels'), (summary = []))}>Import labels</Button>
+        {/if}
+      {/snippet}
     </Callout>
   {/if}
   {#if notes.length}
@@ -578,6 +643,16 @@
 </Modal>
 
 <style>
+  .again {
+    padding: 0;
+    background: none;
+    border: 0;
+    color: var(--accent);
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
   .tabs {
     display: flex;
     gap: var(--space-1);

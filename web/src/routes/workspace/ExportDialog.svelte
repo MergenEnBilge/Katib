@@ -11,7 +11,11 @@
   import Callout from '../../lib/ui/Callout.svelte';
   import Modal from '../../lib/ui/Modal.svelte';
 
-  let { ws, onclose }: { ws: Workspace; onclose: () => void } = $props();
+  let {
+    ws,
+    onclose,
+    onclasses,
+  }: { ws: Workspace; onclose: () => void; onclasses: () => void } = $props();
 
   let formats = $state<FormatInfo[]>([]);
   let format = $state('yolo-detect');
@@ -41,14 +45,27 @@
   let test = $state(10);
   let seed = $state(0);
   let stratify = $state(true);
+  const shares = $derived(train + val + test);
+  /** What the three shares become once they are scaled to add up, so nobody has to guess. */
+  const scaled = $derived({
+    train: shares ? Math.round((train / shares) * 100) : 0,
+    val: shares ? Math.round((val / shares) * 100) : 0,
+    test: shares ? Math.round((test / shares) * 100) : 0,
+  });
   let orderChanged = $state(false);
   let busy = $state(false);
   let error = $state('');
   let downloadUrl = $state('');
+  let example = $state('/data/exports/street');
   let result = $state<{ images: number; shapes: number; folder?: string | null; notes: { subject: string; reason: string }[] } | null>(null);
 
   $effect(() => {
     api.exportInfo(ws.projectId).then((i) => (orderChanged = i.order_changed)).catch(() => undefined);
+    // A real folder on the server, so the box shows the right shape of path for it.
+    api.folders
+      .browse()
+      .then((l) => (example = l.example ? `${l.example}/export` : example))
+      .catch(() => undefined);
   });
 
   $effect(() => {
@@ -152,7 +169,7 @@
 
     <label class="check"><input type="checkbox" bind:checked={saveHere} onchange={folderToggled} disabled={busy} /> Save into a folder on the Katib computer instead of a zip</label>
     {#if saveHere}
-      <TextField label="Folder to write into" placeholder="/data/exports/street" bind:value={destination} hint="Must be empty or new. Only administrators can save to a folder on the server." />
+      <TextField label="Folder to write into" placeholder={example} bind:value={destination} hint="Must be empty or new. Only administrators can save to a folder on the server." />
       {#if !folderReady}
         <p class="note">Name the folder to write into, or turn this off to download a zip instead.</p>
       {/if}
@@ -185,6 +202,12 @@
         <label>Seed<input type="number" bind:value={seed} /></label>
         <label class="check wide"><input type="checkbox" bind:checked={stratify} /> Keep rare classes in every split</label>
       </div>
+      {#if shares !== 100}
+        <p class="note">
+          Those add up to {shares}%, so they will be scaled to fit: about {scaled.train}% train,
+          {scaled.val}% validation and {scaled.test}% test. Make them add up to 100 to say exactly.
+        </p>
+      {/if}
     {/if}
 
     <div class="order">
@@ -197,6 +220,15 @@
     </div>
   </div>
 
+  {#if ws.classes.length === 0}
+    <Callout>
+      Add at least one class before exporting. A label file names the classes, so there is nothing
+      to write until this project has some.
+      {#snippet action()}
+        <Button onclick={onclasses}>Add a class</Button>
+      {/snippet}
+    </Callout>
+  {/if}
   {#if error}<Callout tone="danger">{error}</Callout>{/if}
   {#if result}
     <Callout>

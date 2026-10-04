@@ -19,13 +19,19 @@ export async function digestOf(file: File): Promise<string | null> {
  * The picture files this project already holds, found by their contents rather than their names.
  * A file that cannot be hashed is never reported as known, so it is sent.
  */
-export async function knownPictures(projectId: string, files: File[]): Promise<Set<File>> {
+export async function knownPictures(
+  projectId: string,
+  files: File[],
+  onProgress?: (done: number, total: number) => void,
+): Promise<Set<File>> {
+  const pictures = files.filter((f) => PICTURE.test(f.name));
   const digests = new Map<File, string>();
-  for (const file of files) {
-    if (!PICTURE.test(file.name)) continue;
+  for (const [i, file] of pictures.entries()) {
+    onProgress?.(i, pictures.length);
     const digest = await digestOf(file);
     if (digest) digests.set(file, digest);
   }
+  onProgress?.(pictures.length, pictures.length);
   const known = new Set<File>();
   if (digests.size === 0) return known;
   const unique = [...new Set(digests.values())];

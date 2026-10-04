@@ -152,6 +152,8 @@ class FolderListingOut(BaseModel):
     #: Katib is in a container, so only folders mounted at startup are reachable from here.
     in_container: bool = False
     label_files: list[PlaceOut] = []
+    #: A real folder on the Katib computer, to show in a box that takes a typed path.
+    example: str = ""
 
 
 class CloudSourceIn(BaseModel):

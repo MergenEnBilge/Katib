@@ -5,6 +5,7 @@
     placeholder = '',
     error = '',
     hint = '',
+    secret = false,
     onenter,
   }: {
     value?: string;
@@ -12,6 +13,8 @@
     placeholder?: string;
     error?: string;
     hint?: string;
+    /** Hide what is typed, for a key or a password. */
+    secret?: boolean;
     onenter?: () => void;
   } = $props();
 
@@ -24,6 +27,9 @@
     {id}
     bind:value
     {placeholder}
+    type={secret ? 'password' : 'text'}
+    autocomplete={secret ? 'off' : undefined}
+    spellcheck={secret ? false : undefined}
     aria-invalid={error ? 'true' : undefined}
     aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined}
     onkeydown={(e) => e.key === 'Enter' && onenter?.()}

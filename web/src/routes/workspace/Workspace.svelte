@@ -84,7 +84,6 @@
 
   type Dialog =
     | 'import-images'
-    | 'import-labels'
     | 'export'
     | 'classes'
     | 'history'
@@ -622,10 +621,9 @@
   {/if}
 </div>
 
-{#if dialog === 'import-images' || dialog === 'import-labels'}
+{#if dialog === 'import-images'}
   <ImportDialog
     projectId={ws.projectId}
-    initialTab={dialog === 'import-labels' ? 'labels' : 'images'}
     documents={textProject}
     ondone={() => {
       onboarding.mark('images');
@@ -634,7 +632,11 @@
     onclose={() => (dialog = null)}
   />
 {:else if dialog === 'export'}
-  <ExportDialog {ws} onclose={() => (dialog = null)} />
+  <ExportDialog
+    {ws}
+    onclose={() => (dialog = null)}
+    onclasses={() => (dialog = 'classes')}
+  />
 {:else if dialog === 'classes'}
   <ClassManagerDialog {ws} onclose={() => (dialog = null)} onhistory={() => (dialog = 'history')} />
 {:else if dialog === 'team' && ws.project}
