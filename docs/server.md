@@ -124,6 +124,7 @@ a lock in the app, with the variable's name, so you know why it cannot be change
 | `storage.allowed_import_roots` | none | Folders that everyone on a shared server may import from |
 | `limits.max_upload_mb` | `100` | The largest picture a browser may upload |
 | `limits.max_folder_upload_files` | `20000` | The most files in one folder upload |
+| `limits.max_cloud_cache_mb` | `5000` | How much disk the cache of pictures fetched from a bucket may use |
 | `limits.max_model_mb` | `500` | The largest model a browser may upload |
 | `limits.max_image_pixels` | `200000000` | Pictures with more pixels than this are refused |
 | `limits.operation_retention_days` | `30` | How long bulk changes can be undone |

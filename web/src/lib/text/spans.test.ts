@@ -89,3 +89,70 @@ describe('same', () => {
     expect(same({ start: 1, end: 2 }, { start: 1, end: 3 })).toBe(false);
   });
 });
+
+describe('segments, checked against a plain reading of the rules', () => {
+  /** A deliberately slow but obviously correct version, to compare against. */
+  function byTheBook(length: number, spans: Shape[]): { start: number; end: number; ids: string[] }[] {
+    const out: { start: number; end: number; ids: string[] }[] = [];
+    let run: { start: number; end: number; ids: string[] } | null = null;
+    for (let at = 0; at < length; at++) {
+      const ids = spans
+        .filter((s) => {
+          const r = spanRange(s);
+          return r.start <= at && at < Math.min(r.end, length);
+        })
+        .map((s) => s.id)
+        .sort();
+      if (run && run.ids.join() === ids.join()) run.end = at + 1;
+      else {
+        run = { start: at, end: at + 1, ids };
+        out.push(run);
+      }
+    }
+    return out;
+  }
+
+  /** Repeatable pseudo-random numbers, so a failure can be looked at again. */
+  function numbers(seed: number): () => number {
+    let value = seed;
+    return () => {
+      value = (value * 1103515245 + 12345) % 2147483648;
+      return value / 2147483648;
+    };
+  }
+
+  it('agrees for a few hundred arrangements, overlaps and all', () => {
+    const next = numbers(7);
+    for (let round = 0; round < 300; round++) {
+      const length = 1 + Math.floor(next() * 30);
+      const spans: Shape[] = [];
+      for (let i = 0; i < Math.floor(next() * 5); i++) {
+        const start = Math.floor(next() * length);
+        const end = start + 1 + Math.floor(next() * (length - start));
+        spans.push({
+          id: `s${i}`,
+          type: 'span',
+          classId: `c${i}`,
+          geometry: { start, end },
+          attrs: {},
+          version: 0,
+        });
+      }
+      const mine = segments(length, spans).map((s) => ({
+        start: s.start,
+        end: s.end,
+        ids: s.spans.map((x) => x.id).sort(),
+      }));
+      expect(mine).toEqual(byTheBook(length, spans));
+    }
+  });
+
+  it('puts the longest span first, so the colour comes from the outermost', () => {
+    const outer = span(0, 10, 'outer');
+    const inner = span(2, 4, 'inner');
+    const found = segments(10, [inner, outer]);
+    const middle = found.find((s) => s.start === 2);
+    expect(middle?.top?.classId).toBe('outer');
+    expect(middle?.spans.map((s) => s.classId)).toEqual(['outer', 'inner']);
+  });
+});

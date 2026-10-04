@@ -113,10 +113,32 @@ can add one, by uploading a file or downloading one of the models Katib offers.
 **Pass on passwords carefully.** Katib does not send email. Give new passwords in person, or through a private
 channel, and ask the person to change them straight away.
 
+## What the last review found
+
+Text documents, cloud buckets and the export that moves pictures were reviewed together, along
+with the rights on every route they added. It found and fixed:
+
+| Finding | Fix |
+|---------|-----|
+| Moving pictures on export could take pictures another project was also reading, leaving that project pointing at files that were gone | The move is refused, and says which project to look at |
+| The cache of pictures fetched from a bucket grew without limit, so a large bucket could fill the disk | The oldest go once the cache passes `limits.max_cloud_cache_mb`, 5 GB by default |
+| A restored backup left the files holding secrets readable by anyone on the machine, because a zip carries no permissions | They are made private again after a restore |
+| Two people creating a project at the same moment could be given the same web address, and the second saw a server error | Katib takes the next address along |
+| A document with many labelled spans was slow to draw, because every span was checked against every stretch of words | One pass through both lists, checked against a plain reading of the rules over hundreds of arrangements |
+
+Checked and found sound: spans cannot reach past the end of their document, and cannot be put on a
+picture; picture shapes cannot be put on a document; a document's words are only readable by someone
+who can see the project; adding documents and importing from a bucket need the same rights as
+importing pictures; bucket keys are never sent to a browser; Katib signs its own bucket requests and
+only ever reads; and a bucket's objects are only read when they are pictures Katib supports.
+
 ## Known limits
 
 - The database connection test in Settings connects to whatever address an administrator types. Only
-  administrators can use it.
+  administrators can use it. The same is true of a bucket's address: an administrator can point Katib
+  at any address, and Katib will try to read a listing from it.
+- The cache of pictures fetched from a bucket holds whatever has been opened, up to its limit. It is
+  inside the data folder, so keep that folder private, and it is safe to delete at any time.
 - The Android app allows plain `http` addresses, because home servers often have no certificate. It warns
   you before connecting to an address that is not on a private network.
 - Click to select runs a model on the server for anyone who uses it. Each picture's first click is the slow

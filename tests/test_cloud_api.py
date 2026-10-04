@@ -185,3 +185,32 @@ def test_importing_from_a_bucket_that_is_not_set_up_says_so(api: TestClient) -> 
     project = api.post(f"{API}/projects", json={"name": "None"}).json()["id"]
     missing = api.post(f"{API}/projects/{project}/cloud-imports", json={"source": "nope"})
     assert missing.status_code == 404
+
+
+def test_the_cache_of_fetched_pictures_is_kept_within_its_limit(
+    api: TestClient, bucket: str, tmp_path: Path
+) -> None:
+    """A big bucket must not fill the disk: the oldest fetched pictures go first."""
+    api.put(f"{API}/settings/cloud", json=details(bucket))
+    project = api.post(f"{API}/projects", json={"name": "Cache limit"}).json()["id"]
+    wait(
+        api,
+        api.post(f"{API}/projects/{project}/cloud-imports", json={"source": "photos"}).json()["id"],
+    )
+    cache = tmp_path / "data" / "cloud-cache"
+    assert list(cache.rglob("*.png")), "the picture should be in the cache"
+
+    # With room for almost nothing, the next prune clears what is there.
+    storage = api.app.state.storage  # type: ignore[attr-defined]
+    from katib.services import cloud_sources
+
+    object.__setattr__(storage, "max_cloud_cache_bytes", 10)
+    dropped = cloud_sources.prune_cache(storage, force=True)
+    assert dropped > 0
+    assert not list(cache.rglob("*.png"))
+
+    # The picture is still served: it is fetched again and cached again.
+    [item] = api.get(f"{API}/projects/{project}/images").json()["items"]
+    object.__setattr__(storage, "max_cloud_cache_bytes", 5_000 * 1024 * 1024)
+    assert api.get(f"{API}/images/{item['id']}/file").status_code == 200
+    assert list(cache.rglob("*.png"))

@@ -11,6 +11,7 @@ in a cache that can be deleted at any time.
 
 import contextlib
 import json
+import time
 import uuid
 from dataclasses import dataclass, field
 from io import BytesIO
@@ -161,6 +162,46 @@ def split_key(storage_key: str) -> tuple[str, str]:
     return name, object_key
 
 
+#: The cache is only measured now and then: walking it on every picture would cost more than it
+#: saves. Nothing depends on the limit being exact.
+PRUNE_EVERY = 60.0
+_last_prune = 0.0
+
+
+def prune_cache(ctx: StorageContext, force: bool = False) -> int:
+    """Drop the oldest fetched pictures while the cache is over its limit. Returns bytes dropped."""
+    global _last_prune
+    now = time.monotonic()
+    if not force and now - _last_prune < PRUNE_EVERY:
+        return 0
+    _last_prune = now
+    root = ctx.cloud_cache.root
+    if not root.is_dir():
+        return 0
+    files: list[tuple[float, int, Path]] = []
+    for item in root.rglob("*"):
+        try:
+            if item.is_file():
+                stat = item.stat()
+                files.append((stat.st_mtime, stat.st_size, item))
+        except OSError:
+            continue
+    total = sum(size for _, size, _ in files)
+    dropped = 0
+    # Down to four fifths, so this does not run again on the very next picture.
+    target = int(ctx.max_cloud_cache_bytes * 0.8)
+    for _age, size, path in sorted(files):
+        if total <= ctx.max_cloud_cache_bytes:
+            break
+        with contextlib.suppress(OSError):
+            path.unlink()
+            total -= size
+            dropped += size
+        if total <= target:
+            break
+    return dropped
+
+
 def cached_file(image: Image, ctx: StorageContext, data_dir: Path) -> Path:
     """Where the picture is on this computer, fetching it from the bucket the first time."""
     name, object_key = split_key(image.storage_key)
@@ -173,6 +214,7 @@ def cached_file(image: Image, ctx: StorageContext, data_dir: Path) -> Path:
     except cloud.CloudError as err:
         raise NotFound(f"That picture could not be fetched from {name}: {err}") from None
     ctx.cloud_cache.put(local, BytesIO(body))
+    prune_cache(ctx)
     return ctx.cloud_cache.path(local)
 
 
@@ -221,6 +263,7 @@ def import_prefix(
         if progress:
             progress(done / len(pictures))
     session.commit()
+    prune_cache(ctx, force=True)
     return report
 
 

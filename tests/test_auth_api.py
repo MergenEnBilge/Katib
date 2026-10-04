@@ -471,3 +471,44 @@ def test_an_invite_lapses_when_its_sender_can_no_longer_add_people(admin: TestCl
     )
     assert lapsed.status_code == 410
     assert "no longer works" in lapsed.json()["message"]
+
+
+def test_who_may_use_documents_and_buckets(admin: TestClient) -> None:
+    """The newer ways in need the same rights as the older ones."""
+    project = admin.post(
+        f"{API}/projects", json={"name": "Words", "annotation_types": ["span"]}
+    ).json()
+    viewer = join(admin, project["id"], "viewer", "viewer@example.com")
+
+    # Adding documents is managing the project's contents.
+    added = viewer.post(
+        f"{API}/projects/{project['id']}/documents",
+        files={"file": ("one.txt", b"Katib runs here.", "text/plain")},
+    )
+    assert added.status_code == 403
+    assert (
+        admin.post(
+            f"{API}/projects/{project['id']}/documents",
+            files={"file": ("one.txt", b"Katib runs here.", "text/plain")},
+        ).status_code
+        == 202
+    )
+
+    # Buckets are an administrator's business, and their keys are never listed.
+    assert viewer.get(f"{API}/settings/cloud").status_code == 403
+    assert viewer.put(f"{API}/settings/cloud", json={"name": "x", "bucket": "b"}).status_code == 403
+    assert viewer.delete(f"{API}/settings/cloud/x").status_code == 403
+    # Choosing a bucket to import from needs only the names, so anyone signed in may look.
+    assert viewer.get(f"{API}/cloud-sources").json() == []
+    assert (
+        viewer.post(
+            f"{API}/projects/{project['id']}/cloud-imports", json={"source": "x"}
+        ).status_code
+        == 403
+    )
+
+    # Someone outside the project cannot even tell it exists.
+    stranger = client_for(admin)
+    stranger.post(f"{API}/auth/login", json={"email": "viewer@example.com", "password": PASSWORD})
+    other = admin.post(f"{API}/projects", json={"name": "Not yours"}).json()
+    assert stranger.get(f"{API}/projects/{other['id']}").status_code == 404

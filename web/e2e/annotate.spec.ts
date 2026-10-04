@@ -86,13 +86,18 @@ test('an empty project explains what to do first', async ({ page }) => {
 });
 
 test('a duplicate project name is refused with a clear message', async ({ page }) => {
-  const name = `Dup ${test.info().project.name}`;
+  const name = `Dup ${test.info().project.name} ${Date.now()}`;
   await page.goto('/');
   for (let i = 0; i < 2; i++) {
     if (i === 1) await page.goto('/');
     await page.getByRole('button', { name: 'New project' }).first().click();
     await page.getByLabel('Project name').fill(name);
+    // Waiting for the answer, so a busy server does not look like a missing message.
+    const answered = page.waitForResponse(
+      (r) => r.url().includes('/api/v1/projects') && r.request().method() === 'POST',
+    );
     await page.getByRole('button', { name: 'Create project' }).click();
+    await answered;
   }
   await expect(page.getByRole('alert')).toContainText('already exists');
 });
