@@ -34,6 +34,8 @@ from katib.storage.local import LocalStorage, StorageTooLarge
 log = logging.getLogger(__name__)
 
 FILE_PREFIX = "file:"
+#: A picture that stays in a bucket. `katib.services.cloud_sources` owns what follows.
+CLOUD_PREFIX = "cloud:"
 COMMIT_EVERY = 50
 MAX_PAGE = 500
 
@@ -51,6 +53,10 @@ class StorageContext:
     #: running it, so a picked folder arrives as an upload and is written here before it is read
     #: the same way any other connected folder is.
     folder_uploads: LocalStorage
+    #: Pictures fetched from a bucket, kept so they are not fetched twice. Safe to delete.
+    cloud_cache: LocalStorage
+    #: The data folder itself, which is where the list of buckets is kept.
+    data_dir: Path
     #: A folder is uploaded one file at a time, so this is a backstop against one that would
     #: never finish, not a real technical ceiling. Set from limits.max_folder_upload_files.
     max_folder_files: int = 20_000
@@ -128,7 +134,15 @@ def resolve_folder(folder: str, roots: list[Path]) -> Path:
 
 
 def image_path(image: Image, ctx: StorageContext) -> Path:
-    """Where the original file for an image lives. Re-checks roots for referenced files."""
+    """Where the original file for an image lives. Re-checks roots for referenced files.
+
+    A picture in a bucket is fetched the first time it is wanted and kept in a cache, so this can
+    reach the network, and raises NotFound when the bucket cannot be reached.
+    """
+    if image.storage_key.startswith(CLOUD_PREFIX):
+        from katib.services import cloud_sources  # late: it reads pictures through this module
+
+        return cloud_sources.cached_file(image, ctx, ctx.data_dir)
     if image.storage_key.startswith(FILE_PREFIX):
         path = Path(image.storage_key[len(FILE_PREFIX) :]).resolve()
         if not inside(path, resolved_roots(ctx.allowed_roots)):
@@ -137,13 +151,13 @@ def image_path(image: Image, ctx: StorageContext) -> Path:
     return ctx.uploads.path(image.storage_key)
 
 
-def _thumb_key(image_id: uuid.UUID) -> str:
+def thumb_key(image_id: uuid.UUID) -> str:
     return f"{image_id}.jpg"
 
 
 def thumb_path(image: Image, ctx: StorageContext) -> Path:
     """Return the cached thumbnail, making it on first request if it is missing."""
-    dest = ctx.thumbs.path(_thumb_key(image.id))
+    dest = ctx.thumbs.path(thumb_key(image.id))
     if not dest.is_file():
         make_thumbnail(image_path(image, ctx), dest)
     return dest
@@ -199,7 +213,7 @@ def _add_image(
     if digest in known:
         return f"duplicate of {known[digest]}"
     image_id = new_id()
-    width, height, phash = thumbnail_and_hash(source, ctx.thumbs.path(_thumb_key(image_id)))
+    width, height, phash = thumbnail_and_hash(source, ctx.thumbs.path(thumb_key(image_id)))
     image = Image(
         id=image_id,
         project_id=project_id,
@@ -290,7 +304,7 @@ def forget_images(session: Session, ctx: StorageContext, gone: list[Image]) -> i
     """Take pictures out of the project, with their shapes and comments. Only Katib's own records
     and thumbnails go; whatever file a picture came from is not touched."""
     for image in gone:
-        ctx.thumbs.delete(_thumb_key(image.id))
+        ctx.thumbs.delete(thumb_key(image.id))
         session.delete(image)
     session.flush()
     return len(gone)

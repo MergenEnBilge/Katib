@@ -1,6 +1,6 @@
 <script lang="ts">
   import TipCard from '../../lib/ui/TipCard.svelte';
-  import { FolderOpen, RefreshCw, Upload, X } from '@lucide/svelte';
+  import { Cloud, FolderOpen, RefreshCw, Upload, X } from '@lucide/svelte';
   import { api, ApiError, waitForJob } from '../../lib/api/client';
   import type { ConnectedFolder, FormatInfo, Job } from '../../lib/api/types';
   import { plural } from '../../lib/format';
@@ -39,6 +39,23 @@
   let labelPath = $state('');
   let pickingLabels = $state(false);
   let documentInput: HTMLInputElement | null = $state(null);
+  let buckets = $state<{ name: string; provider: string }[]>([]);
+  let bucket = $state('');
+  let bucketPrefix = $state('');
+
+  /** Bring in the pictures under a name in a bucket. They stay in the bucket. */
+  async function importFromBucket(): Promise<void> {
+    if (!bucket) return;
+    startOver();
+    try {
+      const started = await api.cloud.importInto(projectId, bucket, bucketPrefix.trim());
+      await finishImport(started);
+    } catch (err) {
+      fail(err, 'Could not read that bucket.');
+    } finally {
+      busy = false;
+    }
+  }
 
   /** Add documents from the files someone picked, one file at a time so progress means something. */
   async function addDocuments(list: FileList | null): Promise<void> {
@@ -117,6 +134,11 @@
         error = err instanceof ApiError ? err.message : 'Could not load the list of formats.';
       });
     void loadConnected();
+    // Buckets are only offered when somebody has set one up.
+    api
+      .cloud.names()
+      .then((found) => (buckets = found))
+      .catch(() => (buckets = []));
   });
 
   async function loadConnected(): Promise<void> {
@@ -428,6 +450,33 @@
           <div><Button disabled={busy || !typedFolder.trim()} onclick={() => connectFolder(typedFolder.trim())}>Connect</Button></div>
         </details>
       </div>
+
+      {#if buckets.length > 0}
+        <div class="option">
+          <h3>From a bucket</h3>
+          <p class="note">
+            Read pictures straight from cloud storage. They stay in the bucket: Katib keeps their
+            thumbnails and fetches a picture when somebody opens it.
+          </p>
+          <label class="select">
+            <span>Bucket</span>
+            <select bind:value={bucket} disabled={busy}>
+              <option value="">Choose a bucket</option>
+              {#each buckets as b (b.name)}<option value={b.name}>{b.name}</option>{/each}
+            </select>
+          </label>
+          <TextField
+            label="Only names starting with"
+            placeholder="datasets/street/"
+            bind:value={bucketPrefix}
+          />
+          <div>
+            <Button variant="primary" loading={busy} disabled={!bucket} onclick={importFromBucket}>
+              <Cloud size={16} />Read from the bucket
+            </Button>
+          </div>
+        </div>
+      {/if}
 
       <div class="option">
         <h3>Copy from this device</h3>

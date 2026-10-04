@@ -57,6 +57,34 @@ Disconnecting a folder keeps the pictures that are already in the project.
     pictures. Use **Copy a folder** when the pictures are on another machine, such as the laptop you
     are working from.
 
+### Pictures in a cloud bucket
+
+Katib can read pictures straight from cloud storage, so a dataset already in a bucket does not have
+to be downloaded and uploaded again.
+
+Supported services:
+
+| Service | What to enter |
+|---------|---------------|
+| Amazon S3 | The bucket, an access key and secret, and the region |
+| Cloudflare R2, Backblaze B2, MinIO | The same, plus the service's address |
+| Google Cloud Storage | The same, with `https://storage.googleapis.com` as the address, and an HMAC key from its interoperability settings |
+| Azure Blob Storage | The container, the storage account's name, and the account key |
+
+An administrator sets a bucket up once, under **Settings**, then **Storage**, then **Add a bucket**.
+Katib tries the details before it saves them and says how many objects it could see, so a wrong key
+or region shows up straight away.
+
+Then, in a project, choose **Import images** and **Read from the bucket**. You can limit it to names
+starting with something, such as `datasets/street/`.
+
+**The pictures stay in the bucket.** Katib keeps each one's thumbnail, so lists stay quick, and
+fetches the picture itself when somebody opens it, keeping a copy in a cache that is safe to delete.
+Folder names in the bucket set the split, the same as a folder on disk, so `train/` and `val/` are
+picked up.
+
+Give Katib a key that can only read. It never writes to a bucket.
+
 ### Who can connect folders
 
 - On your own computer, with accounts turned off, you can connect any folder.

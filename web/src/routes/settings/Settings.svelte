@@ -11,6 +11,7 @@
   import BackupPanel from './BackupPanel.svelte';
   import ModePicker from './ModePicker.svelte';
   import PeoplePanel from './PeoplePanel.svelte';
+  import CloudPanel from './CloudPanel.svelte';
   import ResetPanel from './ResetPanel.svelte';
   import SettingRow from './SettingRow.svelte';
   import SegmentPanel from './SegmentPanel.svelte';
@@ -228,7 +229,7 @@
 
         {#if tab === 'sharing'}<SharePanel />{/if}
         {#if tab === 'model'}<SegmentPanel />{/if}
-        {#if tab === 'storage'}<ResetPanel />{/if}
+        {#if tab === 'storage'}<CloudPanel /><ResetPanel />{/if}
 
         {#if error}<Callout tone="danger">{error}</Callout>{/if}
         <div class="save" data-tour="settings-save">

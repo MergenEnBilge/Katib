@@ -28,6 +28,8 @@ class Setup:
             1_000_000,
             LocalStorage(tmp_path / "e"),
             LocalStorage(tmp_path / "f"),
+            LocalStorage(tmp_path / "c"),
+            tmp_path,
         )
         self.project = projects.create_project(session, "P")
         images.import_folder(session, self.project.id, str(lib), ctx)

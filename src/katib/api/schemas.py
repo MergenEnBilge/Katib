@@ -147,6 +147,47 @@ class FolderListingOut(BaseModel):
     label_files: list[PlaceOut] = []
 
 
+class CloudSourceIn(BaseModel):
+    """A bucket to read pictures from. The secret is kept on the server and never sent back."""
+
+    name: str = Field(max_length=60)
+    provider: Literal["s3", "azure"] = "s3"
+    bucket: str = Field(max_length=200)
+    access_key: str = Field(max_length=200)
+    secret: str = Field(max_length=500)
+    region: str = Field(default="us-east-1", max_length=60)
+    endpoint: str = Field(default="", max_length=300)
+    prefix: str = Field(default="", max_length=500)
+
+
+class CloudSourceOut(BaseModel):
+    name: str
+    provider: str
+    bucket: str
+    region: str
+    endpoint: str
+    prefix: str
+    #: Shown so somebody can tell which key is in use. The secret is not included.
+    access_key: str
+
+
+class CloudNameOut(BaseModel):
+    """Just enough for somebody importing to choose a bucket. No keys, no addresses."""
+
+    name: str
+    provider: str
+
+
+class CloudTestOut(BaseModel):
+    #: How many objects Katib could see, so the details can be checked at a glance.
+    objects: int
+
+
+class CloudImportIn(BaseModel):
+    source: str = Field(max_length=60)
+    prefix: str = Field(default="", max_length=500)
+
+
 class HaveIn(BaseModel):
     #: SHA-256 digests of pictures a browser is about to send.
     hashes: list[str] = Field(max_length=5000)

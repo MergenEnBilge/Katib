@@ -30,6 +30,8 @@ def ctx(tmp_path: Path) -> StorageContext:
         max_upload_bytes=50_000,
         exports=LocalStorage(tmp_path / "data" / "exports"),
         folder_uploads=LocalStorage(tmp_path / "data" / "folder-uploads"),
+        cloud_cache=LocalStorage(tmp_path / "data" / "cloud-cache"),
+        data_dir=tmp_path / "data",
     )
 
 
@@ -103,7 +105,14 @@ def test_no_allowed_folders_means_no_folder_import(
     session: Session, pid: uuid.UUID, ctx: StorageContext
 ) -> None:
     off = StorageContext(
-        ctx.uploads, ctx.thumbs, [], ctx.max_upload_bytes, ctx.exports, ctx.folder_uploads
+        ctx.uploads,
+        ctx.thumbs,
+        [],
+        ctx.max_upload_bytes,
+        ctx.exports,
+        ctx.folder_uploads,
+        ctx.cloud_cache,
+        ctx.data_dir,
     )
     with pytest.raises(ImportNotAllowed, match="No folder is connected"):
         images.import_folder(session, pid, ".", off)
@@ -147,6 +156,8 @@ def test_image_path_recheck_for_referenced_files(
         ctx.max_upload_bytes,
         ctx.exports,
         ctx.folder_uploads,
+        ctx.cloud_cache,
+        ctx.data_dir,
     )
     with pytest.raises(Exception, match="allowed"):
         images.image_path(img, shrunk)

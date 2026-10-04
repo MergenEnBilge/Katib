@@ -137,6 +137,7 @@ while offline is sent when you are connected again.
 | Use your own model | Load an ONNX detector to draft boxes, or a Segment Anything model to outline objects |
 | Use a phone or tablet | Install the Android app, or add Katib to your home screen |
 | Share on your network | Run `katib share` to get an address and a QR code |
+| Label pictures already in cloud storage | Add the bucket in Settings. S3, R2, B2, MinIO, Google Cloud Storage and Azure |
 
 ## Documentation
 
