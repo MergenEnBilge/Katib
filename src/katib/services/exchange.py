@@ -356,6 +356,29 @@ def _assign_splits(
 MovedPicture = tuple[Image, str, Path, Path]
 
 
+def _refuse_shared_pictures(session: Session, project_id: uuid.UUID, rows: list[Image]) -> None:
+    """Stop a move that would take a picture another project is also reading.
+
+    The same folder can be connected to more than one project. Moving its pictures would leave
+    the others pointing at files that are not there any more, so the move is refused and says
+    which project to look at instead.
+    """
+    keys = [r.storage_key for r in rows]
+    if not keys:
+        return
+    shared = session.scalar(
+        select(Project.name)
+        .join(Image, Image.project_id == Project.id)
+        .where(Image.project_id != project_id, Image.storage_key.in_(keys))
+        .limit(1)
+    )
+    if shared is not None:
+        raise InvalidInput(
+            f"Some of these pictures are also in “{shared}”. Moving them would leave that "
+            "project without them, so nothing was moved. Export a copy instead."
+        )
+
+
 def move_pictures(
     session: Session,
     project_id: uuid.UUID,
@@ -376,6 +399,7 @@ def move_pictures(
     )
     if statuses:
         rows = [r for r in rows if r.status in statuses]
+    _refuse_shared_pictures(session, project_id, rows)
     images_dir = destination / "images"
     images_dir.mkdir(parents=True, exist_ok=True)
     moved: list[MovedPicture] = []

@@ -470,3 +470,32 @@ def test_moving_pictures_into_an_export_takes_them_out_of_their_folder(
 
     image = api.get(f"{API}/projects/{p['id']}/images").json()["items"][0]
     assert api.get(f"{API}/images/{image['id']}/file").status_code == 200
+
+
+def test_moving_pictures_two_projects_share_is_refused(
+    api: TestClient, library: Path, tmp_path: Path
+) -> None:
+    """The same folder can be connected twice. Moving its pictures would break the other project."""
+    first = make_project(api, "First")
+    second = make_project(api, "Second")
+    import_library(api, first, library)
+    import_library(api, second, library)
+    api.post(f"{API}/projects/{first['id']}/classes", json={"name": "car"})
+    before = sorted(f.name for f in library.glob("*.png"))
+
+    res = api.post(
+        f"{API}/projects/{first['id']}/exports",
+        json={
+            "format": "yolo-detect",
+            "destination": str(tmp_path / "shared-move"),
+            "move_originals": True,
+            "confirm_move": True,
+        },
+    )
+    job = wait_job(api, res.json()["id"])
+    assert job["status"] == "failed", job
+    assert "also in “Second”" in (job["error"] or "")
+    # Nothing moved, and the other project still has its pictures.
+    assert sorted(f.name for f in library.glob("*.png")) == before
+    items = api.get(f"{API}/projects/{second['id']}/images").json()["items"]
+    assert api.get(f"{API}/images/{items[0]['id']}/file").status_code == 200
