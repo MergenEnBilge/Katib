@@ -58,6 +58,12 @@ account exists. Guessing it is rate limited.
 
 A server that only answers on its own computer does not ask, because nobody else can reach it.
 
+**Cloud keys.** A bucket's key is kept in `cloud-sources.json` in the data folder, which only the
+account running Katib can read, and it is never sent back to a browser. The list of buckets shows
+what is set up, not how to open it. Katib signs its own requests and only ever reads, so a key that
+can only read is enough and is what to give it. A backup includes this file, because a restored
+server would otherwise be unable to open those pictures; keep backups somewhere private.
+
 **Settings, backups and restarts.** Only administrators can change settings, make backups, or restart
 Katib. A password inside a database address is never shown again after you save it. Backup files are
 deleted from the server after a day, because they contain password hashes.

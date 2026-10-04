@@ -133,6 +133,15 @@ a lock in the app, with the variable's name, so you know why it cannot be change
 Under **Model help** you will also find two boxes for the two parts of a Segment Anything model, which
 click to select needs. [Model help](assist.md) explains which model to use.
 
+## Cloud buckets
+
+Under **Settings**, then **Storage**, you can let this server read pictures from Amazon S3,
+Cloudflare R2, Backblaze B2, MinIO, Google Cloud Storage or Azure Blob Storage. Katib tries the
+details before saving them. See [Pictures in a cloud bucket](data.md#pictures-in-a-cloud-bucket).
+
+Keys are kept in `cloud-sources.json` in the data folder, readable only by the account running
+Katib. Use a key that can only read.
+
 ## People
 
 With accounts turned on, **Settings**, then **People** lists everyone who has an account. Administrators

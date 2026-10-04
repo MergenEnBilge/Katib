@@ -5,6 +5,25 @@ All notable changes to Katib are listed here, newest first. Each release is also
 
 ## Unreleased
 
+### Fixed
+
+- Two people creating a project at the same moment could both be given the same web address for
+  it, and the second one saw a server error. Katib now takes the next address along.
+
+### Pictures from cloud storage
+
+- A server can read pictures straight from **Amazon S3, Cloudflare R2, Backblaze B2, MinIO, Google
+  Cloud Storage and Azure Blob Storage**, so a dataset already in a bucket does not have to be
+  downloaded and uploaded again.
+- An administrator adds a bucket under **Settings**, then **Storage**. Katib tries the details first
+  and says how many objects it can see.
+- In a project, **Import images**, then **Read from the bucket**. You can limit it to names starting
+  with something.
+- The pictures stay in the bucket. Katib keeps their thumbnails and fetches a picture when somebody
+  opens it. Folder names in the bucket set the split.
+- Keys are kept in a file only Katib can read, and are never sent back to a browser. Katib only ever
+  reads from a bucket, so give it a key that can only read.
+
 ### Text documents
 
 Katib can now label text, not only pictures. Choose **Text spans** when you create a project and it
