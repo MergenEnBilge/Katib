@@ -15,6 +15,9 @@
 
   let formats = $state<FormatInfo[]>([]);
   let format = $state('yolo-detect');
+
+  /** Where each kind of project starts: the format most people want, not the first listed. */
+  const USUAL: Record<string, string> = { image: 'yolo-detect', text: 'jsonl-spans' };
   let which = $state<'all' | 'done' | 'notdone'>('all');
   let copyImages = $state(false);
   const isText = $derived(ws.medium === 'text');
@@ -67,9 +70,12 @@
       // Text and pictures are different worlds, so a project is only offered its own formats.
       .then((f) => {
         formats = f.filter((x) => x.can_export !== false && x.medium === ws.medium);
-        // The starting format suits a picture project. A text project has its own, so move to
-        // the first of those rather than leaving a format it cannot export in the box.
-        if (!formats.some((x) => x.id === format)) format = formats[0]?.id ?? '';
+        // The starting format suits a picture project. A text project has its own, so move
+        // to the one most people want rather than leaving a format it cannot export here.
+        if (!formats.some((x) => x.id === format)) {
+          const usual = USUAL[ws.medium];
+          format = formats.find((x) => x.id === usual)?.id ?? formats[0]?.id ?? '';
+        }
       })
       .catch((err: unknown) => {
         error = err instanceof ApiError ? err.message : 'Could not load the list of formats.';

@@ -206,10 +206,26 @@ def test_formats_are_listed(api: TestClient) -> None:
         "jsonl-spans",
         "class-folders",
         "jsonl",
+        "conll",
+        "hf-tokens",
+        "label-studio",
+        "brat",
+        "text-class",
     }
     # Masks saved as pictures are read, not written.
     assert listed["mask-png"]["can_export"] is False
     assert listed["coco"]["can_export"] is True
+    # Pictures and text are kept apart, so each project is only offered its own formats.
+    assert listed["coco"]["medium"] == "image"
+    text = {i for i, f in listed.items() if f["medium"] == "text"}
+    assert text == {
+        "jsonl-spans",
+        "conll",
+        "hf-tokens",
+        "label-studio",
+        "brat",
+        "text-class",
+    }
 
 
 def test_yolo_import_then_coco_export(api: TestClient, library: Path, tmp_path: Path) -> None:

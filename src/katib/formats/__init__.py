@@ -4,15 +4,20 @@ from importlib.metadata import entry_points
 from pathlib import Path
 
 from katib.core.dataset import Format
+from katib.formats.brat import Brat
 from katib.formats.coco import Coco
 from katib.formats.common import FormatError
+from katib.formats.conll import Conll
 from katib.formats.createml import CreateMl
 from katib.formats.cvat import Cvat
 from katib.formats.folders import ClassFolders
+from katib.formats.hf_tokens import HuggingFaceTokens
 from katib.formats.jsonl import TextLines
+from katib.formats.label_studio import LabelStudio
 from katib.formats.labelme import LabelMe
 from katib.formats.mask_pngs import MaskPngs
 from katib.formats.spans import TextSpans
+from katib.formats.text_class import TextClasses
 from katib.formats.voc import PascalVoc
 from katib.formats.yolo import YoloDetect, YoloObb, YoloPose, YoloSegment
 
@@ -30,9 +35,17 @@ def _load() -> dict[str, Format]:
         CreateMl(),
         MaskPngs(),
         ClassFolders(),
-        # Before the picture-based lines format: both read .jsonl, and each only claims a file
-        # whose lines look like its own.
+        # Text formats that name their own files come first, because they are sure of themselves:
+        # BRAT needs a .ann beside a .txt, Label Studio a .json of tasks, CoNLL a column of tags.
+        Brat(),
+        LabelStudio(),
+        Conll(),
+        # Then the ones that read .jsonl. Each claims only a file whose lines look like its own:
+        # tokens with a tag each, character offsets, or a label for the whole document. The
+        # picture-based lines format comes last and needs a file name on every line.
+        HuggingFaceTokens(),
         TextSpans(),
+        TextClasses(),
         TextLines(),
     )
     found: dict[str, Format] = {f.id: f for f in builtin}
@@ -62,6 +75,10 @@ DETECT_ORDER = (
     "yolo-segment",
     "yolo-detect",
     "class-folders",
+    # Text formats, each sure of the files it needs before the .jsonl look-alikes are tried.
+    "brat",
+    "label-studio",
+    "conll",
 )
 
 

@@ -65,13 +65,14 @@ def import_dataset(
 
     def work(progress: Progress) -> dict[str, object]:
         with factory() as s:
-            summary = exchange.import_dataset(s, project_id, path, body.format)
+            summary = exchange.import_dataset(s, project_id, path, body.format, storage)
             s.commit()
         return {
             "format": summary.format_id,
             "images_matched": summary.images_matched,
             "splits_set": summary.splits_set,
             "unmatched_images": summary.unmatched_images,
+            "documents_added": summary.documents_added,
             "shapes_added": summary.shapes_added,
             "classes_created": summary.classes_created,
             "notes": [{"subject": n.subject, "reason": n.reason} for n in summary.notes],

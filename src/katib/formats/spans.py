@@ -80,6 +80,28 @@ def _words(row: dict[str, Any]) -> str:
     return ""
 
 
+#: Keys that hold a label for a whole document. Prodigy writes "accept", spaCy "cats".
+TAG_KEYS = ("tags", "accept", "labels", "label")
+
+
+def _tag_list(row: dict[str, Any]) -> list[str]:
+    """Labels about the whole document, however the file that wrote them named them."""
+    out: list[str] = []
+    for key in TAG_KEYS:
+        raw = row.get(key)
+        if isinstance(raw, str):
+            out.append(raw)
+        elif isinstance(raw, list):
+            out.extend(str(v) for v in raw if isinstance(v, str))
+    cats = row.get("cats")
+    if isinstance(cats, dict):
+        # spaCy keeps a score per label; over a half counts as chosen.
+        for name, score in cats.items():
+            if isinstance(name, str) and isinstance(score, int | float) and score > 0.5:
+                out.append(name)
+    return list(dict.fromkeys(out))
+
+
 def _span_list(row: dict[str, Any]) -> list[dict[str, Any]]:
     for key in SPAN_KEYS:
         value = row.get(key)
@@ -99,7 +121,7 @@ def _span_list(row: dict[str, Any]) -> list[dict[str, Any]]:
 class TextSpans:
     id = "jsonl-spans"
     medium = "text"
-    label = "Text spans (JSON Lines, words included)"
+    label = "Text spans (JSON Lines, read by spaCy and Prodigy)"
     supports = frozenset({"span", "tag", "text"})
 
     def detect(self, path: Path) -> bool:
@@ -112,7 +134,7 @@ class TextSpans:
             return False
         # Words alone are not enough: a file of plain text rows is for adding documents, not for
         # reading labels onto the ones a project already has.
-        return any(_span_list(row) or row.get("tags") for _, row in rows)
+        return any(_span_list(row) or _tag_list(row) for _, row in rows)
 
     def read(self, path: Path, sizes: Mapping[str, tuple[int, int]] | None = None) -> ParsedDataset:
         file = _find(path)
@@ -127,10 +149,13 @@ class TextSpans:
                 width=len(words),
                 height=1,
                 split=str(split) if split in ("train", "val", "test") else None,
+                # The words are in the file, so a project with nothing in it can be filled
+                # from one of these as well as labelled from it.
+                text=words,
             )
             where = f"{file.name} line {number}"
             self._read_spans(row, words, labels, result, where)
-            for tag in row.get("tags") or []:
+            for tag in _tag_list(row):
                 name = str(tag).strip()
                 if name:
                     self._use_class(name, result)
@@ -214,7 +239,13 @@ class TextSpans:
                 "text": words,
                 "split": item.split,
                 "spans": spans,
+                # The same spans again as triples, under the name spaCy's own loaders look for,
+                # and the labels under Prodigy's. One file, read by all of them, rather than an
+                # export for each.
+                "entities": [[s["start"], s["end"], s["label"]] for s in spans],
                 "tags": tags,
+                "accept": tags,
+                "cats": dict.fromkeys(tags, 1.0),
                 "notes": texts,
             }
             rows.append(json.dumps(row, ensure_ascii=False))
