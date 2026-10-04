@@ -85,3 +85,34 @@ test('the health panel opens and reports the dataset', async ({ page }) => {
   await expect(page.getByRole('dialog', { name: 'Dataset health' })).toBeVisible();
   await expect(page.getByText('0 images, 0 shapes.')).toBeVisible();
 });
+
+test('move a class and the numbering formats use moves with it', async ({ page, request }) => {
+  test.skip(test.info().project.name === 'phone', 'The class manager is a desktop flow.');
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'New project' }).first().click();
+  await page.getByLabel('Project name').fill(`Order ${Date.now()}`);
+  await page.getByRole('button', { name: 'Create project' }).click();
+  await expect(page).toHaveURL(/\/p\/[0-9a-f-]{36}$/);
+  const projectId = page.url().split('/p/')[1] as string;
+
+  for (const name of ['car', 'bus', 'van']) {
+    await page.getByLabel('New class name').fill(name);
+    await page.getByRole('button', { name: 'Add', exact: true }).click();
+    await expect(page.getByRole('button', { name: new RegExp(name) }).first()).toBeVisible();
+  }
+
+  await page.getByRole('button', { name: 'Class manager' }).click();
+  const manager = page.getByRole('dialog');
+
+  // The export dialog has always said the order sets the class numbers. Now it can be changed.
+  const rows = manager.locator('.left li');
+  await expect(rows.nth(1)).toContainText('bus');
+  await manager.getByRole('button', { name: 'Move van up', exact: true }).click();
+  await expect(rows.nth(1)).toContainText('van');
+  await expect(rows.nth(2)).toContainText('bus');
+
+  // The server kept it, in the order its exports number classes by.
+  const classes = await (await request.get(`${API}/projects/${projectId}/classes`)).json();
+  expect(classes.map((c: { name: string }) => c.name)).toEqual(['car', 'van', 'bus']);
+});

@@ -87,3 +87,38 @@ test('the zoom reading fits the picture to the window', async ({ page }) => {
   await reading.click();
   await expect.poll(percent).toBeLessThan(zoomedIn);
 });
+
+test('a narrow window keeps every project action within reach', async ({ page }) => {
+  test.skip(test.info().project.name !== 'phone', 'The header shows these buttons when it fits.');
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'New project' }).first().click();
+  await page.getByLabel('Project name').fill(`Narrow ${Date.now()}`);
+  await page.getByRole('button', { name: 'Create project' }).click();
+  await expect(page).toHaveURL(/\/p\/[0-9a-f-]{36}$/);
+
+  // Add one picture. The rail used to offer Import only while the project was empty, so after
+  // this there was no way left to import, export or manage classes on a phone.
+  await page.getByRole('button', { name: 'Import images' }).last().click();
+  await connectLibrary(page);
+  await expect(page.getByText('images added.')).toBeVisible();
+  await page.getByRole('dialog').getByRole('button', { name: 'Done' }).click();
+
+  await page.getByRole('button', { name: 'More' }).click();
+  const menu = page.getByRole('dialog');
+  for (const name of [
+    'Import',
+    'Export',
+    'Train, validation and test split',
+    'Class gallery',
+    'Dataset health',
+    'Class manager',
+    'Help and tour',
+  ]) {
+    await expect(menu.getByRole('button', { name, exact: true })).toBeVisible();
+  }
+
+  // Choosing one closes the menu and opens what it names.
+  await menu.getByRole('button', { name: 'Class manager', exact: true }).click();
+  await expect(page.getByRole('dialog').getByText('Rename, recolor, merge or delete')).toBeVisible();
+});

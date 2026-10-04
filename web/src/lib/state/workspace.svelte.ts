@@ -395,6 +395,10 @@ export class Workspace {
           until: d.until ?? isoIn(0),
           mine: false,
         };
+      } else if (id === this.currentId) {
+        // Any other failure leaves it unknown whether the reservation was made, and two
+        // people editing the same item without being told is worse than saying so.
+        toasts.show('Katib could not reserve this one for you, so somebody else may be editing it as well.');
       }
     }
     this.applyReadOnly();

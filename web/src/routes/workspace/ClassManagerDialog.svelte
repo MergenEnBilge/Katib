@@ -1,6 +1,6 @@
 <script lang="ts">
   import TipCard from '../../lib/ui/TipCard.svelte';
-  import { Plus, Trash, X } from '@lucide/svelte';
+  import { ChevronDown, ChevronUp, Plus, Trash, X } from '@lucide/svelte';
   import { untrack } from 'svelte';
   import { api, ApiError } from '../../lib/api/client';
   import type { AttrDef, ClassOp } from '../../lib/api/types';
@@ -118,6 +118,32 @@
     }
   }
 
+  /**
+   * Move a class one place up or down. The order is the numbering that formats such as YOLO
+   * write into their label files, so it is worth being able to set it.
+   */
+  async function move(id: string, by: -1 | 1): Promise<void> {
+    if (busy) return;
+    const ids = ws.classes.map((c) => c.id);
+    const at = ids.indexOf(id);
+    const to = at + by;
+    const here = ids[at];
+    const there = ids[to];
+    if (here === undefined || there === undefined) return;
+    ids[at] = there;
+    ids[to] = here;
+    busy = true;
+    error = '';
+    try {
+      await api.classes.reorder(ws.projectId, ids);
+      await ws.refreshClasses();
+    } catch (err) {
+      error = err instanceof ApiError ? err.message : 'Could not change the order.';
+    } finally {
+      busy = false;
+    }
+  }
+
   /** Read "1-2, 2-3" into pairs of landmark positions, counting from zero. */
   function parseJoins(text: string, count: number): [number, number][] | null {
     const pairs: [number, number][] = [];
@@ -195,17 +221,37 @@
       <input type="search" placeholder="Search classes" aria-label="Search classes" bind:value={query} />
       <ul>
         {#each filtered as cls (cls.id)}
+          {@const at = ws.classes.findIndex((c) => c.id === cls.id)}
           <li>
-            <button
-              type="button"
-              class="row"
-              class:selected={cls.id === selectedId}
-              onclick={() => (selectedId = cls.id)}
-            >
-              <span class="swatch" style:background={cls.color}></span>
-              <span class="name">{cls.name}</span>
-              <span class="count mono">{cls.annotation_count.toLocaleString()}</span>
-            </button>
+            <div class="entry">
+              <span class="index mono" aria-hidden="true">{at}</span>
+              <button
+                type="button"
+                class="row"
+                class:selected={cls.id === selectedId}
+                onclick={() => (selectedId = cls.id)}
+              >
+                <span class="swatch" style:background={cls.color}></span>
+                <span class="name">{cls.name}</span>
+                <span class="count mono">{cls.annotation_count.toLocaleString()}</span>
+              </button>
+              {#if ws.canManage && !query.trim()}
+                <span class="move">
+                  <button
+                    type="button"
+                    aria-label="Move {cls.name} up"
+                    disabled={at <= 0 || busy}
+                    onclick={() => move(cls.id, -1)}><ChevronUp size={14} /></button
+                  >
+                  <button
+                    type="button"
+                    aria-label="Move {cls.name} down"
+                    disabled={at < 0 || at >= ws.classes.length - 1 || busy}
+                    onclick={() => move(cls.id, 1)}><ChevronDown size={14} /></button
+                  >
+                </span>
+              {/if}
+            </div>
           </li>
         {:else}
           <li class="none">No class matches.</li>
@@ -387,6 +433,41 @@
     padding: 0;
     overflow-y: auto;
     list-style: none;
+  }
+
+  .entry {
+    display: flex;
+    align-items: center;
+  }
+
+  .index {
+    color: var(--text-3);
+    font-size: 0.75rem;
+    min-width: 1.25em;
+  }
+
+  .move {
+    display: flex;
+    flex-direction: column;
+    flex: none;
+  }
+
+  .move button {
+    height: auto;
+    padding: 1px 2px;
+    background: none;
+    border: 0;
+    color: var(--text-3);
+    cursor: pointer;
+  }
+
+  .move button:hover:not(:disabled) {
+    color: var(--text);
+  }
+
+  .move button:disabled {
+    opacity: 0.3;
+    cursor: default;
   }
 
   .row,
