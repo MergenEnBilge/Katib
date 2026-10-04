@@ -10,6 +10,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from katib.core.types import MEDIUMS, medium_for, types_for
 from katib.db.models import Image, Project, ProjectMember
 from katib.services.errors import InvalidInput, NotFound, ProjectNameTaken
 
@@ -61,17 +62,42 @@ def _unique_slug(session: Session, name: str) -> str:
     return slug
 
 
+def medium_of(project: Project) -> str:
+    """What a project holds. Worked out from its shapes when it was made before this was kept."""
+    settings = project.settings or {}
+    saved = settings.get("medium")
+    if saved in MEDIUMS:
+        return str(saved)
+    return medium_for([str(t) for t in settings.get("annotation_types", [])])
+
+
 def create_project(
     session: Session,
     name: str,
     annotation_types: list[str] | None = None,
     created_by: uuid.UUID | None = None,
+    medium: str | None = None,
 ) -> Project:
     name = _clean_name(name)
     if _name_taken(session, name):
         raise ProjectNameTaken(f"A project named “{name}” already exists.")
     types = annotation_types or DEFAULT_TYPES
-    settings: dict[str, Any] = {"annotation_types": types, "review_enabled": False}
+    if medium is None:
+        medium = medium_for(types)
+    if medium not in MEDIUMS:
+        raise InvalidInput("A project holds either pictures or text.")
+    # Pictures and text need different shapes, different formats and a different workspace, so a
+    # project is one or the other. Saying so here keeps the two from being half mixed together.
+    allowed = types_for(medium)
+    wrong = sorted(set(types) - allowed)
+    if wrong:
+        what = "text" if medium == "text" else "pictures"
+        raise InvalidInput(f"A project of {what} cannot use {', '.join(wrong)}.")
+    settings: dict[str, Any] = {
+        "annotation_types": types,
+        "medium": medium,
+        "review_enabled": False,
+    }
     project = _insert_with_free_slug(session, name, settings, created_by)
     if created_by is not None:
         session.add(ProjectMember(project_id=project.id, user_id=created_by, role="owner"))

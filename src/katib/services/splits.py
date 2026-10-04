@@ -41,6 +41,7 @@ class SplitPlan:
 def kind_of(annotation_types: list[str]) -> str:
     """The kind of dataset a project is, from the shapes it draws. It picks the starting ratios."""
     for shape, kind in (
+        ("span", "text"),
         ("obb", "obb"),
         ("mask", "segment"),
         ("polygon", "segment"),

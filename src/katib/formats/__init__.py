@@ -70,6 +70,15 @@ def writes(fmt: Format) -> bool:
     return bool(getattr(fmt, "writes", True))
 
 
+def medium(fmt: Format) -> str:
+    """Whether a format is for pictures or for text. Most are for pictures, so that is the default.
+
+    The shapes a format supports do not settle this on their own: a format for sorting documents
+    into categories carries whole-item tags, exactly as one for sorting photographs does.
+    """
+    return str(getattr(fmt, "medium", "image"))
+
+
 def get_format(format_id: str) -> Format:
     try:
         return REGISTRY[format_id]

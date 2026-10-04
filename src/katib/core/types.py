@@ -219,6 +219,26 @@ WHOLE_IMAGE = frozenset({"tag", "text"})
 #: documents instead of images, and the workspace shows the words instead of a canvas.
 DOCUMENT_TYPES = frozenset({"span"})
 
+#: What a project holds: pictures or text. A project is one or the other, because the shapes, the
+#: formats and the workspace all differ, and mixing them leaves both halves half usable.
+MEDIUMS = ("image", "text")
+
+#: The shapes a text project may use: those that belong to a document, and those about an item as
+#: a whole, which read the same either way.
+TEXT_TYPES = DOCUMENT_TYPES | WHOLE_IMAGE
+
+
+def types_for(medium: str) -> frozenset[str]:
+    """The shapes a project of this kind may use."""
+    if medium == "text":
+        return TEXT_TYPES
+    return frozenset(_REGISTRY) - DOCUMENT_TYPES
+
+
+def medium_for(annotation_types: list[str]) -> str:
+    """Which kind of project these shapes make, for a project saved before mediums were kept."""
+    return "text" if DOCUMENT_TYPES & set(annotation_types) else "image"
+
 
 def known_types() -> list[str]:
     return sorted(_REGISTRY)

@@ -24,6 +24,7 @@ def _out(s: ProjectSummary, role: str = "owner") -> ProjectOut:
         name=p.name,
         slug=p.slug,
         annotation_types=list(p.settings.get("annotation_types", [])),
+        medium=projects.medium_of(p),
         image_count=s.image_count,
         done_count=s.done_count,
         created_at=p.created_at,
@@ -51,7 +52,7 @@ def list_projects(session: SessionDep, user: UserDep, q: str | None = None) -> l
 @router.post("/projects", response_model=ProjectOut, status_code=201)
 def create_project(body: ProjectIn, session: SessionDep, user: UserDep) -> ProjectOut:
     types: list[str] | None = [str(t) for t in body.annotation_types or []] or None
-    p = projects.create_project(session, body.name, types, created_by=user.id)
+    p = projects.create_project(session, body.name, types, created_by=user.id, medium=body.medium)
     return _one(session, p.id, user)
 
 

@@ -18,6 +18,8 @@ class ProjectIn(BaseModel):
     annotation_types: (
         list[Literal["box", "polygon", "obb", "keypoints", "mask", "tag", "text", "span"]] | None
     ) = None
+    #: Whether the project holds pictures or text. Left out, it follows from the shapes chosen.
+    medium: Literal["image", "text"] | None = None
 
 
 class ProjectPatch(BaseModel):
@@ -30,6 +32,8 @@ class ProjectOut(BaseModel):
     name: str
     slug: str
     annotation_types: list[str]
+    #: "image" for a project of pictures, "text" for one of documents.
+    medium: str = "image"
     review_enabled: bool = False
     role: str = "owner"
     image_count: int
@@ -347,6 +351,8 @@ class FormatOut(BaseModel):
     id: str
     label: str
     supports: list[str]
+    #: "image" for a format of pictures, "text" for one of documents.
+    medium: str = "image"
     #: Some formats Katib only reads, such as segmentation masks saved as pictures.
     can_export: bool = True
 

@@ -129,3 +129,35 @@ def test_a_project_gives_up_after_enough_tries(
     monkeypatch.setattr(projects, "_unique_slug", lambda *_: "taken")
     with pytest.raises(Exception, match="UNIQUE|already exists"):
         projects.create_project(session, "Something else")
+
+
+def test_a_project_knows_whether_it_holds_pictures_or_text(session: Session) -> None:
+    pictures = projects.create_project(session, "Street scenes")
+    assert pictures.settings["medium"] == "image"
+    assert projects.medium_of(pictures) == "image"
+
+    words = projects.create_project(session, "Reviews", ["span", "tag"])
+    assert words.settings["medium"] == "text"
+    assert projects.medium_of(words) == "text"
+
+
+def test_a_project_saved_before_mediums_still_knows_its_kind(session: Session) -> None:
+    """Projects made by an earlier version have no medium saved, so it follows from the shapes."""
+    old = projects.create_project(session, "Older", ["span", "text"])
+    del old.settings["medium"]
+    session.flush()
+    assert projects.medium_of(old) == "text"
+
+    other = projects.create_project(session, "Older pictures", ["box"])
+    del other.settings["medium"]
+    session.flush()
+    assert projects.medium_of(other) == "image"
+
+
+def test_a_project_cannot_mix_pictures_and_text(session: Session) -> None:
+    with pytest.raises(InvalidInput, match="cannot use box"):
+        projects.create_project(session, "Mixed", ["span", "box"])
+    with pytest.raises(InvalidInput, match="cannot use span"):
+        projects.create_project(session, "Pictures", ["box", "span"], medium="image")
+    with pytest.raises(InvalidInput, match="pictures or text"):
+        projects.create_project(session, "Odd", ["box"], medium="sound")
