@@ -181,3 +181,15 @@ def test_a_drawn_shape_is_refused_on_a_document(session: Session, s: Setup) -> N
     [r] = annotations.apply_batch(session, s.image.id, [create(s)])
     assert r.status == "invalid"
     assert r.error is not None and "cannot hold a box" in r.error
+
+
+def test_a_relation_is_refused_on_a_picture(session: Session, s: Setup) -> None:
+    """A relation joins two spans, which a picture cannot have."""
+    s.project.settings = {"annotation_types": ["relation"]}
+    session.flush()
+    geometry = {"from_id": str(uuid.uuid4()), "to_id": str(uuid.uuid4())}
+    [r] = annotations.apply_batch(
+        session, s.image.id, [create(s, type="relation", geometry=geometry)]
+    )
+    assert r.status == "invalid"
+    assert r.error is not None and "belongs to a text document" in r.error

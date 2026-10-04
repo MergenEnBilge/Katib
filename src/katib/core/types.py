@@ -6,6 +6,7 @@ bounds function (ARCHITECTURE.md section 7).
 """
 
 import math
+import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Annotated, Any, Literal
@@ -139,6 +140,31 @@ class Span(BaseModel):
         return self
 
 
+class Relation(BaseModel):
+    """A link from one span to another in the same document.
+
+    It is directed: `from_id` is where the link starts and `to_id` where it points, so a class
+    such as "works for" reads the same way round every time. Both ends are spans on the same
+    document, which the annotations service checks, because geometry on its own cannot see them.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    from_id: str
+    to_id: str
+
+    @model_validator(mode="after")
+    def _two_different_ends(self) -> "Relation":
+        try:
+            start, end = uuid.UUID(self.from_id), uuid.UUID(self.to_id)
+        except ValueError:
+            raise ValueError("a relation needs the two shapes it joins") from None
+        if start == end:
+            raise ValueError("a relation has to join two different shapes")
+        self.from_id, self.to_id = str(start), str(end)
+        return self
+
+
 def box_bounds(g: Box, size: Size | None = None) -> Bounds:
     return (g.x, g.y, g.w, g.h)
 
@@ -186,6 +212,11 @@ def span_bounds(g: Span, size: Size | None = None) -> Bounds:
     return (0.0, 0.0, 1.0, 1.0)
 
 
+def relation_bounds(g: Relation, size: Size | None = None) -> Bounds:
+    """A link has no place of its own: it is drawn between the two spans it joins."""
+    return (0.0, 0.0, 1.0, 1.0)
+
+
 def tag_bounds(g: Tag, size: Size | None = None) -> Bounds:
     return (0.0, 0.0, 1.0, 1.0)
 
@@ -210,6 +241,7 @@ _REGISTRY: dict[str, AnnotationType] = {
     "tag": AnnotationType("tag", Tag, tag_bounds),
     "text": AnnotationType("text", Text, text_bounds),
     "span": AnnotationType("span", Span, span_bounds),
+    "relation": AnnotationType("relation", Relation, relation_bounds),
 }
 
 # Shapes about the image as a whole. They are listed beside it, not drawn on it.
@@ -219,25 +251,30 @@ WHOLE_IMAGE = frozenset({"tag", "text"})
 #: documents instead of images, and the workspace shows the words instead of a canvas.
 DOCUMENT_TYPES = frozenset({"span"})
 
+#: Shapes that join two other shapes rather than marking anything themselves. They are neither
+#: about an item as a whole nor a place on it, and they only make sense beside the shapes they
+#: join, so the pages that draw and list shapes treat them apart.
+LINK_TYPES = frozenset({"relation"})
+
 #: What a project holds: pictures or text. A project is one or the other, because the shapes, the
 #: formats and the workspace all differ, and mixing them leaves both halves half usable.
 MEDIUMS = ("image", "text")
 
-#: The shapes a text project may use: those that belong to a document, and those about an item as
-#: a whole, which read the same either way.
-TEXT_TYPES = DOCUMENT_TYPES | WHOLE_IMAGE
+#: The shapes a text project may use: those that belong to a document, the links between them,
+#: and those about an item as a whole, which read the same either way.
+TEXT_TYPES = DOCUMENT_TYPES | LINK_TYPES | WHOLE_IMAGE
 
 
 def types_for(medium: str) -> frozenset[str]:
     """The shapes a project of this kind may use."""
     if medium == "text":
         return TEXT_TYPES
-    return frozenset(_REGISTRY) - DOCUMENT_TYPES
+    return frozenset(_REGISTRY) - DOCUMENT_TYPES - LINK_TYPES
 
 
 def medium_for(annotation_types: list[str]) -> str:
     """Which kind of project these shapes make, for a project saved before mediums were kept."""
-    return "text" if DOCUMENT_TYPES & set(annotation_types) else "image"
+    return "text" if (DOCUMENT_TYPES | LINK_TYPES) & set(annotation_types) else "image"
 
 
 def known_types() -> list[str]:

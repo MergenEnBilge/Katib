@@ -10,7 +10,7 @@ import type {
   ProjectClass,
 } from '../api/types';
 import type { ClassStyle, Shape } from '../canvas/types';
-import { isBox, isPartLabel } from '../canvas/types';
+import { isBox, isPartLabel, linkEnds } from '../canvas/types';
 import { same, spanRange } from '../text/spans';
 import type { Engine } from '../canvas/engine';
 import { Autosave, shapeFromAnnotation, type SaveState } from '../sync/autosave';
@@ -249,6 +249,65 @@ export class Workspace {
   }
 
   removeSpan(id: string): void {
+    const model = this.engine?.model;
+    const shape = model?.get(id);
+    if (!model || !shape || this.readOnly) return;
+    // A link to a span that is going away would be left pointing at nothing, so it goes too.
+    // The server does the same, and doing it here as well keeps the page and the undo in step.
+    const dangling = this.relations()
+      .filter((r) => {
+        const ends = linkEnds(r);
+        return ends !== null && (ends.from_id === id || ends.to_id === id);
+      })
+      .map((r) => ({ kind: 'delete' as const, shape: r }));
+    model.commit([...dangling, { kind: 'delete', shape }]);
+    this.modelTick++;
+  }
+
+  /** The links between spans on the open document, oldest first. */
+  relations(): Shape[] {
+    void this.modelTick;
+    return (this.engine?.model.shapes ?? []).filter((s) => s.type === 'relation');
+  }
+
+  /**
+   * Join two spans with a link of the chosen class. Returns the link, or null when it could not
+   * be made: the same pair in the same class twice over is picked rather than repeated.
+   */
+  addRelation(fromId: string, toId: string): Shape | null {
+    const model = this.engine?.model;
+    if (!model || this.readOnly || !this.activeClassId) return null;
+    if (fromId === toId) return null;
+    const ids = this.spans().map((s) => s.id);
+    if (!ids.includes(fromId) || !ids.includes(toId)) return null;
+    const already = this.relations().find((r) => {
+      const ends = linkEnds(r);
+      return (
+        r.classId === this.activeClassId &&
+        ends !== null &&
+        ends.from_id === fromId &&
+        ends.to_id === toId
+      );
+    });
+    if (already) {
+      this.selectSpan(already.id);
+      return already;
+    }
+    const shape: Shape = {
+      id: crypto.randomUUID(),
+      type: 'relation',
+      classId: this.activeClassId,
+      geometry: { from_id: fromId, to_id: toId },
+      attrs: {},
+      version: 0,
+    };
+    model.commit([{ kind: 'create', shape }]);
+    model.select([shape.id]);
+    this.modelTick++;
+    return shape;
+  }
+
+  removeRelation(id: string): void {
     const model = this.engine?.model;
     const shape = model?.get(id);
     if (!model || !shape || this.readOnly) return;

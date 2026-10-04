@@ -197,6 +197,15 @@ class TextSpans:
                 for s in item.shapes
                 if s.type == "span"
             ]
+            links = sum(1 for s in item.shapes if s.type == "relation")
+            if links:
+                report.notes.append(
+                    Note(
+                        item.filename,
+                        f"{links} link(s) between spans were left out. This format does not "
+                        "carry them.",
+                    )
+                )
             tags = [s.class_name for s in item.shapes if s.type == "tag"]
             texts = [str(s.geometry.get("text", "")) for s in item.shapes if s.type == "text"]
             texts = [t for t in texts if t]

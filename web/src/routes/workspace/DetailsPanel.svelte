@@ -3,7 +3,15 @@
   import { boundsOf, clamp01, polygonArea } from '../../lib/canvas/geometry';
   import type { Change } from '../../lib/canvas/model';
   import { maskCells } from '../../lib/canvas/mask';
-  import { isBox, isKeypoints, isMask, isObb, isPolygon, type Shape } from '../../lib/canvas/types';
+  import {
+    isBox,
+    isKeypoints,
+    isMask,
+    isObb,
+    isPolygon,
+    linkEnds,
+    type Shape,
+  } from '../../lib/canvas/types';
   import { plural } from '../../lib/format';
   import { spanRange } from '../../lib/text/spans';
   import type { Workspace } from '../../lib/state/workspace.svelte';
@@ -62,6 +70,13 @@
   /** One line about a shape that has no box fields to edit. */
   function describe(s: Shape): string {
     const g = s.geometry;
+    if (s.type === 'relation') {
+      const ends = linkEnds(s);
+      if (!ends) return 'A link with no ends.';
+      const of = (id: string): string =>
+        ws.styles.get(ws.engine?.model.get(id)?.classId ?? '')?.name ?? 'a span that is gone';
+      return `Joins ${of(ends.from_id)} to ${of(ends.to_id)}.`;
+    }
     if (s.type === 'span') {
       const { start, end } = spanRange(s);
       return `Characters ${start.toLocaleString()} to ${end.toLocaleString()}, ${plural(end - start, 'character')} in all.`;

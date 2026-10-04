@@ -291,3 +291,184 @@ def test_a_file_written_on_windows_lines_up_with_its_spans(api: TestClient) -> N
     saved = api.get(f"{API}/images/{document['id']}/annotations").json()
     geometry = saved[0]["geometry"]
     assert words[geometry["start"] : geometry["end"]] == "too"
+
+
+def spans_on(api: TestClient, document: str, label: str, runs: list[tuple[int, int]]) -> list[str]:
+    """Label some runs of characters and give back their ids."""
+    ids = [str(uuid.uuid4()) for _ in runs]
+    ops = [
+        {
+            "op": "create",
+            "id": made,
+            "type": "span",
+            "class_id": label,
+            "geometry": {"start": start, "end": end},
+        }
+        for made, (start, end) in zip(ids, runs, strict=True)
+    ]
+    res = api.post(f"{API}/images/{document}/annotations:batch", json={"ops": ops})
+    assert [r["status"] for r in res.json()["results"]] == ["ok"] * len(runs), res.text
+    return ids
+
+
+def link(api: TestClient, document: str, label: str, start: str, end: str) -> dict[str, Any]:
+    res = api.post(
+        f"{API}/images/{document}/annotations:batch",
+        json={
+            "ops": [
+                {
+                    "op": "create",
+                    "id": str(uuid.uuid4()),
+                    "type": "relation",
+                    "class_id": label,
+                    "geometry": {"from_id": start, "to_id": end},
+                }
+            ]
+        },
+    )
+    return dict(res.json()["results"][0])
+
+
+def relation_project(api: TestClient, name: str = "Who works where") -> str:
+    made = api.post(
+        f"{API}/projects",
+        json={"name": name, "annotation_types": ["span", "relation", "tag"]},
+    )
+    assert made.status_code == 201, made.text
+    return str(made.json()["id"])
+
+
+def test_a_relation_joins_two_spans(api: TestClient) -> None:
+    project = relation_project(api)
+    add_file(api, project, "who.txt", "Ada works at Katib.")
+    [document] = items(api, project)
+    person = api.post(f"{API}/projects/{project}/classes", json={"name": "person"}).json()
+    works = api.post(f"{API}/projects/{project}/classes", json={"name": "works for"}).json()
+    ada, katib = spans_on(api, document["id"], person["id"], [(0, 3), (13, 18)])
+
+    made = link(api, document["id"], works["id"], ada, katib)
+    assert made["status"] == "ok", made
+
+    saved = api.get(f"{API}/images/{document['id']}/annotations").json()
+    [relation] = [s for s in saved if s["type"] == "relation"]
+    assert relation["geometry"] == {"from_id": ada, "to_id": katib}
+
+
+def test_a_relation_needs_two_different_spans_on_the_same_document(api: TestClient) -> None:
+    project = relation_project(api, "Checks")
+    add_file(api, project, "one.txt", "Ada works at Katib.")
+    add_file(api, project, "two.txt", "Grace works at Katib too.")
+    first, second = sorted(items(api, project), key=lambda i: i["filename"])
+    person = api.post(f"{API}/projects/{project}/classes", json={"name": "person"}).json()
+    works = api.post(f"{API}/projects/{project}/classes", json={"name": "works for"}).json()
+    [ada] = spans_on(api, first["id"], person["id"], [(0, 3)])
+    [grace] = spans_on(api, second["id"], person["id"], [(0, 5)])
+
+    itself = link(api, first["id"], works["id"], ada, ada)
+    assert itself["status"] == "invalid"
+    assert "two different shapes" in (itself["error"] or "")
+
+    elsewhere = link(api, first["id"], works["id"], ada, grace)
+    assert elsewhere["status"] == "invalid"
+    assert "same document" in (elsewhere["error"] or "")
+
+    missing = link(api, first["id"], works["id"], ada, str(uuid.uuid4()))
+    assert missing["status"] == "invalid"
+    assert "same document" in (missing["error"] or "")
+
+    # A tag is about the document as a whole, so it is not something a relation can join.
+    tag = str(uuid.uuid4())
+    api.post(
+        f"{API}/images/{first['id']}/annotations:batch",
+        json={
+            "ops": [
+                {
+                    "op": "create",
+                    "id": tag,
+                    "type": "tag",
+                    "class_id": person["id"],
+                    "geometry": {},
+                }
+            ]
+        },
+    )
+    wrong = link(api, first["id"], works["id"], ada, tag)
+    assert wrong["status"] == "invalid"
+    assert "two spans" in (wrong["error"] or "")
+
+
+def test_removing_a_span_takes_its_relations_with_it(api: TestClient) -> None:
+    project = relation_project(api, "Tidy up")
+    add_file(api, project, "who.txt", "Ada works at Katib.")
+    [document] = items(api, project)
+    person = api.post(f"{API}/projects/{project}/classes", json={"name": "person"}).json()
+    works = api.post(f"{API}/projects/{project}/classes", json={"name": "works for"}).json()
+    ada, katib = spans_on(api, document["id"], person["id"], [(0, 3), (13, 18)])
+    assert link(api, document["id"], works["id"], ada, katib)["status"] == "ok"
+
+    res = api.post(
+        f"{API}/images/{document['id']}/annotations:batch",
+        json={"ops": [{"op": "delete", "id": katib}]},
+    )
+    assert res.json()["results"][0]["status"] == "ok", res.text
+
+    # The span it pointed at is gone, so the relation cannot be left hanging.
+    left = api.get(f"{API}/images/{document['id']}/annotations").json()
+    assert [s["type"] for s in left] == ["span"]
+    assert left[0]["id"] == ada
+
+
+def test_relations_belong_to_a_project_of_text(api: TestClient) -> None:
+    # Asking for relations says the project holds text, because that is where spans live.
+    implied = api.post(
+        f"{API}/projects", json={"name": "Links", "annotation_types": ["span", "relation"]}
+    )
+    assert implied.status_code == 201, implied.text
+    assert implied.json()["medium"] == "text"
+
+    # Saying it holds pictures instead is a contradiction, and is refused.
+    wrong = api.post(
+        f"{API}/projects",
+        json={"name": "Pictures with links", "annotation_types": ["relation"], "medium": "image"},
+    )
+    assert wrong.status_code == 422, wrong.text
+    assert "cannot use relation" in wrong.json()["message"]
+
+
+def test_spans_and_the_link_between_them_can_arrive_together(api: TestClient) -> None:
+    """The browser saves a batch of edits at once, so a link can arrive with its own spans."""
+    project = relation_project(api, "One batch")
+    add_file(api, project, "who.txt", "Ada works at Katib.")
+    [document] = items(api, project)
+    person = api.post(f"{API}/projects/{project}/classes", json={"name": "person"}).json()
+    works = api.post(f"{API}/projects/{project}/classes", json={"name": "works for"}).json()
+    ada, katib = str(uuid.uuid4()), str(uuid.uuid4())
+    res = api.post(
+        f"{API}/images/{document['id']}/annotations:batch",
+        json={
+            "ops": [
+                {
+                    "op": "create",
+                    "id": ada,
+                    "type": "span",
+                    "class_id": person["id"],
+                    "geometry": {"start": 0, "end": 3},
+                },
+                {
+                    "op": "create",
+                    "id": katib,
+                    "type": "span",
+                    "class_id": person["id"],
+                    "geometry": {"start": 13, "end": 18},
+                },
+                {
+                    "op": "create",
+                    "id": str(uuid.uuid4()),
+                    "type": "relation",
+                    "class_id": works["id"],
+                    "geometry": {"from_id": ada, "to_id": katib},
+                },
+            ]
+        },
+    )
+    assert [r["status"] for r in res.json()["results"]] == ["ok", "ok", "ok"], res.text

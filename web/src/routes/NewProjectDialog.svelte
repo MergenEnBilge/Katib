@@ -68,6 +68,12 @@
         types: ['span'],
       },
       {
+        id: 'relations',
+        label: 'Find things and how they relate',
+        note: 'Label things in the words, then join them: who works where, what caused what.',
+        types: ['span', 'relation'],
+      },
+      {
         id: 'sort-documents',
         label: 'Sort documents',
         note: 'One or more labels for a whole document.',
@@ -82,8 +88,8 @@
       {
         id: 'everything',
         label: 'All of these',
-        note: 'Label things in the words, sort documents and write answers.',
-        types: ['span', 'tag', 'text'],
+        note: 'Label things in the words, join them up, sort documents and write answers.',
+        types: ['span', 'relation', 'tag', 'text'],
       },
     ],
   };
@@ -105,6 +111,11 @@
     ],
     text: [
       { id: 'span', label: 'Spans', note: 'Label a run of words inside a document.' },
+      {
+        id: 'relation',
+        label: 'Relations',
+        note: 'A link from one span to another, such as who works where.',
+      },
       { id: 'tag', label: 'Document labels', note: 'A label for a whole document.' },
       { id: 'text', label: 'Written answers', note: 'Words you write about a document.' },
     ],
