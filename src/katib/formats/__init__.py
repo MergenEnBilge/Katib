@@ -12,6 +12,7 @@ from katib.formats.folders import ClassFolders
 from katib.formats.jsonl import TextLines
 from katib.formats.labelme import LabelMe
 from katib.formats.mask_pngs import MaskPngs
+from katib.formats.spans import TextSpans
 from katib.formats.voc import PascalVoc
 from katib.formats.yolo import YoloDetect, YoloObb, YoloPose, YoloSegment
 
@@ -29,6 +30,9 @@ def _load() -> dict[str, Format]:
         CreateMl(),
         MaskPngs(),
         ClassFolders(),
+        # Before the picture-based lines format: both read .jsonl, and each only claims a file
+        # whose lines look like its own.
+        TextSpans(),
         TextLines(),
     )
     found: dict[str, Format] = {f.id: f for f in builtin}

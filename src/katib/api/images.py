@@ -197,6 +197,8 @@ def image_thumb(
 ) -> Response:
     need(session, user, access.project_of_image(session, image_id), "view")
     image = images.get_image(session, image_id)
+    if image.kind == "text":
+        raise NotFound("A text document has no thumbnail.")
     path = images.thumb_path(image, storage)
     etag = _file_etag(path)
     if _not_modified(request, etag):

@@ -313,6 +313,7 @@ class ProjectView:
                     by_image[img.id],
                     source,
                     self._splits.get(img.id),
+                    img.kind,
                 )
 
 

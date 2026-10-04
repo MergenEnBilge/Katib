@@ -16,7 +16,7 @@ class ErrorBody(BaseModel):
 class ProjectIn(BaseModel):
     name: str
     annotation_types: (
-        list[Literal["box", "polygon", "obb", "keypoints", "mask", "tag", "text"]] | None
+        list[Literal["box", "polygon", "obb", "keypoints", "mask", "tag", "text", "span"]] | None
     ) = None
 
 
@@ -86,6 +86,8 @@ class ImageOut(BaseModel):
     id: uuid.UUID
     project_id: uuid.UUID
     filename: str
+    #: "image" for a picture, "text" for a document. A document's width is its length in characters.
+    kind: str = "image"
     width: int
     height: int
     status: str
@@ -96,6 +98,13 @@ class ImageOut(BaseModel):
     assignee_id: uuid.UUID | None = None
     reviewer_id: uuid.UUID | None = None
     lock: "LockOut | None" = None
+
+
+class DocumentTextOut(BaseModel):
+    """The words of a text document."""
+
+    filename: str
+    text: str
 
 
 class LockOut(BaseModel):
