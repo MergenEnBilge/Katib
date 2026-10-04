@@ -765,6 +765,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cloud-sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Names
+         * @description The names of the buckets, for choosing one when importing. Anyone signed in may look.
+         */
+        get: operations["list_names_api_v1_cloud_sources_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/settings/cloud/{name}": {
         parameters: {
             query?: never;
@@ -1816,6 +1836,16 @@ export interface components {
             prefix: string;
         };
         /**
+         * CloudNameOut
+         * @description Just enough for somebody importing to choose a bucket. No keys, no addresses.
+         */
+        CloudNameOut: {
+            /** Name */
+            name: string;
+            /** Provider */
+            provider: string;
+        };
+        /**
          * CloudSourceIn
          * @description A bucket to read pictures from. The secret is kept on the server and never sent back.
          */
@@ -2088,6 +2118,11 @@ export interface components {
             label: string;
             /** Supports */
             supports: string[];
+            /**
+             * Medium
+             * @default image
+             */
+            medium: string;
             /**
              * Can Export
              * @default true
@@ -2601,6 +2636,8 @@ export interface components {
             name: string;
             /** Annotation Types */
             annotation_types?: ("box" | "polygon" | "obb" | "keypoints" | "mask" | "tag" | "text" | "span")[] | null;
+            /** Medium */
+            medium?: ("image" | "text") | null;
         };
         /** ProjectOut */
         ProjectOut: {
@@ -2615,6 +2652,11 @@ export interface components {
             slug: string;
             /** Annotation Types */
             annotation_types: string[];
+            /**
+             * Medium
+             * @default image
+             */
+            medium: string;
             /**
              * Review Enabled
              * @default false
@@ -4647,6 +4689,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_names_api_v1_cloud_sources_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CloudNameOut"][];
                 };
             };
         };

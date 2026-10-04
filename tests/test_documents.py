@@ -126,10 +126,22 @@ def test_a_span_is_saved_and_cannot_reach_past_the_words(api: TestClient) -> Non
     assert [(s["type"], s["geometry"]) for s in saved] == [("span", {"start": 0, "end": 5})]
 
 
-def test_a_picture_shape_is_refused_on_a_document(api: TestClient) -> None:
-    project = api.post(
-        f"{API}/projects", json={"name": "Mixed", "annotation_types": ["span", "box"]}
-    ).json()["id"]
+def test_a_project_holds_pictures_or_text_but_not_both(api: TestClient) -> None:
+    mixed = api.post(f"{API}/projects", json={"name": "Mixed", "annotation_types": ["span", "box"]})
+    assert mixed.status_code == 422, mixed.text
+    assert "cannot use box" in mixed.json()["message"]
+
+    # Asking for a picture project and then a span is refused the same way round.
+    wrong = api.post(
+        f"{API}/projects",
+        json={"name": "Pictures", "annotation_types": ["span"], "medium": "image"},
+    )
+    assert wrong.status_code == 422, wrong.text
+    assert "cannot use span" in wrong.json()["message"]
+
+
+def test_a_text_project_refuses_a_picture_shape(api: TestClient) -> None:
+    project = text_project(api, "Words only")
     add_file(api, project, "review.txt", REVIEW)
     [document] = items(api, project)
     car = api.post(f"{API}/projects/{project}/classes", json={"name": "car"}).json()
@@ -148,7 +160,7 @@ def test_a_picture_shape_is_refused_on_a_document(api: TestClient) -> None:
         },
     )
     assert res.json()["results"][0]["status"] == "invalid"
-    assert "cannot hold a box" in res.json()["results"][0]["error"]
+    assert "does not use box" in res.json()["results"][0]["error"]
 
 
 def test_a_jsonl_file_brings_its_documents_spans_and_classes(api: TestClient) -> None:

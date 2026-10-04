@@ -75,3 +75,13 @@ export async function connectLibrary(page: Page): Promise<void> {
   await page.getByLabel('Folder on the Katib computer').fill(LIBRARY);
   await page.getByRole('button', { name: 'Connect', exact: true }).click();
 }
+
+/** In the open New project dialog, say what the project holds and what the job is. */
+export async function pickKind(
+  page: Page,
+  medium: 'Pictures' | 'Text',
+  task: string | RegExp,
+): Promise<void> {
+  await page.getByRole('radio', { name: new RegExp(`^${medium}`) }).click();
+  await page.getByRole('radio', { name: task }).click();
+}

@@ -122,6 +122,11 @@ export class Workspace {
     return this.project?.annotation_types ?? ['box', 'polygon'];
   }
 
+  /** Whether the project holds pictures or text. A project is one or the other. */
+  get medium(): 'image' | 'text' {
+    return this.project?.medium === 'text' ? 'text' : 'image';
+  }
+
   /** Classes that have a tag on the open image. */
   taggedClasses(): Set<string> {
     void this.modelTick;

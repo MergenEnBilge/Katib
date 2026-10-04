@@ -21,7 +21,7 @@
   const OVERSCAN = 6;
 
   /** The project holds text documents, so the rail talks about documents, not pictures. */
-  const text = $derived(ws.types.includes('span'));
+  const text = $derived(ws.medium === 'text');
 
   let scroller: HTMLDivElement | undefined = $state();
   let scrollTop = $state(0);

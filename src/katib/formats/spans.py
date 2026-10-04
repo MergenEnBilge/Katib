@@ -98,6 +98,7 @@ def _span_list(row: dict[str, Any]) -> list[dict[str, Any]]:
 
 class TextSpans:
     id = "jsonl-spans"
+    medium = "text"
     label = "Text spans (JSON Lines, words included)"
     supports = frozenset({"span", "tag", "text"})
 

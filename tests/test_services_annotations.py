@@ -167,3 +167,17 @@ def test_partly_invalid_patch_changes_nothing(session: Session, s: Setup) -> Non
     assert r.status == "invalid"
     [ann] = annotations.list_annotations(session, s.image.id)
     assert ann.class_id == s.car.id and ann.version == 1
+
+
+def test_a_drawn_shape_is_refused_on_a_document(session: Session, s: Setup) -> None:
+    """The item's kind is checked as well as the project's shapes.
+
+    A project is pictures or text, so this cannot be reached through the API any more, but the
+    check stays: it is what keeps a box off a document if the two ever meet.
+    """
+    s.image.kind = "text"
+    s.image.width = len("some words")
+    session.flush()
+    [r] = annotations.apply_batch(session, s.image.id, [create(s)])
+    assert r.status == "invalid"
+    assert r.error is not None and "cannot hold a box" in r.error

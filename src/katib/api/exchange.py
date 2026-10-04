@@ -20,7 +20,7 @@ from katib.api.deps import (
 from katib.api.jobs import job_out
 from katib.api.schemas import DatasetImportIn, ExportIn, FormatOut, JobOut
 from katib.core.dataset import ExportOptions, SplitSpec
-from katib.formats import REGISTRY, writes
+from katib.formats import REGISTRY, medium, writes
 from katib.jobs.runner import Progress
 from katib.services import exchange, images, projects
 from katib.services.errors import Forbidden, InvalidInput, NotFound
@@ -34,7 +34,13 @@ DATASET_FILE_NAMES = frozenset({"data.yaml", "data.yml", "obj.data"})
 @router.get("/formats", response_model=list[FormatOut])
 def list_formats(_user: UserDep) -> list[FormatOut]:
     return [
-        FormatOut(id=f.id, label=f.label, supports=sorted(f.supports), can_export=writes(f))
+        FormatOut(
+            id=f.id,
+            label=f.label,
+            supports=sorted(f.supports),
+            can_export=writes(f),
+            medium=medium(f),
+        )
         for f in REGISTRY.values()
     ]
 

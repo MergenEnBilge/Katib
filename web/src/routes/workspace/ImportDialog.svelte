@@ -129,7 +129,7 @@
     api
       .formats()
       // Only the formats that match what this project holds: text, or pictures.
-      .then((f) => (formats = f.filter((x) => x.supports.includes('span') === documents)))
+      .then((f) => (formats = f.filter((x) => (x.medium === 'text') === documents)))
       .catch((err: unknown) => {
         error = err instanceof ApiError ? err.message : 'Could not load the list of formats.';
       });

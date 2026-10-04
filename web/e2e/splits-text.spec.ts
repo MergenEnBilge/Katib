@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { connectLibrary } from './fixtures';
+import { connectLibrary, pickKind } from './fixtures';
 
 test('write a caption, divide the images into splits and keep both after a reload', async ({ page }) => {
   test.skip(test.info().project.name === 'phone', 'The toolbar is trimmed on a phone.');
@@ -7,8 +7,7 @@ test('write a caption, divide the images into splits and keep both after a reloa
   await page.goto('/');
   await page.getByRole('button', { name: 'New project' }).first().click();
   await page.getByLabel('Project name').fill(`Words ${Date.now()}`);
-  // "Text spans" also starts with Text, so match the note that follows this one.
-  await page.getByRole('checkbox', { name: /^Text Captions/ }).check();
+  await pickKind(page, 'Pictures', /^Caption or read/);
   await page.getByRole('button', { name: 'Create project' }).click();
   await expect(page).toHaveURL(/\/p\/[0-9a-f-]{36}$/);
 

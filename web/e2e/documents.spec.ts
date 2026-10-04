@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { pickKind } from './fixtures';
 
 const REVIEW = 'Katib runs on my laptop. The canvas is quick.';
 
@@ -44,9 +45,7 @@ test('label words in a text document, and keep them after a reload', async ({ pa
   await page.getByRole('button', { name: 'New project' }).first().click();
   await page.getByLabel('Project name').fill(`Reviews ${test.info().project.name}`);
   // A text project: spans instead of the shapes a picture takes.
-  await page.getByRole('checkbox', { name: /Boxes/ }).uncheck();
-  await page.getByRole('checkbox', { name: /Polygons/ }).uncheck();
-  await page.getByRole('checkbox', { name: /Text spans/ }).check();
+  await pickKind(page, 'Text', /^Find things in the words/);
   await page.getByRole('button', { name: 'Create project' }).click();
   await expect(page).toHaveURL(/\/p\/[0-9a-f-]{36}$/);
 
@@ -109,9 +108,7 @@ test('move between documents while a span is picked', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'New project' }).first().click();
   await page.getByLabel('Project name').fill(`Two reviews ${test.info().project.name}`);
-  await page.getByRole('checkbox', { name: /Boxes/ }).uncheck();
-  await page.getByRole('checkbox', { name: /Polygons/ }).uncheck();
-  await page.getByRole('checkbox', { name: /Text spans/ }).check();
+  await pickKind(page, 'Text', /^Find things in the words/);
   await page.getByRole('button', { name: 'Create project' }).click();
 
   const dialog = page.getByRole('dialog');
@@ -148,9 +145,7 @@ test('a text project opens Export on a format it can use', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'New project' }).first().click();
   await page.getByLabel('Project name').fill(`Export text ${Date.now()}`);
-  await page.getByRole('checkbox', { name: /Boxes/ }).uncheck();
-  await page.getByRole('checkbox', { name: /Polygons/ }).uncheck();
-  await page.getByRole('checkbox', { name: /Text spans/ }).check();
+  await pickKind(page, 'Text', /^Find things in the words/);
   await page.getByRole('button', { name: 'Create project' }).click();
 
   const dialog = page.getByRole('dialog');

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { connectLibrary } from './fixtures';
+import { connectLibrary, pickKind } from './fixtures';
 
 test('a tip appears the first time a tool is picked and stays away once dismissed', async ({ page }) => {
   test.skip(test.info().project.name === 'phone', 'Picking tools by key is a desktop flow.');
@@ -8,6 +8,8 @@ test('a tip appears the first time a tool is picked and stays away once dismisse
   await page.evaluate(() => localStorage.removeItem('katib.tips'));
   await page.getByRole('button', { name: 'New project' }).first().click();
   await page.getByLabel('Project name').fill(`Tips ${Date.now()}`);
+  // Both the box and the polygon tool, because the tips for each are what is being checked.
+  await pickKind(page, 'Pictures', /^Choose the shapes myself/);
   await page.getByRole('button', { name: 'Create project' }).click();
   await expect(page).toHaveURL(/\/p\/[0-9a-f-]{36}$/);
   await page.getByRole('button', { name: 'Import images' }).last().click();

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { connectLibrary } from './fixtures';
+import { connectLibrary, pickKind } from './fixtures';
 
 const API = '/api/v1';
 
@@ -9,6 +9,8 @@ test('the magic wand outlines the bright square in a test picture', async ({ pag
   await page.goto('/');
   await page.getByRole('button', { name: 'New project' }).first().click();
   await page.getByLabel('Project name').fill(`Wand ${Date.now()}`);
+  // The wand draws an outline, so this is a project that outlines things.
+  await pickKind(page, 'Pictures', /^Outline shapes/);
   await page.getByRole('button', { name: 'Create project' }).click();
   await expect(page).toHaveURL(/\/p\/[0-9a-f-]{36}$/);
   const projectId = page.url().split('/p/')[1] as string;

@@ -223,7 +223,7 @@
   });
 
   /** The project labels text documents, so the wording and the tools follow. */
-  const textProject = $derived(ws.types.includes('span'));
+  const textProject = $derived(ws.medium === 'text');
 
   const saveLabel = $derived(
     ws.saveState === 'error'
@@ -626,7 +626,7 @@
   <ImportDialog
     projectId={ws.projectId}
     initialTab={dialog === 'import-labels' ? 'labels' : 'images'}
-    documents={ws.types.includes('span')}
+    documents={textProject}
     ondone={() => {
       onboarding.mark('images');
       void ws.refresh();

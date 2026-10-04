@@ -206,8 +206,12 @@ export const api = {
   projects: {
     list: (q?: string) => request<Project[]>('GET', `/projects${query({ q })}`),
     get: (id: string) => request<Project>('GET', `/projects/${id}`),
-    create: (name: string, annotationTypes?: string[]) =>
-      request<Project>('POST', '/projects', { name, annotation_types: annotationTypes }),
+    create: (name: string, annotationTypes?: string[], medium?: 'image' | 'text') =>
+      request<Project>('POST', '/projects', {
+        name,
+        annotation_types: annotationTypes,
+        medium,
+      }),
     rename: (id: string, name: string) => request<Project>('PATCH', `/projects/${id}`, { name }),
     remove: (id: string) => request<void>('DELETE', `/projects/${id}`),
     createSample: () => request<Project>('POST', '/samples'),
