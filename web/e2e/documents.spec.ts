@@ -79,6 +79,18 @@ test('label words in a text document, and keep them after a reload', async ({ pa
   await expect(list.getByRole('heading', { name: '1 span' })).toBeVisible();
   await expect(list.getByText('Katib', { exact: true })).toBeVisible();
 
+  // Typing anywhere else must leave the span alone. A new span stays picked, and Backspace in a
+  // text box used to delete it and swallow the character being typed.
+  const nameBox = page.getByLabel('New class name');
+  await nameBox.fill('plac');
+  await nameBox.press('Backspace');
+  await expect(nameBox).toHaveValue('pla');
+  await expect(list.getByRole('heading', { name: '1 span' })).toBeVisible();
+
+  // Selecting the same words again picks the span already there instead of stacking another on it.
+  await selectWords(page, 0, 5);
+  await expect(list.getByRole('heading', { name: '1 span' })).toBeVisible();
+
   // It is still there after a reload, which means the server kept it.
   await saved;
   await page.reload();
@@ -91,4 +103,41 @@ test('label words in a text document, and keep them after a reload', async ({ pa
   await expect(
     page.getByRole('region', { name: 'Labelled spans' }).getByRole('heading', { name: '0 spans' }),
   ).toBeVisible();
+});
+
+test('move between documents while a span is picked', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'New project' }).first().click();
+  await page.getByLabel('Project name').fill(`Two reviews ${test.info().project.name}`);
+  await page.getByRole('checkbox', { name: /Boxes/ }).uncheck();
+  await page.getByRole('checkbox', { name: /Polygons/ }).uncheck();
+  await page.getByRole('checkbox', { name: /Text spans/ }).check();
+  await page.getByRole('button', { name: 'Create project' }).click();
+
+  const dialog = page.getByRole('dialog');
+  await page.getByRole('button', { name: 'Add documents' }).last().click();
+  await dialog.getByLabel('Add documents').setInputFiles([
+    { name: 'first.txt', mimeType: 'text/plain', buffer: Buffer.from(REVIEW, 'utf-8') },
+    {
+      name: 'second.txt',
+      mimeType: 'text/plain',
+      buffer: Buffer.from('Another review here.', 'utf-8'),
+    },
+  ]);
+  await expect(dialog.getByText('2 documents added.')).toBeVisible();
+  await dialog.getByRole('button', { name: 'Done' }).click();
+
+  await openPanel(page);
+  await page.getByLabel('New class name').fill('product');
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  await expect(page.getByRole('button', { name: /product/ }).first()).toBeVisible();
+  await expect(page.getByTestId('document-words')).toContainText('Katib runs on my laptop.');
+  await selectWords(page, 0, 5);
+  await expect(
+    page.getByRole('region', { name: 'Labelled spans' }).getByRole('heading', { name: '1 span' }),
+  ).toBeVisible();
+
+  // The hidden canvas used to take the arrow keys for itself whenever a span was picked.
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByTestId('document-words')).toContainText('Another review here.');
 });

@@ -58,6 +58,10 @@
 
   function onkeydown(event: KeyboardEvent): void {
     if (event.key !== 'Delete' && event.key !== 'Backspace') return;
+    // Someone naming a class or writing a comment is editing words, not removing a span, and a
+    // new span is left picked, so without this the next Backspace anywhere would delete it.
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('input, textarea, select, [contenteditable="true"]')) return;
     const [first] = [...selected];
     if (!first || ws.readOnly) return;
     event.preventDefault();
@@ -85,7 +89,6 @@
               style="--mark: {colorOf(top.classId)}"
               title={part.spans.map((s) => nameOf(s.classId)).join(', ')}
               onclick={() => ws.selectSpan(top.id)}
-              onkeydown={(e) => e.key === 'Enter' && ws.selectSpan(top.id)}
               role="presentation">{words.slice(part.start, part.end)}</mark
             >
           {/if}

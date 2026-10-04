@@ -1,6 +1,6 @@
 <script lang="ts">
   import { tick } from 'svelte';
-  import { isDrawn } from '../../lib/canvas/types';
+  import { isPartLabel } from '../../lib/canvas/types';
   import type { Workspace } from '../../lib/state/workspace.svelte';
   import { placeCard, type Rect, type TourStep } from '../../lib/tour/steps';
   import Button from '../../lib/ui/Button.svelte';
@@ -72,7 +72,7 @@
     const model = ws?.engine?.model;
     if (!model || step?.until !== 'shape') return;
     return model.onChange((changes, origin) => {
-      if (origin === 'edit' && changes.some((c) => c.kind === 'create' && isDrawn(c.shape))) drew = true;
+      if (origin === 'edit' && changes.some((c) => c.kind === 'create' && isPartLabel(c.shape))) drew = true;
     });
   });
 

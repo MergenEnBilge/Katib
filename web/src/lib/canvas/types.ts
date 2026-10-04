@@ -145,7 +145,18 @@ export function isMask(g: Geometry): g is MaskGeometry {
   return 'rle' in g;
 }
 
-/** Tags and text belong to the image, not to a place on it, so the canvas never draws or hits them. */
-export function isDrawn(shape: Shape): boolean {
+/**
+ * A shape that labels some part of the item rather than the whole of it. A tag or a caption is
+ * about the item as a whole; a box, an outline or a span is about one part.
+ */
+export function isPartLabel(shape: Shape): boolean {
   return shape.type !== 'tag' && shape.type !== 'text';
+}
+
+/**
+ * A shape the canvas draws and can pick up. Whole-item shapes are listed beside the picture
+ * instead, and a span lives in the words of a document, so the canvas leaves all of them alone.
+ */
+export function isDrawn(shape: Shape): boolean {
+  return isPartLabel(shape) && shape.type !== 'span';
 }
