@@ -16,7 +16,10 @@ class ErrorBody(BaseModel):
 class ProjectIn(BaseModel):
     name: str
     annotation_types: (
-        list[Literal["box", "polygon", "obb", "keypoints", "mask", "tag", "text", "span"]] | None
+        list[
+            Literal["box", "polygon", "obb", "keypoints", "mask", "tag", "text", "span", "relation"]
+        ]
+        | None
     ) = None
     #: Whether the project holds pictures or text. Left out, it follows from the shapes chosen.
     medium: Literal["image", "text"] | None = None

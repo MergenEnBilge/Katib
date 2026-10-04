@@ -13,7 +13,14 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from katib.core.attributes import AttributeError_, check_attrs
-from katib.core.types import DOCUMENT_TYPES, MAX_TEXT, WHOLE_IMAGE, GeometryError, validate_geometry
+from katib.core.types import (
+    DOCUMENT_TYPES,
+    LINK_TYPES,
+    MAX_TEXT,
+    WHOLE_IMAGE,
+    GeometryError,
+    validate_geometry,
+)
 from katib.db.base import utcnow
 from katib.db.models import Annotation, Class, Image, Project
 from katib.services.errors import InvalidInput, NotFound
@@ -87,16 +94,48 @@ def _check_fits(image: Image, type_name: str, geometry: dict[str, Any]) -> None:
     """Keep each shape with the kind of item it belongs to, and inside it.
 
     A span is a run of characters in a document, so it cannot reach past the last one, and it
-    makes no sense on a picture. Drawn shapes make no sense on a document, while a tag or a
-    caption is about the item as a whole and works on either.
+    makes no sense on a picture. Nor does a link between two spans. Drawn shapes make no sense on
+    a document, while a tag or a caption is about the item as a whole and works on either.
     """
     document = image.kind == "text"
     if type_name in DOCUMENT_TYPES and not document:
         raise InvalidInput("Spans belong to a text document, not a picture.")
-    if document and type_name not in DOCUMENT_TYPES and type_name not in WHOLE_IMAGE:
+    if type_name in LINK_TYPES and not document:
+        raise InvalidInput("A relation joins two spans, so it belongs to a text document.")
+    allowed = DOCUMENT_TYPES | LINK_TYPES | WHOLE_IMAGE
+    if document and type_name not in allowed:
         raise InvalidInput(f"A text document cannot hold a {type_name}.")
     if type_name == "span" and int(geometry.get("end", 0)) > image.width:
         raise InvalidInput("That span reaches past the end of the document.")
+
+
+def _check_ends(session: Session, image: Image, type_name: str, geometry: dict[str, Any]) -> None:
+    """Both ends of a link have to be spans on this same document.
+
+    Geometry is checked on its own and cannot see the other shapes, so this is the one check that
+    needs the rest of the document in front of it.
+    """
+    if type_name not in LINK_TYPES:
+        return
+    for key in ("from_id", "to_id"):
+        other = session.get(Annotation, uuid.UUID(str(geometry[key])))
+        if other is None or other.image_id != image.id:
+            raise InvalidInput("A relation joins two shapes on the same document.")
+        if other.type not in DOCUMENT_TYPES:
+            raise InvalidInput("A relation joins two spans.")
+
+
+def _drop_links_to(session: Session, image: Image, removed: Annotation) -> None:
+    """Take away the links that pointed at a span being removed, so none is left hanging."""
+    if removed.type not in DOCUMENT_TYPES:
+        return
+    gone = str(removed.id)
+    stmt = select(Annotation).where(
+        Annotation.image_id == image.id, Annotation.type.in_(sorted(LINK_TYPES))
+    )
+    for link in session.scalars(stmt):
+        if gone in (link.geometry.get("from_id"), link.geometry.get("to_id")):
+            session.delete(link)
 
 
 def _create(session: Session, image: Image, op: Op, user_id: uuid.UUID | None) -> OpResult:
@@ -112,6 +151,7 @@ def _create(session: Session, image: Image, op: Op, user_id: uuid.UUID | None) -
         _check_class(session, image, op.class_id, op.type)
         geometry = validate_geometry(op.type, op.geometry).model_dump()
         _check_fits(image, op.type, geometry)
+        _check_ends(session, image, op.type, geometry)
         _check_values(session, op.class_id, op.attrs or {})
     except (InvalidInput, GeometryError) as err:
         return OpResult(op.id, "invalid", error=str(err))
@@ -148,6 +188,7 @@ def _update(session: Session, image: Image, op: Op) -> OpResult:
         if "geometry" in op.patch:
             new_geometry = validate_geometry(ann.type, op.patch["geometry"]).model_dump()
             _check_fits(image, ann.type, new_geometry)
+            _check_ends(session, image, ann.type, new_geometry)
         if "attrs" in op.patch:
             new_attrs = dict(op.patch["attrs"])
             _check_values(session, new_class or ann.class_id, new_attrs)
@@ -171,6 +212,7 @@ def _delete(session: Session, image: Image, op: Op) -> OpResult:
         return OpResult(op.id, "ok")
     if op.if_version is not None and op.if_version != ann.version:
         return OpResult(op.id, "conflict", ann, "This shape changed since you loaded it.")
+    _drop_links_to(session, image, ann)
     session.delete(ann)
     return OpResult(op.id, "ok")
 

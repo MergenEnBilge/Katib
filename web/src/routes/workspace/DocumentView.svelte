@@ -6,7 +6,8 @@
    * list underneath is there for the keyboard and for checking the work, and it is also what
    * makes every span reachable without a mouse.
    */
-  import { Trash2 } from '@lucide/svelte';
+  import { ArrowRight, Link2, Trash2, X } from '@lucide/svelte';
+  import { linkEnds } from '../../lib/canvas/types';
   import type { Workspace } from '../../lib/state/workspace.svelte';
   import { segments, spanRange, trim } from '../../lib/text/spans';
   import { plural } from '../../lib/format';
@@ -19,6 +20,29 @@
   let parts = $derived(segments(words.length, spans));
   let selected = $derived(ws.selectedIds);
   const activeClass = $derived(ws.classes.find((c) => c.id === ws.activeClassId) ?? null);
+  const linking = $derived(ws.types.includes('relation'));
+  const relations = $derived(linking ? ws.relations() : []);
+
+  /** The span a link is being drawn from, while someone is part way through making one. */
+  let linkFrom = $state<string | null>(null);
+
+  /** The words a span covers, for naming it in the list of links. */
+  function quote(id: string): string {
+    const span = spans.find((s) => s.id === id);
+    if (!span) return 'a span that is gone';
+    const range = spanRange(span);
+    return words.slice(range.start, range.end);
+  }
+
+  function spanClassOf(id: string): string {
+    return nameOf(spans.find((s) => s.id === id)?.classId ?? '');
+  }
+
+  function link(toId: string): void {
+    if (linkFrom === null || linkFrom === toId) return;
+    ws.addRelation(linkFrom, toId);
+    linkFrom = null;
+  }
 
   function colorOf(classId: string): string {
     return ws.styles.get(classId)?.color ?? 'var(--accent)';
@@ -88,7 +112,7 @@
               class:picked={selected.has(top.id)}
               style="--mark: {colorOf(top.classId)}"
               title={part.spans.map((s) => nameOf(s.classId)).join(', ')}
-              onclick={() => ws.selectSpan(top.id)}
+              onclick={() => (linkFrom === null ? ws.selectSpan(top.id) : link(top.id))}
               role="presentation">{words.slice(part.start, part.end)}</mark
             >
           {/if}
@@ -97,7 +121,10 @@
 
       {#if !ws.readOnly}
         <p class="hint">
-          {#if activeClass}
+          {#if linkFrom !== null}
+            Joining <strong>{quote(linkFrom)}</strong> to another span, as
+            <strong>{activeClass?.name ?? 'no class'}</strong>. Choose the span it points at.
+          {:else if activeClass}
             Select words to label them <strong>{activeClass.name}</strong>. Press 1 to 9 to change
             class, or Delete to remove the one you picked.
           {:else}
@@ -120,6 +147,36 @@
                   <span class="what">{nameOf(span.classId)}</span>
                   <span class="quote">{words.slice(range.start, range.end)}</span>
                 </button>
+                {#if !ws.readOnly && linking}
+                  {#if linkFrom === null}
+                    <button
+                      type="button"
+                      class="drop"
+                      aria-label="Start a link from {words.slice(
+                        spanRange(span).start,
+                        spanRange(span).end,
+                      )}"
+                      onclick={() => (linkFrom = span.id)}><Link2 size={14} /></button
+                    >
+                  {:else if linkFrom === span.id}
+                    <button
+                      type="button"
+                      class="drop"
+                      aria-label="Stop making a link"
+                      onclick={() => (linkFrom = null)}><X size={14} /></button
+                    >
+                  {:else}
+                    <button
+                      type="button"
+                      class="drop go"
+                      aria-label="Link to {words.slice(
+                        spanRange(span).start,
+                        spanRange(span).end,
+                      )}"
+                      onclick={() => link(span.id)}><ArrowRight size={14} /></button
+                    >
+                  {/if}
+                {/if}
                 {#if !ws.readOnly}
                   <button
                     type="button"
@@ -133,6 +190,48 @@
           </ul>
         {/if}
       </section>
+
+      {#if linking}
+        <section class="list" aria-label="Links between spans">
+          <h3>{plural(relations.length, 'link')}</h3>
+          {#if relations.length === 0}
+            <p class="hint">
+              Nothing joined up yet. Pick a class for the link, then use the link button beside a
+              span and choose the span it points at.
+            </p>
+          {:else}
+            <ul>
+              {#each relations as relation (relation.id)}
+                {@const ends = linkEnds(relation)}
+                {#if ends}
+                  <li>
+                    <button
+                      type="button"
+                      class="pick"
+                      onclick={() => ws.selectSpan(relation.id)}
+                    >
+                      <span class="swatch" style="background: {colorOf(relation.classId)}"></span>
+                      <span class="what">{nameOf(relation.classId)}</span>
+                      <span class="quote">
+                        {quote(ends.from_id)} ({spanClassOf(ends.from_id)}) &rarr;
+                        {quote(ends.to_id)} ({spanClassOf(ends.to_id)})
+                      </span>
+                    </button>
+                    {#if !ws.readOnly}
+                      <button
+                        type="button"
+                        class="drop"
+                        aria-label="Remove this {nameOf(relation.classId)} link"
+                        onclick={() => ws.removeRelation(relation.id)}><Trash2 size={14} /></button
+                      >
+                    {/if}
+                  </li>
+                {/if}
+              {/each}
+            </ul>
+          {/if}
+        </section>
+      {/if}
     </div>
   {/if}
 </div>
@@ -239,6 +338,11 @@
   .drop:hover {
     color: var(--danger);
     background: var(--surface-2);
+  }
+
+  .drop.go,
+  .drop.go:hover {
+    color: var(--accent);
   }
   .waiting {
     padding: 2rem;

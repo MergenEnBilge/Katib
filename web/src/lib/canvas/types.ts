@@ -59,6 +59,12 @@ export interface SpanGeometry {
   end: number;
 }
 
+/** A link from one shape to another, by id. Both ends are spans on the same document. */
+export interface RelationGeometry {
+  from_id: string;
+  to_id: string;
+}
+
 export type Geometry =
   | BoxGeometry
   | PolygonGeometry
@@ -67,7 +73,8 @@ export type Geometry =
   | MaskGeometry
   | TagGeometry
   | TextGeometry
-  | SpanGeometry;
+  | SpanGeometry
+  | RelationGeometry;
 
 export type ShapeType =
   | 'box'
@@ -78,7 +85,9 @@ export type ShapeType =
   | 'tag'
   | 'text'
   // A run of characters in a text document, which has no place on a picture.
-  | 'span';
+  | 'span'
+  // A link between two spans, which is drawn between them rather than anywhere of its own.
+  | 'relation';
 
 /** Everything that can change on a shape after it is created. */
 export interface ShapePatch {
@@ -153,10 +162,19 @@ export function isPartLabel(shape: Shape): boolean {
   return shape.type !== 'tag' && shape.type !== 'text';
 }
 
+/** The two ends of a link, or null for any other shape. */
+export function linkEnds(shape: Shape): RelationGeometry | null {
+  if (shape.type !== 'relation') return null;
+  const g = shape.geometry as Partial<RelationGeometry>;
+  return typeof g.from_id === 'string' && typeof g.to_id === 'string'
+    ? { from_id: g.from_id, to_id: g.to_id }
+    : null;
+}
+
 /**
  * A shape the canvas draws and can pick up. Whole-item shapes are listed beside the picture
  * instead, and a span lives in the words of a document, so the canvas leaves all of them alone.
  */
 export function isDrawn(shape: Shape): boolean {
-  return isPartLabel(shape) && shape.type !== 'span';
+  return isPartLabel(shape) && shape.type !== 'span' && shape.type !== 'relation';
 }

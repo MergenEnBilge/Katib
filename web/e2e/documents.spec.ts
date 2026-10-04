@@ -180,3 +180,66 @@ test('a text project opens Export on a format it can use', async ({ page }) => {
   await exporter.getByRole('checkbox', { name: /Save into a folder/ }).uncheck();
   await expect(exporter.getByRole('button', { name: 'Export' })).toBeEnabled();
 });
+
+test('join two spans with a link, and lose the link with the span', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'New project' }).first().click();
+  await page.getByLabel('Project name').fill(`Who works where ${Date.now()}`);
+  await pickKind(page, 'Text', /^Find things and how they relate/);
+  await page.getByRole('button', { name: 'Create project' }).click();
+
+  const dialog = page.getByRole('dialog');
+  await page.getByRole('button', { name: 'Add documents' }).last().click();
+  await dialog.getByLabel('Add documents').setInputFiles({
+    name: 'who.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from('Ada works at Katib.', 'utf-8'),
+  });
+  await expect(dialog.getByText('1 document added.')).toBeVisible();
+  await dialog.getByRole('button', { name: 'Done' }).click();
+
+  await openPanel(page);
+  for (const name of ['person', 'works for']) {
+    await page.getByLabel('New class name').fill(name);
+    await page.getByRole('button', { name: 'Add', exact: true }).click();
+    await expect(page.getByRole('button', { name: new RegExp(name) }).first()).toBeVisible();
+  }
+
+  // Label the two things, with the class for things rather than the class for links.
+  await page.getByRole('button', { name: /person/ }).first().click();
+  await expect(page.getByTestId('document-words')).toContainText('Ada works at Katib.');
+  await selectWords(page, 0, 3);
+  await selectWords(page, 13, 18);
+  const spanList = page.getByRole('region', { name: 'Labelled spans' });
+  await expect(spanList.getByRole('heading', { name: '2 spans' })).toBeVisible();
+
+  // Then join them, with the class that names the link.
+  await page.getByRole('button', { name: /works for/ }).first().click();
+  const sent = page.waitForResponse(
+    (r) => r.url().includes('/annotations:batch') && r.request().method() === 'POST',
+  );
+  await spanList.getByRole('button', { name: 'Start a link from Ada' }).click();
+  await spanList.getByRole('button', { name: 'Link to Katib' }).click();
+
+  const links = page.getByRole('region', { name: 'Links between spans' });
+  await expect(links.getByRole('heading', { name: '1 link' })).toBeVisible();
+  await expect(links.getByText(/Ada \(person\)/)).toBeVisible();
+
+  // It survives a reload, so the server kept it.
+  await sent;
+  await page.reload();
+  await expect(
+    page
+      .getByRole('region', { name: 'Links between spans' })
+      .getByRole('heading', { name: '1 link' }),
+  ).toBeVisible();
+
+  // Taking away a span it joined takes the link with it, rather than leaving it pointing at
+  // nothing.
+  await page.getByRole('button', { name: 'Remove this person span' }).last().click();
+  await expect(
+    page
+      .getByRole('region', { name: 'Links between spans' })
+      .getByRole('heading', { name: '0 links' }),
+  ).toBeVisible();
+});

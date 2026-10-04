@@ -2635,7 +2635,7 @@ export interface components {
             /** Name */
             name: string;
             /** Annotation Types */
-            annotation_types?: ("box" | "polygon" | "obb" | "keypoints" | "mask" | "tag" | "text" | "span")[] | null;
+            annotation_types?: ("box" | "polygon" | "obb" | "keypoints" | "mask" | "tag" | "text" | "span" | "relation")[] | null;
             /** Medium */
             medium?: ("image" | "text") | null;
         };
