@@ -101,3 +101,31 @@ def test_delete_removes_project_and_its_rows(session: Session) -> None:
 def test_missing_project(session: Session) -> None:
     with pytest.raises(NotFound):
         projects.get_project(session, uuid.uuid4())
+
+
+def test_a_project_still_gets_made_when_its_address_is_taken_mid_flight(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Two people creating a project at once can pick the same address.
+
+    The address is worked out by looking and then written, so the second write can fail. Whoever
+    came second should get their project anyway, at the next address along.
+    """
+    projects.create_project(session, "Taken")
+    session.commit()
+    answers = iter(["taken", "taken", "taken-9"])  # as if someone else grabbed it twice over
+    monkeypatch.setattr(projects, "_unique_slug", lambda *_: next(answers))
+
+    made = projects.create_project(session, "Something else")
+    assert made.slug == "taken-9"
+    assert [p.name for p in session.scalars(select(Project))] == ["Taken", "Something else"]
+
+
+def test_a_project_gives_up_after_enough_tries(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    projects.create_project(session, "Taken")
+    session.commit()
+    monkeypatch.setattr(projects, "_unique_slug", lambda *_: "taken")
+    with pytest.raises(Exception, match="UNIQUE|already exists"):
+        projects.create_project(session, "Something else")

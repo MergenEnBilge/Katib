@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Any
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from katib.db.models import Image, Project, ProjectMember
@@ -40,6 +41,10 @@ def _clean_name(name: str) -> str:
     return name
 
 
+#: How many addresses to try before giving up, when others are taking them at the same time.
+SLUG_TRIES = 5
+
+
 def _name_taken(session: Session, name: str, exclude: uuid.UUID | None = None) -> bool:
     stmt = select(Project.id).where(func.lower(Project.name) == name.lower())
     if exclude is not None:
@@ -67,15 +72,39 @@ def create_project(
         raise ProjectNameTaken(f"A project named “{name}” already exists.")
     types = annotation_types or DEFAULT_TYPES
     settings: dict[str, Any] = {"annotation_types": types, "review_enabled": False}
-    project = Project(
-        name=name, slug=_unique_slug(session, name), settings=settings, created_by=created_by
-    )
-    session.add(project)
-    session.flush()
+    project = _insert_with_free_slug(session, name, settings, created_by)
     if created_by is not None:
         session.add(ProjectMember(project_id=project.id, user_id=created_by, role="owner"))
         session.flush()
     return project
+
+
+def _insert_with_free_slug(
+    session: Session,
+    name: str,
+    settings: dict[str, Any],
+    created_by: uuid.UUID | None,
+) -> Project:
+    """Add the project, taking the next free address if something else just took this one.
+
+    The address is worked out by looking, and then written, so two people creating a project at
+    the same moment can both pick the same one. Rather than failing in front of whoever came
+    second, Katib tries again with the next.
+    """
+    for left in range(SLUG_TRIES, 0, -1):
+        project = Project(
+            name=name, slug=_unique_slug(session, name), settings=settings, created_by=created_by
+        )
+        try:
+            with session.begin_nested():
+                session.add(project)
+                session.flush()
+        except IntegrityError:
+            if left == 1:
+                raise
+            continue
+        return project
+    raise ProjectNameTaken(f"A project named “{name}” already exists.")
 
 
 def get_project(session: Session, project_id: uuid.UUID) -> Project:
