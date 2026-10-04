@@ -17,7 +17,7 @@ the internet by itself is a model that you ask for by name in Settings. You can 
 
 !!! note "Version numbers"
 
-    The commands in this guide use version `0.6.0`, the latest release. To install a newer one,
+    The commands in this guide use version `0.7.0`, the latest release. To install a newer one,
     change the number. Everything else stays the same. All releases are listed on the
     [releases page](https://github.com/MergenEnBilge/Katib/releases).
 
@@ -126,7 +126,7 @@ Your server needs an `https` address for this to work. The [Docker setup](deploy
 Run this one line on any computer with Docker installed:
 
 ```bash
-docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.6.0
+docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.7.0
 ```
 
 The version number in the command means Katib only updates when you change it. If you want the
@@ -232,11 +232,14 @@ page. You can also use the question mark button at the top of a project.
 
 ## Your first project
 
-1. Choose **New project**, and give it a name. Pick the kinds of shapes you need, such as boxes or
-   polygons. The toolbar only shows the kinds you choose.
+1. Choose **New project**, and give it a name. Say whether you are labelling pictures or text,
+   then pick the job: finding objects, outlining shapes, pose, sorting photographs, captioning, or,
+   for text, finding things in the words, joining them up, sorting documents or writing answers.
+   The toolbar only shows what that job needs. **Choose the shapes myself** is there if you would
+   rather pick them one by one.
 2. Choose **Import images**. You can upload files from your computer, or connect a folder on the
    computer that runs Katib. Connecting a folder reads your pictures where they are. Katib never
-   changes them.
+   changes them. A project of text asks for documents instead.
 3. Open the **Classes** tab and add a class, such as `car`.
 4. Press **B** to select the box tool. Drag across the picture to draw a box. Katib saves every
    change as you make it.

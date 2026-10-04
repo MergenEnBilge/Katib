@@ -16,8 +16,8 @@
   <img src="docs/images/workspace.png" width="900" alt="The Katib workspace: an image with labelled boxes, the picture list on the left, classes on the right">
 </p>
 
-Katib is an annotation tool for computer vision. You draw boxes and shapes on your pictures, sort
-them into classes, and export them in the format your training code already reads.
+Katib is an annotation tool for pictures and text. You draw boxes and shapes on your pictures, or
+label the words in your documents, and export them in the format your training code already reads.
 
 It runs on your own computer, so your pictures stay where they are. Start it on a laptop with one
 command, or run it on a server that your whole team signs in to.
@@ -34,8 +34,9 @@ Built by M. Abdullah K. Mughal ([MergenEnBilge](https://github.com/MergenEnBilge
 - **It checks your data before you train.** It finds tiny shapes, duplicate boxes, near-identical
   photos that could leak between your training and validation sets, and classes with very few
   examples.
-- **It works with the formats you already have.** Import and export YOLO, COCO, Pascal VOC,
-  LabelMe and JSON Lines. Train, validation and test splits are kept.
+- **It works with the formats you already have.** For pictures, YOLO, COCO, Pascal VOC, LabelMe
+  and JSON Lines. For text, CoNLL, Hugging Face token files, spaCy, Prodigy, Label Studio and BRAT.
+  Train, validation and test splits are kept.
 - **It does not phone home.** There is no account to create with us, no telemetry and no licence
   check. The only download Katib makes on its own is a model you ask for by name.
 
@@ -52,7 +53,7 @@ Built by M. Abdullah K. Mughal ([MergenEnBilge](https://github.com/MergenEnBilge
 To run Katib with Docker, paste this into a terminal:
 
 ```bash
-docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.6.0
+docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.7.0
 ```
 
 Then open <http://localhost:8420>. The first time, Katib asks for a setup code. Run
@@ -69,15 +70,24 @@ and a short tour.
 
 ## What you can label
 
+A new project asks what you are labelling, pictures or text, and then what the job is. It takes
+only the tools that job needs, so the toolbar stays short.
+
+**In a picture:**
+
 - **Boxes**, for most objects.
 - **Polygons**, for shapes with an outline.
 - **Rotated boxes**, for things at an angle.
 - **Keypoints**, with skeletons, for poses.
 - **Brush masks**, for painting over an area.
 - **Whole-image tags**, and **text** for captions or transcriptions.
-- **Text documents**, where you label spans of words instead of a picture.
 
-Each project uses only the kinds you pick when you create it, so the toolbar stays simple.
+**In a document:**
+
+- **Spans**, for the names, places and amounts written in the words.
+- **Relations**, joining one span to another: who works where, what caused what.
+- **Document labels**, for sorting documents into categories.
+- **Written answers**, for a summary, a translation or a reply.
 
 Two tools can draw for you. The **magic wand** outlines an object that stands out from its
 background, and needs no model. With a Segment Anything model, **click to select** outlines things
@@ -132,7 +142,8 @@ while offline is sent when you are connected again.
 
 | If you want to | Do this |
 |----------------|---------|
-| Train a model | Export YOLO, COCO, VOC, LabelMe or JSON Lines, with or without the pictures |
+| Train a model on pictures | Export YOLO, COCO, VOC, LabelMe or JSON Lines, with or without the pictures |
+| Train a model on text | Export CoNLL, Hugging Face token files, spaCy, Prodigy, Label Studio or BRAT |
 | Script your work | Use the [REST API](docs/automation.md) or the [Python client](sdk/README.md) |
 | Use your own model | Load an ONNX detector to draft boxes, or a Segment Anything model to outline objects |
 | Use a phone or tablet | Install the Android app, or add Katib to your home screen |

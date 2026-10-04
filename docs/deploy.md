@@ -22,7 +22,7 @@ First, install [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 this into PowerShell or Terminal:
 
 ```bash
-docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.6.0
+docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.7.0
 ```
 
 Open <http://localhost:8420>. Katib asks for a setup code before it creates the first account, because
@@ -45,7 +45,7 @@ To let someone else sign in, give them your computer's network address with `:84
 To label pictures that are already on your disk, mount that folder as well:
 
 ```bash
-docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data -v C:\Photos:/photos:ro ghcr.io/mergenenbilge/katib:v0.6.0
+docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data -v C:\Photos:/photos:ro ghcr.io/mergenenbilge/katib:v0.7.0
 ```
 
 Then choose **Import**, then **Connect a folder**, and pick `/photos`. The `:ro` part makes the folder

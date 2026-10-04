@@ -3,6 +3,78 @@
 All notable changes to Katib are listed here, newest first. Each release is also on the
 [releases page](https://github.com/MergenEnBilge/Katib/releases).
 
+## 0.7.0
+
+### Labelling text
+
+- A project of text now covers the work people actually do with it: **finding things in the
+  words**, **joining them up**, **sorting documents**, and **writing an answer** such as a summary
+  or a translation.
+- **Relations** join one span to another, with a class of their own, so "Ada" and "Katib" can be
+  joined as "works for". A link reads one way round, is listed under the spans, and goes away with
+  the span it pointed at.
+- Katib now reads and writes the formats text work expects: **CoNLL**, **Hugging Face token
+  classification**, **Label Studio**, **BRAT standoff**, and **text with a label** as CSV or JSON
+  Lines. The spans file Katib already had is now also written under the names **spaCy** and
+  **Prodigy** read, so one file loads in all three.
+- Label Studio and BRAT carry the links between spans as well as the spans, so a project can go out
+  and come back whole. Exporting links in any other format says how many were left out.
+- CoNLL and Hugging Face label whole words rather than characters. A span that stops mid-word is
+  stretched to that word's edges, and the export says how many were stretched.
+- A file of labelled text can be read into an empty project: the documents are made from the words
+  the file carries, instead of the labels being dropped for want of anything to attach them to.
+
+### Choosing what a project is
+
+- A new project asks what you are labelling, pictures or text, and then what the job is, instead of
+  offering eight kinds of shape to tick. Each job takes only the tools it needs.
+- A project is pictures or text, and refuses the other kind's shapes. Before, ticking "Text spans"
+  without clearing the two that came ticked made a project whose import pane offered only
+  documents while every picture format vanished from its exports.
+- A job for finding objects no longer arrives with the polygon tool as well. Pick **Choose the
+  shapes myself** to set them one by one.
+
+### Fixed
+
+- **Labelling spans now works.** A new span stayed picked, and Delete or Backspace anywhere on the
+  page removed whatever was picked, so labelling some words and then naming the class threw the
+  span away and swallowed the keystroke.
+- The canvas sits behind a document so that saving and locks carry on working, but it was still
+  taking the document's keys. With a span picked there was no way to move to the next document.
+- A text file written on Windows put every span out of place by one character per line before it,
+  because of how its line endings were counted.
+- Opening a document showed the previous one's words for a moment, and words selected then were
+  saved in the wrong place.
+- Labelling the same words twice over made a second span on top of the first. It now picks the one
+  that is there.
+- Below 700 pixels the header hid Import, Export, the split, the team, the class manager, dataset
+  health and help, and once a project had a single picture there was no way to reach any of them.
+  They now gather behind a **More** menu.
+- A project of text opened Export on a format it could not use, which showed an empty box and then
+  failed.
+- Asking to export into a folder without naming one quietly made a zip instead. Turning that
+  setting off again left Export greyed out with the reason hidden.
+- Classes can be put in order, which sets the numbers formats such as YOLO write. The export window
+  has always said as much; now there is a way to do it.
+- Export says when it is waiting for a class, rather than being greyed out with nothing to explain
+  it, and offers to open the class manager.
+- Train, validation and test shares that did not add up to a hundred were quietly scaled, so
+  50/50/50 exported a third each. The window now says what the numbers will become.
+- Copying a folder read every picture before sending the first one, to see which were already
+  there, with an empty progress bar throughout. It now says what it is doing.
+- A failure to check for buckets, or for the folders a project already reads, was reported as there
+  being none of either. Both now say so and offer to try again.
+- Boxes that take a path on the Katib computer showed a Linux example on a Windows server.
+- A failed reservation on an image was passed over in silence unless somebody else held it, which
+  left two people editing one image with neither being told.
+- A secret key for a bucket is no longer typed in plain sight, and forgetting a bucket asks in a
+  window that says what will happen rather than the browser's own box.
+- Pre-labelling counts the class names as they are typed and says where their order comes from.
+- A project of text was told about YOLO, COCO and Pascal VOC on its labels tab while being offered
+  none of them.
+- Splitting a project of text into training and validation sets used ratios meant for object
+  detection.
+
 ## 0.6.0
 
 ### Text documents
