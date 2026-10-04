@@ -9,6 +9,11 @@ All notable changes to Katib are listed here, newest first. Each release is also
 
 - Two people creating a project at the same moment could both be given the same web address for
   it, and the second one saw a server error. Katib now takes the next address along.
+- Exporting with **move** could take pictures that another project was also reading. It is now
+  refused, and says which project to look at.
+- A restored backup left the files holding secrets readable by anyone on the machine, because a zip
+  carries no permissions. They are made private again.
+- A document with many labelled spans is quicker to draw.
 
 ### Pictures from cloud storage
 
