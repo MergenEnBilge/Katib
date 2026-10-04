@@ -3,7 +3,7 @@
 All notable changes to Katib are listed here, newest first. Each release is also on the
 [releases page](https://github.com/MergenEnBilge/Katib/releases).
 
-## Unreleased
+## 0.6.0
 
 ### Fixed
 
