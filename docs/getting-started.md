@@ -17,7 +17,7 @@ the internet by itself is a model that you ask for by name in Settings. You can 
 
 !!! note "Version numbers"
 
-    The commands in this guide use version `0.5.1`, the latest release. To install a newer one,
+    The commands in this guide use version `0.6.0`, the latest release. To install a newer one,
     change the number. Everything else stays the same. All releases are listed on the
     [releases page](https://github.com/MergenEnBilge/Katib/releases).
 
@@ -126,7 +126,7 @@ Your server needs an `https` address for this to work. The [Docker setup](deploy
 Run this one line on any computer with Docker installed:
 
 ```bash
-docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.5.1
+docker run -d --name katib --restart unless-stopped -p 8420:8420 -v katib-data:/data ghcr.io/mergenenbilge/katib:v0.6.0
 ```
 
 The version number in the command means Katib only updates when you change it. If you want the
