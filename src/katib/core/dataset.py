@@ -13,9 +13,15 @@ from typing import Any, Protocol
 @dataclass(frozen=True)
 class Shape:
     class_name: str
-    type: str  # "box", "polygon", "obb", "keypoints", "mask", "tag", "text" or "span"
+    #: One of the annotation types in `katib.core.types`: a drawn shape, a whole-item tag or
+    #: caption, a span of characters, or a relation joining two spans.
+    type: str
     geometry: dict[str, Any]
     attrs: dict[str, Any] = field(default_factory=dict[str, Any], hash=False)
+    #: Katib's own id for the shape. A relation names the two shapes it joins by these, so a
+    #: format that carries relations needs them to match one shape to another. Formats that
+    #: write shapes on their own leave it empty.
+    id: str = ""
 
 
 @dataclass(frozen=True)
@@ -38,6 +44,11 @@ class ImageLabels:
     #: Folders the label or image sat in, inside the dataset ("train/labels", "images/val"). Only
     #: used to tell apart two pictures with the same name, one per split, say.
     folders: tuple[str, ...] = ()
+    #: The words of a document, for formats that carry the text alongside its labels. A project
+    #: with no document of this name gets one made from these words, so a file of labelled text
+    #: can be read into an empty project. None for a picture, whose bytes are never in a label
+    #: file.
+    text: str | None = None
 
 
 @dataclass(frozen=True)
@@ -67,6 +78,37 @@ class ExportImage:
     #: "image" for a picture, "text" for a document, whose words are in `source` and whose
     #: `width` is its length in characters.
     kind: str = "image"
+
+    @property
+    def text(self) -> str | None:
+        """The words of a document, or None for a picture or a file that cannot be read.
+
+        Every format that writes text needs these, so the reading is done once here rather than
+        repeated, slightly differently, in each one.
+        """
+        if self.kind != "text" or self.source is None:
+            return None
+        try:
+            return self.source.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return None
+
+    def spans(self) -> list[Shape]:
+        """The spans on a document, in the order they appear in the words."""
+        return sorted(
+            (s for s in self.shapes if s.type == "span"),
+            key=lambda s: (int(s.geometry.get("start", 0)), int(s.geometry.get("end", 0))),
+        )
+
+    def relations(self) -> list[Shape]:
+        return [s for s in self.shapes if s.type == "relation"]
+
+    def tags(self) -> list[str]:
+        return [s.class_name for s in self.shapes if s.type == "tag"]
+
+    def captions(self) -> list[str]:
+        written = (str(s.geometry.get("text", "")) for s in self.shapes if s.type == "text")
+        return [w for w in written if w]
 
 
 class DatasetView(Protocol):

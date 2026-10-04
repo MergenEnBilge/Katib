@@ -170,6 +170,14 @@ test('a text project opens Export on a format it can use', async ({ page }) => {
   await expect(exporter.getByLabel('Format')).toHaveValue('jsonl-spans');
   await expect(exporter.getByRole('button', { name: 'Export' })).toBeEnabled();
 
+  // Every text format is on offer, and no picture format is.
+  const offered = await exporter.getByLabel('Format').locator('option').allTextContents();
+  expect(offered.join(' ')).toContain('CoNLL');
+  expect(offered.join(' ')).toContain('Hugging Face');
+  expect(offered.join(' ')).toContain('Label Studio');
+  expect(offered.join(' ')).toContain('BRAT');
+  expect(offered.join(' ')).not.toContain('YOLO');
+
   // Asking to write into a folder without naming one no longer quietly sends a zip instead.
   await exporter.getByRole('checkbox', { name: /Save into a folder/ }).check();
   await expect(exporter.getByRole('button', { name: 'Export' })).toBeDisabled();

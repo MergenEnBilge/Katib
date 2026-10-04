@@ -9,6 +9,7 @@ import uuid
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -22,7 +23,7 @@ from katib.core.dataset import (
     Shape,
     SkeletonSpec,
 )
-from katib.core.types import GeometryError, validate_geometry
+from katib.core.types import LINK_TYPES, GeometryError, validate_geometry
 from katib.db.ids import new_id
 from katib.db.models import Annotation, Class, Image, Project, ProjectFolder
 from katib.formats import UNRECOGNISED, FormatError, detect_format, get_format
@@ -44,17 +45,28 @@ class ImportSummary:
     shapes_added: int = 0
     classes_created: list[str] = field(default_factory=list[str])
     unmatched_images: int = 0
+    #: Documents made from the words in the file, for a format that carries its own text.
+    documents_added: int = 0
     notes: list[Note] = field(default_factory=list[Note])
 
 
 def import_dataset(
-    session: Session, project_id: uuid.UUID, path: Path, format_id: str | None = None
+    session: Session,
+    project_id: uuid.UUID,
+    path: Path,
+    format_id: str | None = None,
+    ctx: StorageContext | None = None,
 ) -> ImportSummary:
     """Read a dataset and attach its shapes to matching images in one transaction.
 
     Images are matched by filename, or by name without extension when the format only has stems
     (YOLO). Images that already have shapes are left alone so importing twice cannot duplicate
     them. Class names resolve through names and aliases, and unknown names become new classes.
+
+    A format that carries the words of a document as well as its labels can bring documents the
+    project does not have yet, so a file of labelled text can be read into an empty project.
+    That needs somewhere to keep the words, which is what `ctx` is for; without it such a file
+    only labels the documents already there.
     """
     sizes = {
         Path(name).stem.lower(): (width, height)
@@ -98,6 +110,11 @@ def import_dataset(
         key = labels.filename.lower()
         candidates = by_full_name.get(key) or by_stem.get(Path(key).stem, [])
         image = _pick(candidates, labels)
+        if image is None and labels.text is not None and ctx is not None:
+            image = _add_document(session, project_id, labels, ctx, summary)
+            if image is not None:
+                by_full_name.setdefault(image.filename.lower(), []).append(image)
+                by_stem.setdefault(Path(image.filename).stem.lower(), []).append(image)
         if image is None:
             if len(candidates) > 1:
                 summary.notes.append(
@@ -114,15 +131,30 @@ def import_dataset(
             summary.notes.append(Note(labels.filename, "Already has shapes, so it was skipped."))
             continue
         summary.images_matched += 1
-        for shape in labels.shapes:
+        # A link names the two shapes it joins by the ids the file used, which mean nothing
+        # here, so the shapes are added first and the links are pointed at what they became.
+        made: dict[str, uuid.UUID] = {}
+        plain = [s for s in labels.shapes if s.type not in LINK_TYPES]
+        links = [s for s in labels.shapes if s.type in LINK_TYPES]
+        for shape in [*plain, *links]:
+            raw = dict(shape.geometry)
+            if shape.type in LINK_TYPES:
+                ends = _link_ends(raw, made)
+                if ends is None:
+                    summary.notes.append(
+                        Note(labels.filename, "A link joined something that is not here.")
+                    )
+                    continue
+                raw = ends
             try:
-                geometry = validate_geometry(shape.type, shape.geometry).model_dump()
+                geometry = validate_geometry(shape.type, raw).model_dump()
             except GeometryError as err:
                 summary.notes.append(Note(labels.filename, str(err)))
                 continue
+            shape_id = new_id()
             session.add(
                 Annotation(
-                    id=new_id(),
+                    id=shape_id,
                     image_id=image.id,
                     class_id=class_ids.get(shape.class_name),
                     type=shape.type,
@@ -131,10 +163,44 @@ def import_dataset(
                     source="import",
                 )
             )
+            if shape.id:
+                made[shape.id] = shape_id
             summary.shapes_added += 1
     session.flush()
     del summary.notes[MAX_NOTES:]
     return summary
+
+
+def _link_ends(geometry: dict[str, Any], made: dict[str, uuid.UUID]) -> dict[str, Any] | None:
+    """A link's two ends, as the ids the shapes were given here, or None if either is missing."""
+    ends: dict[str, Any] = dict(geometry)
+    for key in ("from_id", "to_id"):
+        found = made.get(str(geometry.get(key, "")))
+        if found is None:
+            return None
+        ends[key] = str(found)
+    return ends
+
+
+def _add_document(
+    session: Session,
+    project_id: uuid.UUID,
+    labels: ImageLabels,
+    ctx: StorageContext,
+    summary: ImportSummary,
+) -> Image | None:
+    """Make a document from the words a label file carried, so its labels have a home."""
+    from katib.services import documents
+
+    made = documents.add_document(
+        session, project_id, labels.filename, labels.text or "", ctx, known={}
+    )
+    if isinstance(made, str):
+        summary.notes.append(Note(labels.filename, f"Its words were not added: {made}."))
+        return None
+    session.flush()
+    summary.documents_added += 1
+    return made
 
 
 _SPLIT_WORDS = {"train", "training", "val", "valid", "validation", "dev", "test", "testing"}
@@ -297,10 +363,16 @@ class ProjectView:
             for ann in rows:
                 if ann.class_id in self._names:
                     by_image[ann.image_id].append(
-                        Shape(self._names[ann.class_id], ann.type, ann.geometry, ann.attrs)
+                        Shape(
+                            self._names[ann.class_id],
+                            ann.type,
+                            ann.geometry,
+                            ann.attrs,
+                            str(ann.id),
+                        )
                     )
                 elif ann.class_id is None and ann.type == "text" and self._with_text:
-                    by_image[ann.image_id].append(Shape("", ann.type, ann.geometry))
+                    by_image[ann.image_id].append(Shape("", ann.type, ann.geometry, id=str(ann.id)))
             for img in chunk:
                 try:
                     source: Path | None = image_path(img, self._ctx)
