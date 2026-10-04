@@ -57,6 +57,8 @@ class StorageContext:
     cloud_cache: LocalStorage
     #: The data folder itself, which is where the list of buckets is kept.
     data_dir: Path
+    #: How much of the disk the cache of bucket pictures may use before the oldest are dropped.
+    max_cloud_cache_bytes: int = 5_000 * 1024 * 1024
     #: A folder is uploaded one file at a time, so this is a backstop against one that would
     #: never finish, not a real technical ceiling. Set from limits.max_folder_upload_files.
     max_folder_files: int = 20_000

@@ -70,6 +70,7 @@ def create_app(settings: Settings) -> FastAPI:
             exports=LocalStorage(settings.data_dir / "exports"),
             cloud_cache=LocalStorage(settings.data_dir / "cloud-cache"),
             data_dir=settings.data_dir,
+            max_cloud_cache_bytes=settings.limits.max_cloud_cache_mb * 1024 * 1024,
             folder_uploads=LocalStorage(settings.data_dir / "folder-uploads"),
             max_folder_files=settings.limits.max_folder_upload_files,
         )

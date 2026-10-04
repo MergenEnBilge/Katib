@@ -64,6 +64,9 @@ class LimitSettings(BaseModel):
     # never finish rather than a real technical ceiling. 20,000 covers datasets far larger than
     # Katib is typically used for; raise it if you regularly work with more.
     max_folder_upload_files: int = 20_000
+    # Pictures fetched from a bucket are kept so they are not fetched twice. The oldest go when
+    # the cache passes this, so a large bucket cannot fill the disk.
+    max_cloud_cache_mb: int = 5_000
 
 
 class MlSettings(BaseModel):
