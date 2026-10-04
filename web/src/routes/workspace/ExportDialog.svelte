@@ -17,6 +17,7 @@
   let format = $state('yolo-detect');
   let which = $state<'all' | 'done' | 'notdone'>('all');
   let copyImages = $state(false);
+  const isText = $derived(ws.types.includes('span'));
   let saveHere = $state(false);
   let destination = $state('');
   let moveFiles = $state(false);
@@ -55,7 +56,13 @@
   $effect(() => {
     api
       .formats()
-      .then((f) => (formats = f.filter((x) => x.can_export !== false)))
+      // Text and pictures are different worlds, so a project is only offered its own formats.
+      .then(
+        (f) =>
+          (formats = f.filter(
+            (x) => x.can_export !== false && x.supports.includes('span') === isText,
+          )),
+      )
       .catch((err: unknown) => {
         error = err instanceof ApiError ? err.message : 'Could not load the list of formats.';
       });
@@ -123,7 +130,11 @@
       <label><input type="radio" bind:group={which} value="notdone" /> Not done yet</label>
     </fieldset>
 
-    <label class="check"><input type="checkbox" bind:checked={copyImages} disabled={busy} /> Include the image files</label>
+    {#if isText}
+      <p class="note">The words of each document are written into the file, so it stands alone.</p>
+    {:else}
+      <label class="check"><input type="checkbox" bind:checked={copyImages} disabled={busy} /> Include the image files</label>
+    {/if}
 
     <label class="check"><input type="checkbox" bind:checked={saveHere} disabled={busy} /> Save into a folder on the Katib computer instead of a zip</label>
     {#if saveHere}

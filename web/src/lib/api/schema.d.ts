@@ -609,6 +609,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{project_id}/images:have": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Have Pictures
+         * @description Which of these pictures (by SHA-256) the project already has, so they need not be sent.
+         */
+        post: operations["have_pictures_api_v1_projects__project_id__images_have_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_id}/images:import-folder": {
         parameters: {
             query?: never;
@@ -670,6 +690,49 @@ export interface paths {
         };
         /** Image Thumb */
         get: operations["image_thumb_api_v1_images__image_id__thumb_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add Documents
+         * @description Add documents from one uploaded file.
+         *
+         *     A `.txt` or `.md` file is one document. A `.jsonl` file is one document per line, and any
+         *     spans a line already carries come in with it, with their classes.
+         */
+        post: operations["add_documents_api_v1_projects__project_id__documents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/images/{image_id}/text": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Document Text
+         * @description The words of a document, for the workspace to show and label.
+         */
+        get: operations["document_text_api_v1_images__image_id__text_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1548,6 +1611,11 @@ export interface components {
             /** Results */
             results: components["schemas"]["OpResultOut"][];
         };
+        /** Body_add_documents_api_v1_projects__project_id__documents_post */
+        Body_add_documents_api_v1_projects__project_id__documents_post: {
+            /** File */
+            file: string;
+        };
         /** Body_start_model_download_api_v1_ml_models_download_post */
         Body_start_model_download_api_v1_ml_models_download_post: {
             /** Model Id */
@@ -1771,6 +1839,16 @@ export interface components {
              */
             dry_run: boolean;
         };
+        /**
+         * DocumentTextOut
+         * @description The words of a text document.
+         */
+        DocumentTextOut: {
+            /** Filename */
+            filename: string;
+            /** Text */
+            text: string;
+        };
         /** ExportIn */
         ExportIn: {
             /** Format */
@@ -1788,6 +1866,18 @@ export interface components {
              * @default false
              */
             copy_images: boolean;
+            /** Destination */
+            destination?: string | null;
+            /**
+             * Move Originals
+             * @default false
+             */
+            move_originals: boolean;
+            /**
+             * Confirm Move
+             * @default false
+             */
+            confirm_move: boolean;
         };
         /** FieldOut */
         FieldOut: {
@@ -1887,6 +1977,16 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /** HaveIn */
+        HaveIn: {
+            /** Hashes */
+            hashes: string[];
+        };
+        /** HaveOut */
+        HaveOut: {
+            /** Have */
+            have: string[];
+        };
         /** Health */
         Health: {
             /** Status */
@@ -1935,6 +2035,11 @@ export interface components {
             project_id: string;
             /** Filename */
             filename: string;
+            /**
+             * Kind
+             * @default image
+             */
+            kind: string;
             /** Width */
             width: number;
             /** Height */
@@ -2364,7 +2469,7 @@ export interface components {
             /** Name */
             name: string;
             /** Annotation Types */
-            annotation_types?: ("box" | "polygon" | "obb" | "keypoints" | "mask" | "tag" | "text")[] | null;
+            annotation_types?: ("box" | "polygon" | "obb" | "keypoints" | "mask" | "tag" | "text" | "span")[] | null;
         };
         /** ProjectOut */
         ProjectOut: {
@@ -4098,6 +4203,41 @@ export interface operations {
             };
         };
     };
+    have_pictures_api_v1_projects__project_id__images_have_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HaveIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HaveOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     import_folder_api_v1_projects__project_id__images_import_folder_post: {
         parameters: {
             query?: never;
@@ -4248,6 +4388,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_documents_api_v1_projects__project_id__documents_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_add_documents_api_v1_projects__project_id__documents_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    document_text_api_v1_images__image_id__text_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                image_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentTextOut"];
                 };
             };
             /** @description Validation Error */

@@ -53,6 +53,12 @@ export interface TextGeometry {
   text: string;
 }
 
+/** A run of characters in a document: the first one, and the one just past the last. */
+export interface SpanGeometry {
+  start: number;
+  end: number;
+}
+
 export type Geometry =
   | BoxGeometry
   | PolygonGeometry
@@ -60,9 +66,19 @@ export type Geometry =
   | KeypointsGeometry
   | MaskGeometry
   | TagGeometry
-  | TextGeometry;
+  | TextGeometry
+  | SpanGeometry;
 
-export type ShapeType = 'box' | 'polygon' | 'obb' | 'keypoints' | 'mask' | 'tag' | 'text';
+export type ShapeType =
+  | 'box'
+  | 'polygon'
+  | 'obb'
+  | 'keypoints'
+  | 'mask'
+  | 'tag'
+  | 'text'
+  // A run of characters in a text document, which has no place on a picture.
+  | 'span';
 
 /** Everything that can change on a shape after it is created. */
 export interface ShapePatch {

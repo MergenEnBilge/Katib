@@ -5,6 +5,20 @@ All notable changes to Katib are listed here, newest first. Each release is also
 
 ## Unreleased
 
+### Text documents
+
+Katib can now label text, not only pictures. Choose **Text spans** when you create a project and it
+holds documents instead of images.
+
+- Add documents from `.txt` and `.md` files, one each, or from a `.jsonl` file with one document
+  per line. Spans and tags already in a `.jsonl` line come in with it, and their classes are created.
+- Label words by choosing a class and selecting them. Spans can overlap, and space at the edges of a
+  selection is left out. Click a span to change its class or remove it.
+- Export with **Text spans (JSON Lines)**. Each line holds the words and the spans, so the file
+  stands on its own, and it can be imported again.
+- Everything else works as it does for pictures: roles, the queue of work, review, splits, comments,
+  and 30 days of undo.
+
 ### Faster and clearer imports
 
 - Connecting a folder is about three to four times faster for full-size camera photos, because each

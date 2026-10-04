@@ -73,6 +73,9 @@ class Image(Base):
     project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"))
     filename: Mapped[str] = mapped_column(String(1024))
     storage_key: Mapped[str] = mapped_column(String(2048))
+    #: "image" for a picture, "text" for a document. A document keeps its length in `width` and
+    #: 1 in `height`, so everything that counts or sorts items works for both.
+    kind: Mapped[str] = mapped_column(String(10), default="image", server_default="image")
     width: Mapped[int] = mapped_column(Integer)
     height: Mapped[int] = mapped_column(Integer)
     sha256: Mapped[str] = mapped_column(String(64))

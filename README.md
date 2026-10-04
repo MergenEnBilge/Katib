@@ -75,6 +75,7 @@ and a short tour.
 - **Keypoints**, with skeletons, for poses.
 - **Brush masks**, for painting over an area.
 - **Whole-image tags**, and **text** for captions or transcriptions.
+- **Text documents**, where you label spans of words instead of a picture.
 
 Each project uses only the kinds you pick when you create it, so the toolbar stays simple.
 

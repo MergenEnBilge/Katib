@@ -76,6 +76,29 @@ next to each class to change this.
 Katib remembers which panels you hid, so the workspace looks the same the next time you open it. On
 the home screen, **[** shrinks the sidebar to icons.
 
+## Text documents
+
+In a project that uses **Text spans**, Katib shows the words of a document instead of a canvas.
+
+1. Choose a class on the right.
+2. Select the words you want to label, with the mouse or by holding on a touch screen.
+3. The span appears as soon as you let go, in that class's colour.
+
+Katib leaves out any space at the edges of what you selected, so a span never ends with a blank.
+
+| To do this | How |
+|------------|-----|
+| Change a span's class | Click it, then press a number key or choose a class |
+| Remove a span | Click it and press Delete, or use the bin button in the list |
+| See every span | The list under the words. Each one shows its class and the words it covers |
+| Undo | **Ctrl+Z**, the same as anywhere else |
+
+Spans can overlap, which is what you want when a phrase and a word inside it both need a label.
+Where they do, the words take the colour of the longer span, and both are listed underneath.
+
+You can also tag a whole document from the Classes tab, which suits sorting documents into
+categories, and write captions in the Text tab.
+
 ## On a phone or tablet
 
 The layout adapts to the screen. Handles are bigger for touch, and two fingers can pan and zoom.

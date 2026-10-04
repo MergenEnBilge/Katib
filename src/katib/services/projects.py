@@ -91,7 +91,8 @@ def list_projects(
     """Projects with counts. `visible` limits the list to those ids, None means all."""
     cover = (
         select(Image.id)
-        .where(Image.project_id == Project.id)
+        # A text document has no picture to show on the card.
+        .where(Image.project_id == Project.id, Image.kind == "image")
         .order_by(Image.position)
         .limit(1)
         .correlate(Project)

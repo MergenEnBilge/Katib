@@ -147,6 +147,7 @@ Katib reads and writes these formats. Read-only formats can be imported but not 
 | Mask pictures (PNG) | Masks | No | A `masks` or `SegmentationClass` folder with PNG files named like the pictures. A `classes.txt` or `labelmap.txt` file says which value or colour is which class |
 | Class folders | Tags | Yes | Pictures sorted into folders named after their class, such as `train/cat/1.jpg`. Katib only finds this format under split folders. Otherwise choose it by hand |
 | JSON Lines | Tags, captions, text, every shape type | Yes | A `metadata.jsonl` file. Hugging Face can load it directly |
+| Text spans (JSON Lines) | Spans in documents, document tags | Yes | A `.jsonl` file whose lines hold `text` and `spans`. Used by text projects. The words are written into the file, so the export stands alone |
 
 Katib also finds a dataset that sits one folder down inside the folder you chose, such as a
 `data.yaml` in a subfolder.
@@ -190,6 +191,45 @@ split just for this export, or export without any split. See [Splits](#splits).
 
 YOLO identifies each class by its position in the list, not its name. If you change the order of your
 classes, Katib warns you before the next export, because the numbers will change.
+
+## Text documents
+
+A project that uses **Text spans** holds documents instead of pictures. Everything else works the
+same way: the same roles, the same queue of work, the same splits, and the same 30 days of undo.
+
+### Adding documents
+
+Choose **Add documents** and pick your files.
+
+- A `.txt` or `.md` file becomes one document.
+- A `.jsonl` file holds one document per line. Katib reads the words from `text`, and takes the
+  document's name from `id` if the line has one.
+- If a line already carries spans, in `spans` or `entities`, they come in as labels, and any class
+  they name is created. Both shapes are read: `{"start": 0, "end": 5, "label": "product"}` and
+  `[0, 5, "product"]`.
+- A line can also carry `tags`, which label the whole document. That is what to use for sorting
+  documents into categories.
+
+The same words are only added once, however many times you add the file.
+
+A document can be up to 400,000 characters, which is about 100 pages.
+
+### Labelling words
+
+See [Drawing and shortcuts](drawing.md#text-documents) for how to label spans.
+
+### Exporting
+
+Export with **Text spans (JSON Lines)**. Each line holds the document's words and its spans:
+
+```json
+{"id": "review-1", "text": "Katib runs on my laptop.", "split": "train",
+ "tags": ["positive"], "spans": [{"start": 0, "end": 5, "label": "product", "text": "Katib"}]}
+```
+
+`start` is the first character and `end` the one just past the last, so `text[start:end]` is the
+labelled words. Offsets count characters, so an accent or an emoji counts as one. The same file can
+be imported again, and spans attach to the documents whose names match.
 
 ## Duplicates and dataset health
 

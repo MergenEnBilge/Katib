@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ImageIcon, PanelLeft, Upload } from '@lucide/svelte';
+  import { FileText, ImageIcon, PanelLeft, Upload } from '@lucide/svelte';
   import { api } from '../../lib/api/client';
   import { plural } from '../../lib/format';
   import { SPLIT_LABELS } from '../../lib/splits';
@@ -19,6 +19,9 @@
 
   const ROW = 48;
   const OVERSCAN = 6;
+
+  /** The project holds text documents, so the rail talks about documents, not pictures. */
+  const text = $derived(ws.types.includes('span'));
 
   let scroller: HTMLDivElement | undefined = $state();
   let scrollTop = $state(0);
@@ -129,23 +132,28 @@
   {:else if ws.images.length === 0 && !collapsed}
     <div class="pad">
       {#if ws.search || ws.statusFilter !== 'all' || ws.splitFilter !== 'all'}
-        <p class="none">No images match this filter.</p>
+        <p class="none">Nothing matches this filter.</p>
+      {:else if ws.canManage}
+        <EmptyState
+          title={text ? 'No documents yet' : 'No images yet'}
+          description={text
+            ? 'Add text files, or a .jsonl file with one document per line.'
+            : 'Add images from a folder on this computer or upload them from this device.'}
+        >
+          {#snippet icon()}{#if text}<FileText size={20} />{:else}<ImageIcon size={20} />{/if}{/snippet}
+          {#snippet action()}
+            <Button variant="primary" onclick={onimport}>
+              <Upload size={16} />{text ? 'Add documents' : 'Import images'}
+            </Button>
+          {/snippet}
+        </EmptyState>
       {:else}
-        {#if ws.canManage}
-          <EmptyState
-            title="No images yet"
-            description="Add images from a folder on this computer or upload them from this device."
-          >
-            {#snippet icon()}<ImageIcon size={20} />{/snippet}
-            {#snippet action()}
-              <Button variant="primary" onclick={onimport}><Upload size={16} />Import images</Button>
-            {/snippet}
-          </EmptyState>
-        {:else}
-          <EmptyState title="No images yet" description="Whoever manages this project will add them.">
-            {#snippet icon()}<ImageIcon size={20} />{/snippet}
-          </EmptyState>
-        {/if}
+        <EmptyState
+          title={text ? 'No documents yet' : 'No images yet'}
+          description="Whoever manages this project will add them."
+        >
+          {#snippet icon()}{#if text}<FileText size={20} />{:else}<ImageIcon size={20} />{/if}{/snippet}
+        </EmptyState>
       {/if}
     </div>
   {:else}
@@ -162,7 +170,11 @@
                 title={image.filename}
                 onclick={() => ws.open(image.id)}
               >
-                <img src={api.images.thumbUrl(image.id)} alt="" loading="lazy" width="48" height="32" />
+                {#if image.kind === 'text'}
+                  <span class="doc" aria-hidden="true"><FileText size={16} /></span>
+                {:else}
+                  <img src={api.images.thumbUrl(image.id)} alt="" loading="lazy" width="48" height="32" />
+                {/if}
                 {#if !collapsed}
                   <span class="text">
                     <span class="name mono">{image.filename}</span>
@@ -342,6 +354,19 @@
   img {
     flex: none;
     object-fit: cover;
+    background: var(--image-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-chip);
+  }
+
+  /* A document has no picture, so it gets the same box with an icon in it. */
+  .doc {
+    flex: none;
+    width: 48px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    color: var(--text-3);
     background: var(--image-bg);
     border: 1px solid var(--border);
     border-radius: var(--radius-chip);

@@ -53,6 +53,7 @@
   import IconButton from '../../lib/ui/IconButton.svelte';
   import Toast from '../../lib/ui/Toast.svelte';
   import CanvasView from './CanvasView.svelte';
+  import DocumentView from './DocumentView.svelte';
   import ClassManagerDialog from './ClassManagerDialog.svelte';
   import ClassPicker from './ClassPicker.svelte';
   import ClassesPanel from './ClassesPanel.svelte';
@@ -182,6 +183,9 @@
   $effect(() => {
     if (!panelTabs.some(([id]) => id === tab)) tab = 'classes';
   });
+
+  /** The project labels text documents, so the wording and the tools follow. */
+  const textProject = $derived(ws.types.includes('span'));
 
   const saveLabel = $derived(
     ws.saveState === 'error'
@@ -343,6 +347,7 @@
       </span>
     </div>
 
+    {#if !ws.isDocument}
     <div class="group tools" role="group" aria-label="Tools" data-tour="tools">
       {#each tools as t (t.id)}
         <IconButton label={t.label} shortcut={t.key} onclick={() => (tool = t.id)}>
@@ -352,6 +357,7 @@
         </IconButton>
       {/each}
     </div>
+    {/if}
 
     <div class="group">
       <span class:disabled={!ws.canUndo}>
@@ -360,6 +366,7 @@
       <span class:disabled={!ws.canRedo}>
         <IconButton label="Redo" shortcut="Ctrl+Shift+Z" onclick={() => ws.engine?.model.redo()}><Redo2 size={16} /></IconButton>
       </span>
+      {#if !ws.isDocument}
       <span class="sep hide-narrow"></span>
       <span class="zoomtools hide-narrow">
       <IconButton label="Zoom out" shortcut="-" onclick={() => ws.engine?.zoomOut()}><ZoomOut size={16} /></IconButton>
@@ -372,6 +379,7 @@
       <IconButton label="Zoom in" shortcut="+" onclick={() => ws.engine?.zoomIn()}><ZoomIn size={16} /></IconButton>
       <IconButton label="Fit to view" shortcut="0" onclick={() => ws.engine?.fit()}><Maximize size={16} /></IconButton>
       </span>
+      {/if}
     </div>
 
     <div class="group end">
@@ -456,8 +464,18 @@
       </div>
 
       <main class="canvas" data-tour="canvas">
-        <CanvasView {ws} {tool} onzoom={(p) => (zoom = p)} />
-        {#key tool}<TipCard id="tool:{tool}" floating hold={touring || !toolPicked || ws.readOnly} />{/key}
+        <!--
+          The canvas holds the shapes of whatever is open, documents included, so it stays on the
+          page and goes quietly out of the way when there is no picture to draw on.
+        -->
+        <div class="stage" class:offstage={ws.isDocument} inert={ws.isDocument}>
+          <CanvasView {ws} {tool} onzoom={(p) => (zoom = p)} />
+        </div>
+        {#if ws.isDocument}
+          <DocumentView {ws} />
+        {:else}
+          {#key tool}<TipCard id="tool:{tool}" floating hold={touring || !toolPicked || ws.readOnly} />{/key}
+        {/if}
         {#if ws.currentId && ws.readOnly}
           <div class="banner" role="status">
             {#if !ws.canEdit}
@@ -473,11 +491,15 @@
             {#if ws.canManage}
               <EmptyState
                 title="Nothing to annotate yet"
-                description="Import images to start. You can bring labels from YOLO or COCO files afterward."
+                description={textProject
+                  ? 'Add documents to start. A .txt file is one document, and a .jsonl file holds one per line.'
+                  : 'Import images to start. You can bring labels from YOLO or COCO files afterward.'}
               >
                 {#snippet icon()}<Upload size={20} />{/snippet}
                 {#snippet action()}
-                  <Button variant="primary" onclick={() => (dialog = 'import-images')}>Import images</Button>
+                  <Button variant="primary" onclick={() => (dialog = 'import-images')}>
+                    {textProject ? 'Add documents' : 'Import images'}
+                  </Button>
                 {/snippet}
               </EmptyState>
             {:else}
@@ -562,6 +584,7 @@
   <ImportDialog
     projectId={ws.projectId}
     initialTab={dialog === 'import-labels' ? 'labels' : 'images'}
+    documents={ws.types.includes('span')}
     ondone={() => {
       onboarding.mark('images');
       void ws.refresh();
@@ -772,6 +795,16 @@
   .rail-wrap {
     display: flex;
     min-height: 0;
+  }
+
+  .stage {
+    position: absolute;
+    inset: 0;
+  }
+
+  .offstage {
+    visibility: hidden;
+    pointer-events: none;
   }
 
   .canvas {

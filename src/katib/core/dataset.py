@@ -13,7 +13,7 @@ from typing import Any, Protocol
 @dataclass(frozen=True)
 class Shape:
     class_name: str
-    type: str  # "box", "polygon", "obb", "keypoints", "mask", "tag" or "text"
+    type: str  # "box", "polygon", "obb", "keypoints", "mask", "tag", "text" or "span"
     geometry: dict[str, Any]
     attrs: dict[str, Any] = field(default_factory=dict[str, Any], hash=False)
 
@@ -64,6 +64,9 @@ class ExportImage:
     shapes: list[Shape]
     source: Path | None = None  # original file, used when copying images into the export
     split: str | None = None  # "train", "val" or "test" when the export is split
+    #: "image" for a picture, "text" for a document, whose words are in `source` and whose
+    #: `width` is its length in characters.
+    kind: str = "image"
 
 
 class DatasetView(Protocol):

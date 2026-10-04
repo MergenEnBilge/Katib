@@ -149,7 +149,7 @@ def thumb_path(image: Image, ctx: StorageContext) -> Path:
     return dest
 
 
-def _next_position(session: Session, project_id: uuid.UUID) -> int:
+def next_position(session: Session, project_id: uuid.UUID) -> int:
     top = session.scalar(select(func.max(Image.position)).where(Image.project_id == project_id))
     return 0 if top is None else top + 1
 
@@ -175,7 +175,7 @@ def known_digests(session: Session, project_id: uuid.UUID, digests: list[str]) -
     return sorted(set(found))
 
 
-def _known_hashes(session: Session, project_id: uuid.UUID) -> dict[str, str]:
+def known_hashes(session: Session, project_id: uuid.UUID) -> dict[str, str]:
     rows = session.execute(
         select(Image.sha256, Image.filename).where(Image.project_id == project_id)
     ).all()
@@ -238,11 +238,11 @@ def import_folder(
     files.sort(key=lambda p: str(p).lower())
 
     report = ImportReport()
-    known = _known_hashes(session, project_id)
+    known = known_hashes(session, project_id)
     # A rescan meets files it has already added. Leave those alone.
     already_added = _known_keys(session, project_id)
     files = [f for f in files if FILE_PREFIX + str(f.resolve()) not in already_added]
-    position = _next_position(session, project_id)
+    position = next_position(session, project_id)
     for i, candidate in enumerate(files, start=1):
         real = candidate.resolve()
         if not inside(real, roots):
@@ -322,8 +322,8 @@ def import_upload(
             stored,
             Path(filename).name,
             key,
-            _next_position(session, project_id),
-            _known_hashes(session, project_id),
+            next_position(session, project_id),
+            known_hashes(session, project_id),
             ctx,
         )
     except UnreadableImage as err:
