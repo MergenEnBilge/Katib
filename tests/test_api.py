@@ -203,6 +203,7 @@ def test_formats_are_listed(api: TestClient) -> None:
         "cvat",
         "createml",
         "mask-png",
+        "jsonl-spans",
         "class-folders",
         "jsonl",
     }
