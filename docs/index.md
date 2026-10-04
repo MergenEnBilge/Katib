@@ -21,6 +21,7 @@ with one command, or run it on a server that your whole team uses.
 | Area | Details |
 |------|---------|
 | Shapes | Boxes, polygons, rotated boxes, keypoints, brush masks and whole-picture tags |
+| Text | Documents with labelled spans of words, and tags for a whole document |
 | Classes | Rename, merge and delete across a project. Preview first, and undo for 30 days |
 | Datasets | YOLO, COCO, Pascal VOC, LabelMe, CVAT, CreateML, class folders and JSON Lines, with train, validation and test splits |
 | Quality checks | Finds tiny and duplicate shapes, near-identical pictures and unbalanced classes |
@@ -30,8 +31,8 @@ with one command, or run it on a server that your whole team uses.
 
 ## What Katib does not do
 
-Katib works with still pictures. It does not track objects through video, and it does not label text,
-audio or 3D data. It does not sync between separate servers, and it has no built-in single sign-on or
+Katib works with still pictures and text documents. It does not track objects through video, and it
+does not label audio or 3D data. It does not sync between separate servers, and it has no built-in single sign-on or
 billing.
 
 ## Other documents
