@@ -7,7 +7,8 @@ test('write a caption, divide the images into splits and keep both after a reloa
   await page.goto('/');
   await page.getByRole('button', { name: 'New project' }).first().click();
   await page.getByLabel('Project name').fill(`Words ${Date.now()}`);
-  await page.getByRole('checkbox', { name: /^Text/ }).check();
+  // "Text spans" also starts with Text, so match the note that follows this one.
+  await page.getByRole('checkbox', { name: /^Text Captions/ }).check();
   await page.getByRole('button', { name: 'Create project' }).click();
   await expect(page).toHaveURL(/\/p\/[0-9a-f-]{36}$/);
 

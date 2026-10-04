@@ -17,6 +17,11 @@
     { id: 'mask', label: 'Brush masks', note: 'Paint over an area with a brush.' },
     { id: 'tag', label: 'Image tags', note: 'A label for the whole picture.' },
     { id: 'text', label: 'Text', note: 'Captions, and the words inside shapes.' },
+    {
+      id: 'span',
+      label: 'Text spans',
+      note: 'Label words in documents. This project holds text instead of pictures.',
+    },
   ];
 
   let name = $state('');

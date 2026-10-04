@@ -14,11 +14,14 @@
   let {
     projectId,
     initialTab = 'images',
+    documents = false,
     ondone,
     onclose,
   }: {
     projectId: string;
     initialTab?: 'images' | 'labels';
+    /** The project labels text documents rather than pictures, so this adds those instead. */
+    documents?: boolean;
     ondone: () => void;
     onclose: () => void;
   } = $props();
@@ -35,6 +38,51 @@
   let picking = $state(false);
   let labelPath = $state('');
   let pickingLabels = $state(false);
+  let documentInput: HTMLInputElement | null = $state(null);
+
+  /** Add documents from the files someone picked, one file at a time so progress means something. */
+  async function addDocuments(list: FileList | null): Promise<void> {
+    if (!list || list.length === 0) return;
+    startOver();
+    const files = [...list];
+    let added = 0;
+    let spans = 0;
+    const found: Note[] = [];
+    try {
+      for (const [i, file] of files.entries()) {
+        currentFile = file.name;
+        progress = i / files.length;
+        const started = await api.documents.add(projectId, file);
+        const done = await waitForJob(started.id);
+        if (done.status === 'failed') {
+          error = done.error ?? 'The documents could not be added.';
+          return;
+        }
+        const result = done.result as unknown as {
+          added: number;
+          spans: number;
+          skipped: Note[];
+        };
+        added += result.added;
+        spans += result.spans;
+        found.push(...result.skipped);
+      }
+      progress = 1;
+      changed = true;
+      summary = [
+        `${plural(added, 'document')} added.`,
+        spans ? `${plural(spans, 'label')} came with them.` : '',
+        found.length ? `${plural(found.length, 'line', 'lines')} skipped.` : '',
+      ].filter(Boolean);
+      notes = found;
+    } catch (err) {
+      fail(err, 'Could not add those documents.');
+    } finally {
+      busy = false;
+      currentFile = '';
+      if (documentInput) documentInput.value = '';
+    }
+  }
 
   function chooseLabels(path: string): void {
     labelPath = path;
@@ -63,7 +111,8 @@
   $effect(() => {
     api
       .formats()
-      .then((f) => (formats = f))
+      // Only the formats that match what this project holds: text, or pictures.
+      .then((f) => (formats = f.filter((x) => x.supports.includes('span') === documents)))
       .catch((err: unknown) => {
         error = err instanceof ApiError ? err.message : 'Could not load the list of formats.';
       });
@@ -283,13 +332,15 @@
 
 <Modal
   title="Import"
-  description="Add images first, then import label files that match them by filename."
+  description={documents
+    ? 'Add documents first, then import label files that match them by name.'
+    : 'Add images first, then import label files that match them by filename.'}
   width={560}
   onclose={close}
 >
   <TipCard id="dialog:import" />
   <div class="tabs" role="tablist">
-    {#each [['images', 'Images'], ['labels', 'Labels']] as const as [id, label] (id)}
+    {#each [['images', documents ? 'Documents' : 'Images'], ['labels', 'Labels']] as const as [id, label] (id)}
       <button
         type="button"
         role="tab"
@@ -301,7 +352,35 @@
     {/each}
   </div>
 
-  {#if tab === 'images'}
+  {#if tab === 'images' && documents}
+    <div class="section">
+      <div class="option">
+        <h3>Add documents</h3>
+        <p class="note">
+          A <code>.txt</code> or <code>.md</code> file becomes one document. A
+          <code>.jsonl</code> file holds one document per line, and any spans and tags a line
+          already carries come in with it, with their classes.
+        </p>
+        <div>
+          <Button variant="primary" loading={busy} onclick={() => documentInput?.click()}>
+            <Upload size={16} />Choose files
+          </Button>
+        </div>
+        <input
+          type="file"
+          multiple
+          hidden
+          accept=".txt,.md,.text,.jsonl,.ndjson"
+          aria-label="Add documents"
+          bind:this={documentInput}
+          onchange={(e) => void addDocuments((e.currentTarget as HTMLInputElement).files)}
+        />
+        <p class="note">
+          The same words are only added once, so running a file through twice is safe.
+        </p>
+      </div>
+    </div>
+  {:else if tab === 'images'}
     {#if connected.length > 0}
       <div class="section">
         <ul class="connected" aria-label="Connected folders">

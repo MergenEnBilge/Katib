@@ -11,6 +11,7 @@ import type {
 } from '../api/types';
 import type { ClassStyle, Shape } from '../canvas/types';
 import { isBox, isDrawn } from '../canvas/types';
+import { spanRange } from '../text/spans';
 import type { Engine } from '../canvas/engine';
 import { Autosave, shapeFromAnnotation, type SaveState } from '../sync/autosave';
 import { browserOutbox } from '../sync/outbox';
@@ -58,6 +59,8 @@ export class Workspace {
   canRedo = $state(false);
   /** Bumped on every model change so derived UI (details panel) can refresh. */
   modelTick = $state(0);
+  /** The words of the open document, or null while a picture is open. */
+  documentText = $state<string | null>(null);
   presence = $state<PresenceUser[]>([]);
   members = $state<Member[]>([]);
   comments = $state<Comment[]>([]);
@@ -188,6 +191,62 @@ export class Workspace {
     const shape = model?.get(id);
     if (!model || !shape || this.readOnly) return;
     model.commit([{ kind: 'delete', shape }]);
+  }
+
+  /** Ids of the selected shapes, read through the tick so a page follows what changes. */
+  get selectedIds(): Set<string> {
+    void this.modelTick;
+    // Plain data copied out of the canvas model, which is not reactive on its own.
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity
+    return new Set(this.engine?.model.selection ?? []);
+  }
+
+  /** Whether the open item is a text document rather than a picture. */
+  get isDocument(): boolean {
+    return this.current?.kind === 'text';
+  }
+
+  /** The spans on the open document, in the order they appear in the words. */
+  spans(): Shape[] {
+    void this.modelTick;
+    return (this.engine?.model.shapes ?? [])
+      .filter((s) => s.type === 'span')
+      .sort((a, b) => spanRange(a).start - spanRange(b).start);
+  }
+
+  /** Label a run of characters. Returns the new span, or null when it could not be made. */
+  addSpan(start: number, end: number): Shape | null {
+    const model = this.engine?.model;
+    if (!model || this.readOnly || !this.activeClassId || end <= start) return null;
+    const words = this.documentText ?? '';
+    if (end > words.length) return null;
+    const shape: Shape = {
+      id: crypto.randomUUID(),
+      type: 'span',
+      classId: this.activeClassId,
+      geometry: { start, end },
+      attrs: {},
+      version: 0,
+    };
+    model.commit([{ kind: 'create', shape }]);
+    model.select([shape.id]);
+    this.modelTick++;
+    return shape;
+  }
+
+  removeSpan(id: string): void {
+    const model = this.engine?.model;
+    const shape = model?.get(id);
+    if (!model || !shape || this.readOnly) return;
+    model.commit([{ kind: 'delete', shape }]);
+    this.modelTick++;
+  }
+
+  selectSpan(id: string | null): void {
+    const model = this.engine?.model;
+    if (!model) return;
+    model.select(id ? [id] : []);
+    this.modelTick++;
   }
 
   /** Text written for one shape, such as the word inside a box. */
@@ -496,7 +555,15 @@ export class Workspace {
       }, annotations);
       this.saveState = 'saved';
       this.pending = 0;
-      await engine.setImage(api.images.fileUrl(imageId), fresh.width, fresh.height);
+      if (fresh.kind === 'text') {
+        const document = await api.documents.text(imageId);
+        if (token !== this.openToken) return;
+        this.documentText = document.text;
+        engine.clearImage();
+      } else {
+        this.documentText = null;
+        await engine.setImage(api.images.fileUrl(imageId), fresh.width, fresh.height);
+      }
       this.prefetch(imageId);
       this.realtime?.setViewing(imageId);
       void this.loadComments();
@@ -628,8 +695,10 @@ export class Workspace {
   private prefetch(imageId: string): void {
     const index = this.images.findIndex((i) => i.id === imageId);
     for (const item of this.images.slice(index + 1, index + 3)) {
-      const img = new Image();
-      img.src = api.images.fileUrl(item.id);
+      if (item.kind !== 'text') {
+        const img = new Image();
+        img.src = api.images.fileUrl(item.id);
+      }
       void api.annotations.list(item.id).catch(() => undefined);
     }
   }

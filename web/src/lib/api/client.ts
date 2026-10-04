@@ -378,6 +378,23 @@ export const api = {
     },
   },
 
+  documents: {
+    /** Add documents from one file: .txt or .md for one, .jsonl for one per line. */
+    add: async (projectId: string, file: File): Promise<Job> => {
+      const form = new FormData();
+      form.append('file', file, file.name);
+      const response = await send(`/projects/${projectId}/documents`, {
+        method: 'POST',
+        body: form,
+      });
+      if (!response.ok) return fail(response);
+      return (await response.json()) as Job;
+    },
+    /** The words of a document, to show and label. */
+    text: (imageId: string) =>
+      request<{ filename: string; text: string }>('GET', `/images/${imageId}/text`),
+  },
+
   images: {
     list: (projectId: string, filter: ImageFilter = {}) =>
       request<ImagePage>('GET', `/projects/${projectId}/images${query({ ...filter })}`),
